@@ -57,9 +57,9 @@ function BudgetBar({ spent, budget, dayOfMonth, daysInMonth }) {
 
 function StatCard({ label, value, sub, accent, flag }) {
   return (
-    <div style={{ background:"#0f172a", border:`1px solid ${flag?"#7f1d1d":accent+"30"}`, borderRadius:16, padding:"18px 20px" }}>
+    <div style={{ background:"#0f172a", border:`1px solid ${flag?"#7f1d1d":accent+"30"}`, borderRadius:16, padding:"14px 18px" }}>
       <div style={{ fontSize:11, color:"#64748b", textTransform:"uppercase", letterSpacing:2, marginBottom:6, fontFamily:"'DM Mono', monospace" }}>{label}</div>
-      <div style={{ fontSize:24, fontWeight:700, color:flag?"#ef4444":"#f1f5f9" }}>{value}</div>
+      <div style={{ fontSize:22, fontWeight:700, color:flag?"#ef4444":"#f1f5f9" }}>{value}</div>
       {sub && <div style={{ fontSize:11, color:"#475569", marginTop:4 }}>{sub}</div>}
     </div>
   );
@@ -92,20 +92,20 @@ function CategoryCard({ c, status, catColors, byCategory, budgets, dayOfMonth, d
   const projected = Math.round(spent / (dayOfMonth / daysInMonth));
   const fmt = n => `$${Math.round(n).toLocaleString("en-US")}`;
   return (
-    <div onClick={onClick} style={{ background:"#0a0f1e", border:`1px solid ${status !== "ok" ? iconColor+"40" : "#1e293b"}`, borderRadius:14, padding:"16px 18px", cursor:"pointer", transition:"background 0.15s" }}
+    <div onClick={onClick} style={{ background:"#0a0f1e", border:`1px solid ${status !== "ok" ? iconColor+"40" : "#1e293b"}`, borderRadius:14, padding:"12px 14px", cursor:"pointer", transition:"background 0.15s" }}
       onMouseEnter={e=>e.currentTarget.style.background="#0f172a"}
       onMouseLeave={e=>e.currentTarget.style.background="#0a0f1e"}>
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
         <div style={{ display:"flex", alignItems:"center", gap:7 }}>
           <div style={{ width:10, height:10, borderRadius:3, background:catColors[c]||"#94a3b8", flexShrink:0 }} />
-          <span style={{ fontSize:13, fontWeight:700, color:"#e2e8f0" }}>{c}</span>
+          <span style={{ fontSize:12, fontWeight:700, color:"#e2e8f0" }}>{c}</span>
         </div>
         <StatusIcon status={status} />
       </div>
       <BudgetBar spent={spent} budget={budget} dayOfMonth={dayOfMonth} daysInMonth={daysInMonth} />
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginTop:8 }}>
-        <span style={{ fontSize:16, fontWeight:700, color:iconColor, fontFamily:"'DM Mono', monospace" }}>{fmt(spent)}</span>
-        <span style={{ fontSize:11, color:"#334155", fontFamily:"'DM Mono', monospace" }}>of {fmt(budget)}</span>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginTop:6 }}>
+        <span style={{ fontSize:14, fontWeight:700, color:iconColor, fontFamily:"'DM Mono', monospace" }}>{fmt(spent)}</span>
+        <span style={{ fontSize:10, color:"#334155", fontFamily:"'DM Mono', monospace" }}>of {fmt(budget)}</span>
       </div>
       {status !== "ok" && isCurrentMonth && (
         <div style={{ fontSize:10, color:iconColor, marginTop:4, fontFamily:"'DM Mono', monospace", opacity:0.75 }}>
@@ -234,13 +234,13 @@ export default function App() {
     await saveBudgetsToSheet(nb, nc);
   }
 
-  const mw = isDesktop ? 1100 : 700;
+  const mw = isDesktop ? 1320 : 700;
 
   const MemberSection = () => (
-    <div style={{ background:"#0f172a", borderRadius:16, padding:24, border:"1px solid #1e293b" }}>
-      <div style={{ fontSize:13, fontWeight:600, color:"#64748b", textTransform:"uppercase", letterSpacing:2, marginBottom:20, fontFamily:"'DM Mono',monospace" }}>Spend by Member</div>
+    <div style={{ background:"#0f172a", borderRadius:16, padding:18, border:"1px solid #1e293b" }}>
+      <div style={{ fontSize:11, fontWeight:600, color:"#64748b", textTransform:"uppercase", letterSpacing:2, marginBottom:14, fontFamily:"'DM Mono',monospace" }}>Spend by Member</div>
       {FAMILY_MEMBERS.map(m=>(
-        <div key={m} style={{ marginBottom:16 }}>
+        <div key={m} style={{ marginBottom:12 }}>
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
             <div style={{ display:"flex", alignItems:"center", gap:8 }}><div style={{ width:8, height:8, borderRadius:"50%", background:MEMBER_COLORS[m] }} /><span style={{ fontSize:14, fontWeight:600, color:"#e2e8f0" }}>{m}</span></div>
             <span style={{ fontSize:14, fontWeight:700, color:MEMBER_COLORS[m], fontFamily:"'DM Mono',monospace" }}>{fmtD(byMember[m])}</span>
@@ -252,8 +252,8 @@ export default function App() {
   );
 
   const TableSection = () => (
-    <div style={{ background:"#0f172a", borderRadius:16, padding:24, border:"1px solid #1e293b" }}>
-      <div style={{ fontSize:13, fontWeight:600, color:"#64748b", textTransform:"uppercase", letterSpacing:2, marginBottom:20, fontFamily:"'DM Mono',monospace" }}>Member × Category</div>
+    <div style={{ background:"#0f172a", borderRadius:16, padding:18, border:"1px solid #1e293b" }}>
+      <div style={{ fontSize:11, fontWeight:600, color:"#64748b", textTransform:"uppercase", letterSpacing:2, marginBottom:14, fontFamily:"'DM Mono',monospace" }}>Member × Category</div>
       <div style={{ overflowX:"auto" }}>
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
           <thead><tr><th style={{ textAlign:"left", color:"#475569", padding:"0 0 12px", fontWeight:600 }}>Category</th>{FAMILY_MEMBERS.map(m=>(<th key={m} style={{ textAlign:"right", color:MEMBER_COLORS[m], padding:"0 0 12px 12px", fontWeight:600 }}>{m}</th>))}</tr></thead>
@@ -264,8 +264,8 @@ export default function App() {
   );
 
   const EntriesSection = () => (
-    <div style={{ background:"#0f172a", borderRadius:16, padding:24, border:"1px solid #1e293b" }}>
-      <div style={{ fontSize:13, fontWeight:600, color:"#64748b", textTransform:"uppercase", letterSpacing:2, marginBottom:16, fontFamily:"'DM Mono',monospace" }}>Entries <span style={{ color:"#334155", fontSize:10, fontWeight:400 }}>· tap to edit</span></div>
+    <div style={{ background:"#0f172a", borderRadius:16, padding:18, border:"1px solid #1e293b" }}>
+      <div style={{ fontSize:11, fontWeight:600, color:"#64748b", textTransform:"uppercase", letterSpacing:2, marginBottom:12, fontFamily:"'DM Mono',monospace" }}>Entries <span style={{ color:"#334155", fontSize:10, fontWeight:400 }}>· tap to edit</span></div>
       {entries.length===0 ? <div style={{ textAlign:"center", padding:"32px 0", color:"#334155", fontSize:13 }}>No entries for {MONTH_NAMES[viewMonth]}.</div>
       : entries.slice(0,12).map(e=>(
         <div key={e.id} className="entry-row" onClick={()=>openEditEntry(e)}>
@@ -313,7 +313,7 @@ export default function App() {
         @keyframes spin { to{transform:rotate(360deg)} }
       `}</style>
 
-      <div style={{ background:"#0a0f1e", borderBottom:"1px solid #1e293b", padding:"0 24px" }}>
+      <div style={{ background:"#0a0f1e", borderBottom:"1px solid #1e293b", padding:"0 16px" }}>
         <div style={{ maxWidth:mw, margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between", height:64 }}>
           <div>
             <div style={{ fontSize:18, fontWeight:700, letterSpacing:-0.5, display:"flex", alignItems:"center", gap:8 }}>
@@ -360,7 +360,7 @@ export default function App() {
         </Modal>
       )}
 
-      <div style={{ maxWidth:mw, margin:"0 auto", padding:"24px 24px" }}>
+      <div style={{ maxWidth:mw, margin:"0 auto", padding:"20px 16px" }}>
         {loading ? <Spinner /> : error ? (
           <div style={{ background:"#450a0a", border:"1px solid #7f1d1d", borderRadius:16, padding:32, textAlign:"center" }}>
             <div style={{ fontSize:16, color:"#f87171", fontWeight:600, marginBottom:8 }}>Connection Error</div>
@@ -388,9 +388,9 @@ export default function App() {
 
                 {isDesktop ? (
                   <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-                    <div style={{ background:"#0f172a", borderRadius:16, padding:24, border:"1px solid #1e293b" }}>
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-                        <div style={{ fontSize:13, fontWeight:600, color:"#64748b", textTransform:"uppercase", letterSpacing:2, fontFamily:"'DM Mono',monospace" }}>Category Budgets</div>
+                    <div style={{ background:"#0f172a", borderRadius:16, padding:20, border:"1px solid #1e293b" }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+                        <div style={{ fontSize:11, fontWeight:600, color:"#64748b", textTransform:"uppercase", letterSpacing:2, fontFamily:"'DM Mono',monospace" }}>Category Budgets</div>
                         {isCurrentMonth && <div style={{ fontSize:11, color:"#334155", fontFamily:"'DM Mono',monospace", display:"flex", alignItems:"center", gap:5 }}><div style={{ width:2, height:10, background:"#475569", borderRadius:1 }} /> today</div>}
                       </div>
                       <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:12 }}>
@@ -407,9 +407,9 @@ export default function App() {
                   </div>
                 ) : (
                   <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-                    <div style={{ background:"#0f172a", borderRadius:16, padding:24, border:"1px solid #1e293b" }}>
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-                        <div style={{ fontSize:13, fontWeight:600, color:"#64748b", textTransform:"uppercase", letterSpacing:2, fontFamily:"'DM Mono',monospace" }}>Category Budgets</div>
+                    <div style={{ background:"#0f172a", borderRadius:16, padding:20, border:"1px solid #1e293b" }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+                        <div style={{ fontSize:11, fontWeight:600, color:"#64748b", textTransform:"uppercase", letterSpacing:2, fontFamily:"'DM Mono',monospace" }}>Category Budgets</div>
                         {isCurrentMonth && <div style={{ fontSize:11, color:"#334155", fontFamily:"'DM Mono',monospace", display:"flex", alignItems:"center", gap:5 }}><div style={{ width:2, height:10, background:"#475569", borderRadius:1 }} /> today</div>}
                       </div>
                       <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
