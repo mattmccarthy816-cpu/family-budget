@@ -387,7 +387,7 @@ export default function App() {
                 </div>
 
                 {isDesktop ? (
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 360px", gap:20, alignItems:"start" }}>
+                  <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
                     <div style={{ background:"#0f172a", borderRadius:16, padding:24, border:"1px solid #1e293b" }}>
                       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
                         <div style={{ fontSize:13, fontWeight:600, color:"#64748b", textTransform:"uppercase", letterSpacing:2, fontFamily:"'DM Mono',monospace" }}>Category Budgets</div>
@@ -399,7 +399,7 @@ export default function App() {
                         ))}
                       </div>
                     </div>
-                    <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:20, alignItems:"start" }}>
                       <MemberSection />
                       <TableSection />
                       <EntriesSection />
