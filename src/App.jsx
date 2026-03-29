@@ -55,7 +55,7 @@ function BudgetBar({ spent, budget, dayOfMonth, daysInMonth }) {
     <div style={{ background:"#1e293b", borderRadius:999, height:6, position:"relative" }}>
       {status !== "over" && <div style={{ position:"absolute", left:0, top:0, width:`${projPct}%`, height:"100%", background:barColor+"28", borderRadius:999 }} />}
       <div style={{ position:"absolute", left:0, top:0, width:`${pct}%`, height:"100%", background:barColor, borderRadius:999, transition:"width 0.5s" }} />
-      <div style={{ position:"absolute", top:-3, bottom:-3, left:`${progress*100}%`, width:2, background:"#475569", borderRadius:1, transform:"translateX(-50%)" }} />
+      <div style={{ position:"absolute", top:-3, bottom:-3, left:`${progress*100}%`, width:2, background:"rgba(255,255,255,0.5)", borderRadius:1, transform:"translateX(-50%)" }} />
     </div>
   );
 }
@@ -157,7 +157,7 @@ export default function App() {
   const [editCat, setEditCat] = useState(null);
   const [catForm, setCatForm] = useState({ name:"", budget:"", color:PALETTE[0] });
   const [editLT, setEditLT] = useState(null); // index or "new"
-  const [ltForm, setLtForm] = useState({ name:"", saved:"", goal:"", color:PALETTE[0], targetDate:"" });
+  const [ltForm, setLtForm] = useState({ name:"", saved:"", goal:"", color:PALETTE[0], targetDate:"", startDate:"" });
 
   const categories = useMemo(() => Object.keys(budgets), [budgets]);
   const showToast = useCallback((msg, ok=true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3000); }, []);
@@ -178,7 +178,7 @@ export default function App() {
       const entries = (data.entries || []).filter(r => r[0]).map(r => ({ id:String(r[0]), date:String(r[1]), member:String(r[2]), category:String(r[3]), amount:parseFloat(r[4]) }));
       const budgetMap = {}, colorMap = {};
       (data.budgets || []).forEach(r => { if (r[0]) { budgetMap[String(r[0])] = parseFloat(r[1]); colorMap[String(r[0])] = String(r[2]); } });
-      const lt = (data.longTerm || []).filter(r => r[0]).map(r => ({ name:String(r[0]), saved:parseFloat(r[1])||0, goal:parseFloat(r[2])||0, color:String(r[3]||''), targetDate:String(r[4]||'') }));
+      const lt = (data.longTerm || []).filter(r => r[0]).map(r => ({ name:String(r[0]), saved:parseFloat(r[1])||0, goal:parseFloat(r[2])||0, color:String(r[3]||''), targetDate:String(r[4]||''), startDate:String(r[5]||'') }));
       setAllEntries(entries); setBudgets(budgetMap); setCatColors(colorMap); setLongTerm(lt);
       setNextId(entries.reduce((m, e) => Math.max(m, parseInt(e.id)||0), 0) + 1);
     } catch(err) { setError("Couldn't connect to Google Sheets. " + err.message); }
@@ -266,13 +266,13 @@ export default function App() {
   }
 
   // Long Term CRUD
-  function openNewLT() { setLtForm({name:"",saved:"",goal:"",color:PALETTE[0],targetDate:""}); setEditLT("new"); }
-  function openEditLT(i) { setLtForm({name:longTerm[i].name,saved:String(longTerm[i].saved),goal:String(longTerm[i].goal),color:longTerm[i].color||PALETTE[0],targetDate:longTerm[i].targetDate||""}); setEditLT(i); }
+  function openNewLT() { const todayStr = new Date().toISOString().slice(0,7); setLtForm({name:"",saved:"",goal:"",color:PALETTE[0],targetDate:"",startDate:todayStr}); setEditLT("new"); }
+  function openEditLT(i) { setLtForm({name:longTerm[i].name,saved:String(longTerm[i].saved),goal:String(longTerm[i].goal),color:longTerm[i].color||PALETTE[0],targetDate:longTerm[i].targetDate||"",startDate:longTerm[i].startDate||""}); setEditLT(i); }
   async function saveLT() {
     const name = ltForm.name.trim();
     if (!name||ltForm.saved===""||ltForm.goal===""||isNaN(+ltForm.saved)||isNaN(+ltForm.goal)) { showToast("Please fill all fields.",false); return; }
     let next = [...longTerm];
-    const item = { name, saved:parseFloat((+ltForm.saved).toFixed(2)), goal:parseFloat((+ltForm.goal).toFixed(2)), color:ltForm.color||PALETTE[0], targetDate:ltForm.targetDate||"" };
+    const item = { name, saved:parseFloat((+ltForm.saved).toFixed(2)), goal:parseFloat((+ltForm.goal).toFixed(2)), color:ltForm.color||PALETTE[0], targetDate:ltForm.targetDate||"", startDate:ltForm.startDate||"" };
     if (editLT==="new") { next.push(item); }
     else { next[editLT] = item; }
     setLongTerm(next); setEditLT(null);
@@ -383,11 +383,13 @@ export default function App() {
             </div>
             <div style={{ fontSize:11, color:"#334155", fontFamily:"'DM Mono',monospace", marginTop:1 }}>{MONTH_NAMES[viewMonth].toUpperCase()} {viewYear} · DAY {dayOfMonth}/{daysInMonth}</div>
           </div>
-          <div style={{ display:"flex", gap:4, background:"#0f172a", borderRadius:12, padding:4 }}>
-            <button className={`tab-btn ${view==="dashboard"?"active":""}`} onClick={()=>setView("dashboard")}>Dashboard</button>
-            <button className={`tab-btn ${view==="add"?"active":""}`} onClick={()=>setView("add")}>+ Add</button>
-            <button className={`tab-btn ${view==="budgets"?"active":""}`} onClick={()=>setView("budgets")}>Budgets</button>
-            <button className={`tab-btn ${view==="longterm"?"active":""}`} onClick={()=>setView("longterm")}>Long Term</button>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ display:"flex", gap:4, background:"#0f172a", borderRadius:12, padding:4 }}>
+              <button className={`tab-btn ${view==="dashboard"?"active":""}`} onClick={()=>setView("dashboard")}>Budget Dashboard</button>
+              <button className={`tab-btn ${view==="longterm"?"active":""}`} onClick={()=>setView("longterm")}>Long Term Goals</button>
+              <button className={`tab-btn ${view==="budgets"?"active":""}`} onClick={()=>setView("budgets")}>Budget Details</button>
+            </div>
+            <button onClick={()=>setView("add")} style={{ background: view==="add" ? "#1d4ed8" : "linear-gradient(135deg,#1d4ed8,#7c3aed)", border:"none", borderRadius:10, color:"#fff", fontSize:13, fontWeight:700, padding:"9px 16px", cursor:"pointer", fontFamily:"'Sora',sans-serif", whiteSpace:"nowrap" }}>+ Add</button>
           </div>
         </div>
       </div>
@@ -432,7 +434,10 @@ export default function App() {
             <div><div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:7 }}>Name</div><input className="input-field" type="text" placeholder="e.g. Emergency Fund" value={ltForm.name} onChange={e=>setLtForm(f=>({...f,name:e.target.value}))} /></div>
             <div><div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:7 }}>Saved</div><div style={{ position:"relative" }}><span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#475569" }}>$</span><input className="input-field" type="number" min="0" step="0.01" placeholder="0" value={ltForm.saved} onChange={e=>setLtForm(f=>({...f,saved:e.target.value}))} style={{ paddingLeft:28 }} /></div></div>
             <div><div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:7 }}>Goal</div><div style={{ position:"relative" }}><span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#475569" }}>$</span><input className="input-field" type="number" min="0" step="0.01" placeholder="0" value={ltForm.goal} onChange={e=>setLtForm(f=>({...f,goal:e.target.value}))} style={{ paddingLeft:28 }} /></div></div>
-            <div><div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:7 }}>Target Date <span style={{ color:"#334155", textTransform:"none", letterSpacing:0 }}>(optional)</span></div><input className="input-field" type="month" value={ltForm.targetDate} onChange={e=>setLtForm(f=>({...f,targetDate:e.target.value}))} style={{ colorScheme:"dark" }} /></div>
+            <div style={{ display:"flex", gap:12 }}>
+              <div style={{ flex:1 }}><div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:7 }}>Start Date <span style={{ color:"#334155", textTransform:"none", letterSpacing:0 }}>(optional)</span></div><input className="input-field" type="month" value={ltForm.startDate} onChange={e=>setLtForm(f=>({...f,startDate:e.target.value}))} style={{ colorScheme:"dark" }} /></div>
+              <div style={{ flex:1 }}><div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:7 }}>Target Date <span style={{ color:"#334155", textTransform:"none", letterSpacing:0 }}>(optional)</span></div><input className="input-field" type="month" value={ltForm.targetDate} onChange={e=>setLtForm(f=>({...f,targetDate:e.target.value}))} style={{ colorScheme:"dark" }} /></div>
+            </div>
             <div><div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:10 }}>Color</div><div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>{PALETTE.map(p=>(<div key={p} className="color-swatch" style={{ background:p, borderColor:ltForm.color===p?"#fff":"transparent", boxShadow:ltForm.color===p?"0 0 0 1px #fff":"none" }} onClick={()=>setLtForm(f=>({...f,color:p}))} />))}</div></div>
             <div style={{ display:"flex", gap:10, marginTop:6 }}>
               <button className="submit-btn" onClick={saveLT} disabled={syncing} style={{ flex:1 }}>{editLT==="new"?"Add Account":"Save Changes"}</button>
@@ -555,23 +560,8 @@ export default function App() {
             {/* LONG TERM */}
             {view==="longterm" && (
               <div className="fade-in">
-                {/* Summary bar */}
-                <div style={{ background:"#0f172a", borderRadius:16, padding:"16px 20px", marginBottom:24, border:"1px solid #1e293b", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
-                  <div>
-                    <div style={{ fontSize:11, color:"#64748b", textTransform:"uppercase", letterSpacing:2, fontFamily:"'DM Mono',monospace", marginBottom:4 }}>Total Saved</div>
-                    <div style={{ fontSize:22, fontWeight:700, color:"#f1f5f9" }}>{fmt(ltTotalSaved)} <span style={{ fontSize:13, color:"#475569", fontWeight:400 }}>of {fmt(ltTotalGoal)}</span></div>
-                  </div>
-                  <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-                    <div style={{ textAlign:"right" }}>
-                      <div style={{ fontSize:11, color:"#64748b", textTransform:"uppercase", letterSpacing:2, fontFamily:"'DM Mono',monospace", marginBottom:4 }}>Progress</div>
-                      <div style={{ fontSize:22, fontWeight:700, color:"#4ade80" }}>{ltTotalGoal>0?Math.round((ltTotalSaved/ltTotalGoal)*100):0}%</div>
-                    </div>
-                    <button onClick={openNewLT} style={{ background:"#1e40af", border:"none", borderRadius:9, color:"#fff", fontSize:12, fontWeight:700, padding:"9px 16px", cursor:"pointer", fontFamily:"'Sora',sans-serif", whiteSpace:"nowrap" }}>+ New</button>
-                  </div>
-                </div>
-
                 {longTerm.length === 0 ? (
-                  <div style={{ textAlign:"center", padding:"60px 0", color:"#334155", fontSize:14 }}>No accounts yet. Hit + New to add one.</div>
+                  <div style={{ textAlign:"center", padding:"60px 0", color:"#334155", fontSize:14 }}>No accounts yet. Add your first goal below.</div>
                 ) : (
                   <div style={{ display:"grid", gridTemplateColumns:isDesktop?"repeat(3, 1fr)":"1fr", gap:16 }}>
                     {longTerm.map((item, i) => {
@@ -580,28 +570,19 @@ export default function App() {
                       const remaining = Math.max(item.goal - item.saved, 0);
                       const done = item.saved >= item.goal;
 
-                      // Pacing marker — where should we be today based on target date?
+                      // Pacing marker — where you should be today based on start → target date
                       let pacingPct = null;
                       if (item.targetDate && item.targetDate !== '' && item.goal > 0 && !done) {
                         const now2 = new Date();
                         const target = new Date(item.targetDate + '-01');
-                        // Find a reasonable start: assume start was when saved was 0, 
-                        // estimate based on current progress and time remaining
-                        const totalMs = target - now2;
-                        // We don't know start date, so use: pacing marker = fraction of time elapsed
-                        // Use a fixed start of Jan 1 of the year the goal was presumably set (current year if no info)
-                        // Simpler: show what % you'd need to be at today to finish on time
-                        // = saved_needed_today / goal, where saved_needed_today = goal * (months_from_some_start / total_months)
-                        // Best approximation without a start date: show marker based on time remaining
-                        // If target is in the future, marker shows (1 - timeRemaining/something)
-                        // We'll use: marker at today's position assumes linear from 0 to goal over a 5-year window
-                        // Actually — just show time-to-target as a fraction of 5 years max, clamp
-                        if (totalMs > 0) {
-                          const monthsRemaining = totalMs / (1000 * 60 * 60 * 24 * 30.44);
-                          // We don't know total duration, so estimate expected pct from saved amount trend
-                          // Simplest useful heuristic: show a subtle marker at pct that equals (1 - monthsRemaining/60)
-                          // i.e. assuming goals are set on ~5yr horizons
-                          pacingPct = Math.max(0, Math.min(1 - (monthsRemaining / 60), 0.95));
+                        // Use start date if set, otherwise default to today minus 1 month as a rough origin
+                        const start = item.startDate && item.startDate !== ''
+                          ? new Date(item.startDate + '-01')
+                          : new Date(now2.getFullYear(), now2.getMonth() - 1, 1);
+                        const totalDuration = target - start;
+                        const elapsed = now2 - start;
+                        if (totalDuration > 0 && elapsed >= 0) {
+                          pacingPct = Math.min(elapsed / totalDuration, 0.98);
                         }
                       }
 
@@ -652,7 +633,7 @@ export default function App() {
                           <div style={{ marginTop:14, background:"#1e293b", borderRadius:999, height:5, position:"relative" }}>
                             <div style={{ width:`${pct*100}%`, height:"100%", background:color, borderRadius:999, transition:"width 0.5s" }} />
                             {pacingPct !== null && (
-                              <div style={{ position:"absolute", top:-3, bottom:-3, left:`${pacingPct*100}%`, width:2, background:"#475569", borderRadius:1, transform:"translateX(-50%)" }} />
+                              <div style={{ position:"absolute", top:-3, bottom:-3, left:`${pacingPct*100}%`, width:2, background:"rgba(255,255,255,0.6)", borderRadius:1, transform:"translateX(-50%)" }} />
                             )}
                           </div>
                           {pacingPct !== null && (
@@ -665,6 +646,12 @@ export default function App() {
                     })}
                   </div>
                 )}
+
+                {/* Full-width add new callout */}
+                <div style={{ marginTop:20, background:"#0f172a", border:"1px dashed #1e293b", borderRadius:16, padding:"20px 28px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:16, flexWrap:"wrap" }}>
+                  <div style={{ fontSize:14, color:"#475569" }}>Looking to track a new long-term goal?</div>
+                  <button onClick={openNewLT} style={{ background:"linear-gradient(135deg,#1d4ed8,#7c3aed)", border:"none", borderRadius:10, color:"#fff", fontSize:13, fontWeight:700, padding:"10px 24px", cursor:"pointer", fontFamily:"'Sora',sans-serif", whiteSpace:"nowrap" }}>Add</button>
+                </div>
               </div>
             )}
           </>
