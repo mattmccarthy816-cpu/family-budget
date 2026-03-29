@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbzM_LupjW4ueP6Y3MysNw3iWlASQdeSQICxjjJuzZgLsfageFWd9Dscu23OJJ2ttlil1Q/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyEEdkfwvXVpgcOiu2oLQFp5XEn1v8OE1egPXaMSHGbyeA49CWwUZlHYo6wi3-2XjMfeA/exec";
 
 const FAMILY_MEMBERS = ["Matt", "Alice"];
 const PALETTE = ["#4ade80","#f97316","#60a5fa","#a78bfa","#f472b6","#34d399","#fbbf24","#94a3b8","#fb7185","#38bdf8","#c084fc","#fdba74","#86efac","#67e8f9","#fde68a","#d8b4fe"];
@@ -9,11 +9,12 @@ const MONTH_NAMES = ["January","February","March","April","May","June","July","A
 
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
 
+// Only flag "over" if spent exceeds budget by $1 or more
 function getCategoryStatus(spent, budget, dayOfMonth, daysInMonth) {
   const progress = dayOfMonth / daysInMonth;
-  if (spent >= budget) return "over";
+  if (spent >= budget + 1) return "over";
   const proj = spent / progress;
-  if (proj >= budget) return "risk";
+  if (proj >= budget + 1) return "risk";
   if (proj >= budget * 0.85) return "warn";
   return "ok";
 }
@@ -85,16 +86,15 @@ function Spinner() {
   );
 }
 
-function CategoryCard({ c, status, catColors, byCategory, budgets, dayOfMonth, daysInMonth, isCurrentMonth, onClick }) {
+// Display-only category card for dashboard (no onClick edit)
+function CategoryCard({ c, status, catColors, byCategory, budgets, dayOfMonth, daysInMonth, isCurrentMonth }) {
   const iconColor = STATUS_ICON[status].color;
   const spent = byCategory[c] || 0;
   const budget = budgets[c];
   const projected = Math.round(spent / (dayOfMonth / daysInMonth));
   const fmt = n => `$${Math.round(n).toLocaleString("en-US")}`;
   return (
-    <div onClick={onClick} style={{ background:"#0a0f1e", border:`1px solid ${status !== "ok" ? iconColor+"40" : "#1e293b"}`, borderRadius:14, padding:"12px 14px", cursor:"pointer", transition:"background 0.15s" }}
-      onMouseEnter={e=>e.currentTarget.style.background="#0f172a"}
-      onMouseLeave={e=>e.currentTarget.style.background="#0a0f1e"}>
+    <div style={{ background:"#0a0f1e", border:`1px solid ${status !== "ok" ? iconColor+"40" : "#1e293b"}`, borderRadius:14, padding:"12px 14px" }}>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
         <div style={{ display:"flex", alignItems:"center", gap:7 }}>
           <div style={{ width:10, height:10, borderRadius:3, background:catColors[c]||"#94a3b8", flexShrink:0 }} />
@@ -116,11 +116,28 @@ function CategoryCard({ c, status, catColors, byCategory, budgets, dayOfMonth, d
   );
 }
 
+// SVG donut chart for long term savings
+function DonutChart({ saved, goal, color }) {
+  const pct = goal > 0 ? Math.min(saved / goal, 1) : 0;
+  const r = 40, cx = 50, cy = 50, stroke = 10;
+  const circ = 2 * Math.PI * r;
+  const dash = pct * circ;
+  return (
+    <svg viewBox="0 0 100 100" style={{ width:100, height:100, transform:"rotate(-90deg)" }}>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1e293b" strokeWidth={stroke} />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={stroke}
+        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+        style={{ transition:"stroke-dasharray 0.6s cubic-bezier(.4,0,.2,1)" }} />
+    </svg>
+  );
+}
+
 export default function App() {
   const isDesktop = useIsDesktop();
   const [allEntries, setAllEntries] = useState([]);
   const [budgets, setBudgets] = useState({});
   const [catColors, setCatColors] = useState({});
+  const [longTerm, setLongTerm] = useState([]); // [{name, saved, goal}]
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
@@ -135,6 +152,8 @@ export default function App() {
   const [editForm, setEditForm] = useState({});
   const [editCat, setEditCat] = useState(null);
   const [catForm, setCatForm] = useState({ name:"", budget:"", color:PALETTE[0] });
+  const [editLT, setEditLT] = useState(null); // index or "new"
+  const [ltForm, setLtForm] = useState({ name:"", saved:"", goal:"" });
 
   const categories = useMemo(() => Object.keys(budgets), [budgets]);
   const showToast = useCallback((msg, ok=true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3000); }, []);
@@ -155,7 +174,8 @@ export default function App() {
       const entries = (data.entries || []).filter(r => r[0]).map(r => ({ id:String(r[0]), date:String(r[1]), member:String(r[2]), category:String(r[3]), amount:parseFloat(r[4]) }));
       const budgetMap = {}, colorMap = {};
       (data.budgets || []).forEach(r => { if (r[0]) { budgetMap[String(r[0])] = parseFloat(r[1]); colorMap[String(r[0])] = String(r[2]); } });
-      setAllEntries(entries); setBudgets(budgetMap); setCatColors(colorMap);
+      const lt = (data.longTerm || []).filter(r => r[0]).map(r => ({ name:String(r[0]), saved:parseFloat(r[1])||0, goal:parseFloat(r[2])||0 }));
+      setAllEntries(entries); setBudgets(budgetMap); setCatColors(colorMap); setLongTerm(lt);
       setNextId(entries.reduce((m, e) => Math.max(m, parseInt(e.id)||0), 0) + 1);
     } catch(err) { setError("Couldn't connect to Google Sheets. " + err.message); }
     finally { setLoading(false); }
@@ -185,6 +205,13 @@ export default function App() {
   const overCount = useMemo(() => Object.values(categoryStatuses).filter(s=>s==="over").length, [categoryStatuses]);
   const maxMemberSpend = Math.max(...Object.values(byMember), 1);
   const sortedCategories = useMemo(() => [...categories].sort((a,b)=>({over:0,risk:1,warn:2,ok:3})[categoryStatuses[a]]-({over:0,risk:1,warn:2,ok:3})[categoryStatuses[b]]), [categories, categoryStatuses]);
+
+  // Long term colors — cycle through palette
+  const ltColor = i => PALETTE[i % PALETTE.length];
+
+  // Long term totals
+  const ltTotalSaved = useMemo(() => longTerm.reduce((s,i)=>s+i.saved,0), [longTerm]);
+  const ltTotalGoal = useMemo(() => longTerm.reduce((s,i)=>s+i.goal,0), [longTerm]);
 
   function prevMonth() { if (viewMonth === 0) { setViewMonth(11); setViewYear(y=>y-1); } else setViewMonth(m=>m-1); }
   function nextMonth() { if (isCurrentMonth) return; if (viewMonth === 11) { setViewMonth(0); setViewYear(y=>y+1); } else setViewMonth(m=>m+1); }
@@ -232,6 +259,32 @@ export default function App() {
     const nb={...budgets}; delete nb[catName]; const nc={...catColors}; delete nc[catName];
     setBudgets(nb); setCatColors(nc); setAllEntries(prev=>prev.filter(e=>e.category!==catName)); setEditCat(null); showToast(`"${catName}" deleted.`);
     await saveBudgetsToSheet(nb, nc);
+  }
+
+  // Long Term CRUD
+  function openNewLT() { setLtForm({name:"",saved:"",goal:""}); setEditLT("new"); }
+  function openEditLT(i) { setLtForm({name:longTerm[i].name,saved:String(longTerm[i].saved),goal:String(longTerm[i].goal)}); setEditLT(i); }
+  async function saveLT() {
+    const name = ltForm.name.trim();
+    if (!name||ltForm.saved===""||ltForm.goal===""||isNaN(+ltForm.saved)||isNaN(+ltForm.goal)) { showToast("Please fill all fields.",false); return; }
+    let next = [...longTerm];
+    const item = { name, saved:parseFloat((+ltForm.saved).toFixed(2)), goal:parseFloat((+ltForm.goal).toFixed(2)) };
+    if (editLT==="new") { next.push(item); }
+    else { next[editLT] = item; }
+    setLongTerm(next); setEditLT(null);
+    showToast(editLT==="new"?`"${name}" added.`:"Updated.");
+    setSyncing(true);
+    try { await api({ action:"saveLongTerm", items:JSON.stringify(next) }); }
+    catch { showToast("Saved locally but failed to sync.",false); }
+    finally { setSyncing(false); }
+  }
+  async function deleteLT(i) {
+    const next = longTerm.filter((_,idx)=>idx!==i);
+    setLongTerm(next); setEditLT(null); showToast("Deleted.");
+    setSyncing(true);
+    try { await api({ action:"saveLongTerm", items:JSON.stringify(next) }); }
+    catch { showToast("Deleted locally but failed to sync.",false); }
+    finally { setSyncing(false); }
   }
 
   const mw = isDesktop ? 1320 : 700;
@@ -306,6 +359,8 @@ export default function App() {
         .month-btn { background:none; border:1px solid #1e293b; color:#94a3b8; border-radius:8px; padding:5px 12px; cursor:pointer; font-family:'DM Mono',monospace; font-size:13px; transition:all 0.15s; }
         .month-btn:hover:not(:disabled) { border-color:#3b82f6; color:#3b82f6; }
         .month-btn:disabled { opacity:0.25; cursor:default; }
+        .lt-card { background:#0a0f1e; border:1px solid #1e293b; border-radius:14px; padding:20px; cursor:pointer; transition:background 0.15s; }
+        .lt-card:hover { background:#0f172a; }
         @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         .fade-in { animation:fadeIn 0.3s ease; }
         @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
@@ -313,6 +368,7 @@ export default function App() {
         @keyframes spin { to{transform:rotate(360deg)} }
       `}</style>
 
+      {/* Header */}
       <div style={{ background:"#0a0f1e", borderBottom:"1px solid #1e293b", padding:"0 16px" }}>
         <div style={{ maxWidth:mw, margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between", height:64 }}>
           <div>
@@ -327,12 +383,14 @@ export default function App() {
             <button className={`tab-btn ${view==="dashboard"?"active":""}`} onClick={()=>setView("dashboard")}>Dashboard</button>
             <button className={`tab-btn ${view==="add"?"active":""}`} onClick={()=>setView("add")}>+ Add</button>
             <button className={`tab-btn ${view==="budgets"?"active":""}`} onClick={()=>setView("budgets")}>Budgets</button>
+            <button className={`tab-btn ${view==="longterm"?"active":""}`} onClick={()=>setView("longterm")}>Long Term</button>
           </div>
         </div>
       </div>
 
       {toast && <div style={{ position:"fixed", top:20, left:"50%", transform:"translateX(-50%)", background:toast.ok?"#052e16":"#450a0a", border:`1px solid ${toast.ok?"#16a34a":"#dc2626"}`, color:toast.ok?"#4ade80":"#f87171", padding:"11px 22px", borderRadius:12, fontSize:13, fontWeight:600, zIndex:500, boxShadow:"0 8px 32px rgba(0,0,0,0.5)", animation:"slideUp 0.3s ease", maxWidth:320, textAlign:"center" }}>{toast.msg}</div>}
 
+      {/* Edit Entry Modal */}
       {editEntry && (
         <Modal onClose={()=>setEditEntry(null)}>
           <div style={{ fontSize:17, fontWeight:700, marginBottom:4 }}>Edit Entry</div>
@@ -347,6 +405,7 @@ export default function App() {
         </Modal>
       )}
 
+      {/* Edit Category Modal */}
       {editCat!==null && (
         <Modal onClose={()=>setEditCat(null)}>
           <div style={{ fontSize:17, fontWeight:700, marginBottom:4 }}>{editCat==="new"?"New Category":"Edit Category"}</div>
@@ -360,6 +419,23 @@ export default function App() {
         </Modal>
       )}
 
+      {/* Edit Long Term Modal */}
+      {editLT!==null && (
+        <Modal onClose={()=>setEditLT(null)}>
+          <div style={{ fontSize:17, fontWeight:700, marginBottom:4 }}>{editLT==="new"?"New Account":"Edit Account"}</div>
+          <div style={{ fontSize:12, color:"#475569", marginBottom:22 }}>{editLT==="new"?"Add a savings or investment account.":"Update or delete this account."}</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+            <div><div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:7 }}>Name</div><input className="input-field" type="text" placeholder="e.g. Emergency Fund" value={ltForm.name} onChange={e=>setLtForm(f=>({...f,name:e.target.value}))} /></div>
+            <div><div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:7 }}>Saved</div><div style={{ position:"relative" }}><span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#475569" }}>$</span><input className="input-field" type="number" min="0" step="0.01" placeholder="0" value={ltForm.saved} onChange={e=>setLtForm(f=>({...f,saved:e.target.value}))} style={{ paddingLeft:28 }} /></div></div>
+            <div><div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:7 }}>Goal</div><div style={{ position:"relative" }}><span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#475569" }}>$</span><input className="input-field" type="number" min="0" step="0.01" placeholder="0" value={ltForm.goal} onChange={e=>setLtForm(f=>({...f,goal:e.target.value}))} style={{ paddingLeft:28 }} /></div></div>
+            <div style={{ display:"flex", gap:10, marginTop:6 }}>
+              <button className="submit-btn" onClick={saveLT} disabled={syncing} style={{ flex:1 }}>{editLT==="new"?"Add Account":"Save Changes"}</button>
+              {editLT!=="new" && <button className="danger-btn" onClick={()=>deleteLT(editLT)} disabled={syncing}>Delete</button>}
+            </div>
+          </div>
+        </Modal>
+      )}
+
       <div style={{ maxWidth:mw, margin:"0 auto", padding:"20px 16px" }}>
         {loading ? <Spinner /> : error ? (
           <div style={{ background:"#450a0a", border:"1px solid #7f1d1d", borderRadius:16, padding:32, textAlign:"center" }}>
@@ -369,6 +445,7 @@ export default function App() {
           </div>
         ) : (
           <>
+            {/* DASHBOARD */}
             {view==="dashboard" && (
               <div className="fade-in">
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
@@ -379,13 +456,11 @@ export default function App() {
                   </div>
                   <button className="month-btn" onClick={nextMonth} disabled={isCurrentMonth}>{isCurrentMonth?"—":`${MONTH_NAMES[viewMonth===11?0:viewMonth+1].slice(0,3)} →`}</button>
                 </div>
-
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:24 }}>
-                  <StatCard label="Total Spend" value={fmt(totalSpend)} sub={`of ${fmt(totalBudget)} budget`} accent="#3b82f6" flag={totalSpend>totalBudget} />
-                  <StatCard label="Remaining" value={fmt(Math.max(totalBudget-totalSpend,0))} sub={isCurrentMonth?`${Math.round((dayOfMonth/daysInMonth)*100)}% through month`:"end of month"} accent="#4ade80" flag={totalSpend>totalBudget} />
+                  <StatCard label="Total Spend" value={fmt(totalSpend)} sub={`of ${fmt(totalBudget)} budget`} accent="#3b82f6" flag={totalSpend>totalBudget+1} />
+                  <StatCard label="Remaining" value={fmt(Math.max(totalBudget-totalSpend,0))} sub={isCurrentMonth?`${Math.round((dayOfMonth/daysInMonth)*100)}% through month`:"end of month"} accent="#4ade80" flag={totalSpend>totalBudget+1} />
                   <StatCard label="Alerts" value={alertCount} sub={`${overCount} over limit`} accent="#f97316" flag={overCount>0} />
                 </div>
-
                 {isDesktop ? (
                   <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
                     <div style={{ background:"#0f172a", borderRadius:16, padding:20, border:"1px solid #1e293b" }}>
@@ -395,14 +470,12 @@ export default function App() {
                       </div>
                       <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:12 }}>
                         {sortedCategories.map(c=>(
-                          <CategoryCard key={c} c={c} status={categoryStatuses[c]} catColors={catColors} byCategory={byCategory} budgets={budgets} dayOfMonth={dayOfMonth} daysInMonth={daysInMonth} isCurrentMonth={isCurrentMonth} onClick={()=>openEditCat(c)} />
+                          <CategoryCard key={c} c={c} status={categoryStatuses[c]} catColors={catColors} byCategory={byCategory} budgets={budgets} dayOfMonth={dayOfMonth} daysInMonth={daysInMonth} isCurrentMonth={isCurrentMonth} />
                         ))}
                       </div>
                     </div>
                     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:20, alignItems:"start" }}>
-                      <MemberSection />
-                      <TableSection />
-                      <EntriesSection />
+                      <MemberSection /><TableSection /><EntriesSection />
                     </div>
                   </div>
                 ) : (
@@ -428,14 +501,13 @@ export default function App() {
                         })}
                       </div>
                     </div>
-                    <MemberSection />
-                    <TableSection />
-                    <EntriesSection />
+                    <MemberSection /><TableSection /><EntriesSection />
                   </div>
                 )}
               </div>
             )}
 
+            {/* ADD */}
             {view==="add" && (
               <div className="slide-up" style={{ maxWidth:420, margin:"0 auto" }}>
                 <div style={{ background:"#0f172a", borderRadius:20, padding:32, border:"1px solid #1e293b" }}>
@@ -455,6 +527,7 @@ export default function App() {
               </div>
             )}
 
+            {/* BUDGETS */}
             {view==="budgets" && (
               <div className="fade-in" style={{ maxWidth:500, margin:"0 auto" }}>
                 <div style={{ background:"#0f172a", borderRadius:20, padding:28, border:"1px solid #1e293b" }}>
@@ -470,6 +543,74 @@ export default function App() {
                   </div>
                   <div style={{ marginTop:20, padding:"14px 16px", background:"#0a0f1e", borderRadius:12, border:"1px solid #1e293b", display:"flex", justifyContent:"space-between" }}><span style={{ fontSize:13, color:"#64748b", fontWeight:600 }}>Total budget</span><span style={{ fontSize:14, fontWeight:700, color:"#f1f5f9", fontFamily:"'DM Mono',monospace" }}>{fmt(totalBudget)} / month</span></div>
                 </div>
+              </div>
+            )}
+
+            {/* LONG TERM */}
+            {view==="longterm" && (
+              <div className="fade-in">
+                {/* Summary bar */}
+                <div style={{ background:"#0f172a", borderRadius:16, padding:"16px 20px", marginBottom:24, border:"1px solid #1e293b", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
+                  <div>
+                    <div style={{ fontSize:11, color:"#64748b", textTransform:"uppercase", letterSpacing:2, fontFamily:"'DM Mono',monospace", marginBottom:4 }}>Total Saved</div>
+                    <div style={{ fontSize:22, fontWeight:700, color:"#f1f5f9" }}>{fmt(ltTotalSaved)} <span style={{ fontSize:13, color:"#475569", fontWeight:400 }}>of {fmt(ltTotalGoal)}</span></div>
+                  </div>
+                  <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+                    <div style={{ textAlign:"right" }}>
+                      <div style={{ fontSize:11, color:"#64748b", textTransform:"uppercase", letterSpacing:2, fontFamily:"'DM Mono',monospace", marginBottom:4 }}>Progress</div>
+                      <div style={{ fontSize:22, fontWeight:700, color:"#4ade80" }}>{ltTotalGoal>0?Math.round((ltTotalSaved/ltTotalGoal)*100):0}%</div>
+                    </div>
+                    <button onClick={openNewLT} style={{ background:"#1e40af", border:"none", borderRadius:9, color:"#fff", fontSize:12, fontWeight:700, padding:"9px 16px", cursor:"pointer", fontFamily:"'Sora',sans-serif", whiteSpace:"nowrap" }}>+ New</button>
+                  </div>
+                </div>
+
+                {longTerm.length === 0 ? (
+                  <div style={{ textAlign:"center", padding:"60px 0", color:"#334155", fontSize:14 }}>No accounts yet. Hit + New to add one.</div>
+                ) : (
+                  <div style={{ display:"grid", gridTemplateColumns:isDesktop?"repeat(3, 1fr)":"1fr", gap:16 }}>
+                    {longTerm.map((item, i) => {
+                      const pct = item.goal > 0 ? Math.min(item.saved / item.goal, 1) : 0;
+                      const color = ltColor(i);
+                      const remaining = Math.max(item.goal - item.saved, 0);
+                      const done = item.saved >= item.goal;
+                      return (
+                        <div key={i} className="lt-card" onClick={()=>openEditLT(i)}>
+                          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
+                            <div>
+                              <div style={{ fontSize:14, fontWeight:700, color:"#e2e8f0", marginBottom:3 }}>{item.name}</div>
+                              <div style={{ fontSize:11, color:"#475569", fontFamily:"'DM Mono',monospace" }}>
+                                {done ? "🎉 Goal reached!" : `${fmt(remaining)} to go`}
+                              </div>
+                            </div>
+                            <span style={{ fontSize:11, color:"#334155", fontFamily:"'DM Mono',monospace" }}>tap to edit ›</span>
+                          </div>
+                          <div style={{ display:"flex", alignItems:"center", gap:20 }}>
+                            <div style={{ position:"relative", flexShrink:0 }}>
+                              <DonutChart saved={item.saved} goal={item.goal} color={color} />
+                              <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column" }}>
+                                <div style={{ fontSize:14, fontWeight:700, color, fontFamily:"'DM Mono',monospace" }}>{Math.round(pct*100)}%</div>
+                              </div>
+                            </div>
+                            <div style={{ flex:1 }}>
+                              <div style={{ marginBottom:10 }}>
+                                <div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", marginBottom:3 }}>SAVED</div>
+                                <div style={{ fontSize:18, fontWeight:700, color, fontFamily:"'DM Mono',monospace" }}>{fmt(item.saved)}</div>
+                              </div>
+                              <div>
+                                <div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", marginBottom:3 }}>GOAL</div>
+                                <div style={{ fontSize:14, fontWeight:600, color:"#475569", fontFamily:"'DM Mono',monospace" }}>{fmt(item.goal)}</div>
+                              </div>
+                            </div>
+                          </div>
+                          {/* Mini progress bar */}
+                          <div style={{ marginTop:14, background:"#1e293b", borderRadius:999, height:4 }}>
+                            <div style={{ width:`${pct*100}%`, height:"100%", background:color, borderRadius:999, transition:"width 0.5s" }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </>
