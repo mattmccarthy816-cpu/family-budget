@@ -9,13 +9,17 @@ const MONTH_NAMES = ["January","February","March","April","May","June","July","A
 
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
 
-// Only flag "over" if spent exceeds budget by $1 or more
+// Within $2 of budget (over or under) = ok. Only flag if clearly over or pacing badly.
 function getCategoryStatus(spent, budget, dayOfMonth, daysInMonth) {
   const progress = dayOfMonth / daysInMonth;
-  if (spent >= budget + 1) return "over";
+  // Exactly at or near budget (within $2 either way) = green
+  if (Math.abs(spent - budget) <= 2) return "ok";
+  if (spent > budget + 2) return "over";
+  // Pacing: only warn if projected overage is more than $2 AND spent is more than 20% of budget
+  // (avoids flagging small early fixed costs)
   const proj = spent / progress;
-  if (proj >= budget + 1) return "risk";
-  if (proj >= budget * 0.85) return "warn";
+  if (spent >= budget * 0.2 && proj >= budget + 2) return "risk";
+  if (spent >= budget * 0.2 && proj >= budget * 0.85) return "warn";
   return "ok";
 }
 
@@ -457,8 +461,8 @@ export default function App() {
                   <button className="month-btn" onClick={nextMonth} disabled={isCurrentMonth}>{isCurrentMonth?"—":`${MONTH_NAMES[viewMonth===11?0:viewMonth+1].slice(0,3)} →`}</button>
                 </div>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:24 }}>
-                  <StatCard label="Total Spend" value={fmt(totalSpend)} sub={`of ${fmt(totalBudget)} budget`} accent="#3b82f6" flag={totalSpend>totalBudget+1} />
-                  <StatCard label="Remaining" value={fmt(Math.max(totalBudget-totalSpend,0))} sub={isCurrentMonth?`${Math.round((dayOfMonth/daysInMonth)*100)}% through month`:"end of month"} accent="#4ade80" flag={totalSpend>totalBudget+1} />
+                  <StatCard label="Total Spend" value={fmt(totalSpend)} sub={`of ${fmt(totalBudget)} budget`} accent="#3b82f6" flag={totalSpend>totalBudget+2} />
+                  <StatCard label="Remaining" value={fmt(Math.max(totalBudget-totalSpend,0))} sub={isCurrentMonth?`${Math.round((dayOfMonth/daysInMonth)*100)}% through month`:"end of month"} accent="#4ade80" flag={totalSpend>totalBudget+2} />
                   <StatCard label="Alerts" value={alertCount} sub={`${overCount} over limit`} accent="#f97316" flag={overCount>0} />
                 </div>
                 {isDesktop ? (
