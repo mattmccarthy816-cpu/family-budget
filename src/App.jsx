@@ -188,8 +188,10 @@ export default function App() {
   useEffect(() => { loadData(); }, [loadData]);
 
   const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
+  const isFutureMonth = viewYear > now.getFullYear() || (viewYear === now.getFullYear() && viewMonth > now.getMonth());
+  const isPastMonth = !isCurrentMonth && !isFutureMonth;
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
-  const dayOfMonth = isCurrentMonth ? now.getDate() : daysInMonth;
+  const dayOfMonth = isCurrentMonth ? now.getDate() : isFutureMonth ? 1 : daysInMonth;
 
   const entries = useMemo(() => {
     const prefix = `${viewYear}-${String(viewMonth+1).padStart(2,"0")}`;
@@ -218,7 +220,7 @@ export default function App() {
   const ltTotalGoal = useMemo(() => longTerm.reduce((s,i)=>s+i.goal,0), [longTerm]);
 
   function prevMonth() { if (viewMonth === 0) { setViewMonth(11); setViewYear(y=>y-1); } else setViewMonth(m=>m-1); }
-  function nextMonth() { if (isCurrentMonth) return; if (viewMonth === 11) { setViewMonth(0); setViewYear(y=>y+1); } else setViewMonth(m=>m+1); }
+  function nextMonth() { if (viewMonth === 11) { setViewMonth(0); setViewYear(y=>y+1); } else setViewMonth(m=>m+1); }
 
   async function handleAddSubmit() {
     if (!form.member||!form.category||!form.amount||isNaN(+form.amount)||+form.amount<=0) { showToast("Please fill all fields.", false); return; }
@@ -373,24 +375,51 @@ export default function App() {
       `}</style>
 
       {/* Header */}
-      <div style={{ background:"#0a0f1e", borderBottom:"1px solid #1e293b", padding:"0 16px" }}>
-        <div style={{ maxWidth:mw, margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between", height:64 }}>
-          <div>
-            <div style={{ fontSize:18, fontWeight:700, letterSpacing:-0.5, display:"flex", alignItems:"center", gap:8 }}>
-              <span style={{ color:"#3b82f6" }}>family</span>budget
-              {alertCount>0 && <span style={{ background:overCount>0?"#ef444422":"#f9731622", color:overCount>0?"#ef4444":"#f97316", border:`1px solid ${overCount>0?"#7f1d1d":"#7c2d12"}`, fontSize:10, fontWeight:800, borderRadius:999, padding:"2px 8px", fontFamily:"'DM Mono',monospace" }}>{alertCount}</span>}
-              {syncing && <span style={{ fontSize:10, color:"#475569", fontFamily:"'DM Mono',monospace" }}>syncing…</span>}
+      <div style={{ background:"#0a0f1e", borderBottom:"1px solid #1e293b", padding: isDesktop ? "0 16px" : "8px 16px" }}>
+        <div style={{ maxWidth:mw, margin:"0 auto" }}>
+          {isDesktop ? (
+            /* Desktop: single row */
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", height:64 }}>
+              <div>
+                <div style={{ fontSize:18, fontWeight:700, letterSpacing:-0.5, display:"flex", alignItems:"center", gap:8 }}>
+                  <span style={{ color:"#3b82f6" }}>family</span>budget
+                  {alertCount>0 && <span style={{ background:overCount>0?"#ef444422":"#f9731622", color:overCount>0?"#ef4444":"#f97316", border:`1px solid ${overCount>0?"#7f1d1d":"#7c2d12"}`, fontSize:10, fontWeight:800, borderRadius:999, padding:"2px 8px", fontFamily:"'DM Mono',monospace" }}>{alertCount}</span>}
+                  {syncing && <span style={{ fontSize:10, color:"#475569", fontFamily:"'DM Mono',monospace" }}>syncing…</span>}
+                </div>
+                <div style={{ fontSize:11, color:"#334155", fontFamily:"'DM Mono',monospace", marginTop:1 }}>{MONTH_NAMES[viewMonth].toUpperCase()} {viewYear} · DAY {dayOfMonth}/{daysInMonth}</div>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <div style={{ display:"flex", gap:4, background:"#0f172a", borderRadius:12, padding:4 }}>
+                  <button className={`tab-btn ${view==="dashboard"?"active":""}`} onClick={()=>setView("dashboard")}>Budget Dashboard</button>
+                  <button className={`tab-btn ${view==="longterm"?"active":""}`} onClick={()=>setView("longterm")}>Long Term Goals</button>
+                  <button className={`tab-btn ${view==="budgets"?"active":""}`} onClick={()=>setView("budgets")}>Budget Details</button>
+                </div>
+                <button onClick={()=>setView("add")} style={{ background: view==="add" ? "#1d4ed8" : "linear-gradient(135deg,#1d4ed8,#7c3aed)", border:"none", borderRadius:10, color:"#fff", fontSize:13, fontWeight:700, padding:"9px 16px", cursor:"pointer", fontFamily:"'Sora',sans-serif", whiteSpace:"nowrap" }}>+ Add</button>
+              </div>
             </div>
-            <div style={{ fontSize:11, color:"#334155", fontFamily:"'DM Mono',monospace", marginTop:1 }}>{MONTH_NAMES[viewMonth].toUpperCase()} {viewYear} · DAY {dayOfMonth}/{daysInMonth}</div>
-          </div>
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <div style={{ display:"flex", gap:4, background:"#0f172a", borderRadius:12, padding:4 }}>
-              <button className={`tab-btn ${view==="dashboard"?"active":""}`} onClick={()=>setView("dashboard")}>Budget Dashboard</button>
-              <button className={`tab-btn ${view==="longterm"?"active":""}`} onClick={()=>setView("longterm")}>Long Term Goals</button>
-              <button className={`tab-btn ${view==="budgets"?"active":""}`} onClick={()=>setView("budgets")}>Budget Details</button>
+          ) : (
+            /* Mobile: two rows */
+            <div>
+              {/* Row 1: logo + add button */}
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", height:52 }}>
+                <div>
+                  <div style={{ fontSize:17, fontWeight:700, letterSpacing:-0.5, display:"flex", alignItems:"center", gap:7 }}>
+                    <span style={{ color:"#3b82f6" }}>family</span>budget
+                    {alertCount>0 && <span style={{ background:overCount>0?"#ef444422":"#f9731622", color:overCount>0?"#ef4444":"#f97316", border:`1px solid ${overCount>0?"#7f1d1d":"#7c2d12"}`, fontSize:10, fontWeight:800, borderRadius:999, padding:"2px 7px", fontFamily:"'DM Mono',monospace" }}>{alertCount}</span>}
+                    {syncing && <span style={{ fontSize:10, color:"#475569", fontFamily:"'DM Mono',monospace" }}>syncing…</span>}
+                  </div>
+                  <div style={{ fontSize:10, color:"#334155", fontFamily:"'DM Mono',monospace", marginTop:1 }}>{MONTH_NAMES[viewMonth].toUpperCase()} {viewYear}</div>
+                </div>
+                <button onClick={()=>setView("add")} style={{ background: view==="add" ? "#1d4ed8" : "linear-gradient(135deg,#1d4ed8,#7c3aed)", border:"none", borderRadius:9, color:"#fff", fontSize:13, fontWeight:700, padding:"8px 16px", cursor:"pointer", fontFamily:"'Sora',sans-serif" }}>+ Add</button>
+              </div>
+              {/* Row 2: three nav tabs spread full width */}
+              <div style={{ display:"flex", borderTop:"1px solid #0f172a", marginLeft:-16, marginRight:-16, paddingLeft:16, paddingRight:16, paddingBottom:8 }}>
+                {[["dashboard","Dashboard"],["longterm","Long Term"],["budgets","Details"]].map(([v,label])=>(
+                  <button key={v} className={`tab-btn ${view===v?"active":""}`} onClick={()=>setView(v)} style={{ flex:1, textAlign:"center", fontSize:12, padding:"8px 4px" }}>{label}</button>
+                ))}
+              </div>
             </div>
-            <button onClick={()=>setView("add")} style={{ background: view==="add" ? "#1d4ed8" : "linear-gradient(135deg,#1d4ed8,#7c3aed)", border:"none", borderRadius:10, color:"#fff", fontSize:13, fontWeight:700, padding:"9px 16px", cursor:"pointer", fontFamily:"'Sora',sans-serif", whiteSpace:"nowrap" }}>+ Add</button>
-          </div>
+          )}
         </div>
       </div>
 
@@ -463,9 +492,9 @@ export default function App() {
                   <button className="month-btn" onClick={prevMonth}>← {MONTH_NAMES[viewMonth===0?11:viewMonth-1].slice(0,3)}</button>
                   <div style={{ textAlign:"center" }}>
                     <div style={{ fontSize:15, fontWeight:700, color:"#f1f5f9" }}>{MONTH_NAMES[viewMonth]} {viewYear}</div>
-                    {!isCurrentMonth && <div style={{ fontSize:11, color:"#475569", fontFamily:"'DM Mono',monospace" }}>past month</div>}
+                    {isFutureMonth && <div style={{ fontSize:11, color:"#475569", fontFamily:"'DM Mono',monospace" }}>future month</div>}{isPastMonth && <div style={{ fontSize:11, color:"#475569", fontFamily:"'DM Mono',monospace" }}>past month</div>}
                   </div>
-                  <button className="month-btn" onClick={nextMonth} disabled={isCurrentMonth}>{isCurrentMonth?"—":`${MONTH_NAMES[viewMonth===11?0:viewMonth+1].slice(0,3)} →`}</button>
+                  <button className="month-btn" onClick={nextMonth}>{MONTH_NAMES[viewMonth===11?0:viewMonth+1].slice(0,3)} →</button>
                 </div>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:24 }}>
                   <StatCard label="Total Spend" value={fmt(totalSpend)} sub={`of ${fmt(totalBudget)} budget`} accent="#3b82f6" flag={totalSpend>totalBudget+2} />
