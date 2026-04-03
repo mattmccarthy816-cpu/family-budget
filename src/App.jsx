@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbx_4rXo6btDrTaoiIu5OcorS5WdsnPyGGjYuDVQm6uiyxb0uXK4zy5do9Jv0lm3ZYiomg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbywOwxEoBuZJbUP1_Mcu3CSM6Ng3QY-d1FGNHghsflOWYU3gSIsqEtoIE4yT1PcEFauHg/exec";
 
 const FAMILY_MEMBERS = ["Matt", "Alice"];
 const PALETTE = ["#4ade80","#f97316","#60a5fa","#a78bfa","#f472b6","#34d399","#fbbf24","#94a3b8","#fb7185","#38bdf8","#c084fc","#fdba74","#86efac","#67e8f9","#fde68a","#d8b4fe"];
