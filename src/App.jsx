@@ -10,13 +10,14 @@ const MONTH_NAMES = ["January","February","March","April","May","June","July","A
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
 
 // Within $2 of budget (over or under) = ok. Only flag if clearly over or pacing badly.
+// Pacing warnings (warn/risk) are suppressed before day 15 to avoid false alarms.
 function getCategoryStatus(spent, budget, dayOfMonth, daysInMonth) {
   const progress = dayOfMonth / daysInMonth;
   // Exactly at or near budget (within $2 either way) = green
   if (Math.abs(spent - budget) <= 2) return "ok";
   if (spent > budget + 2) return "over";
-  // Pacing: only warn if projected overage is more than $2 AND spent is more than 20% of budget
-  // (avoids flagging small early fixed costs)
+  // Pacing: only show warn/risk after the 14th
+  if (dayOfMonth < 15) return "ok";
   const proj = spent / progress;
   if (spent >= budget * 0.2 && proj >= budget + 2) return "risk";
   if (spent >= budget * 0.2 && proj >= budget * 0.85) return "warn";
