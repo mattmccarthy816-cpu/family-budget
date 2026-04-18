@@ -327,11 +327,11 @@ export default function App() {
     <div style={{ background:"#0f172a", borderRadius:16, padding:18, border:"1px solid #1e293b" }}>
       <div style={{ fontSize:11, fontWeight:600, color:"#64748b", textTransform:"uppercase", letterSpacing:2, marginBottom:12, fontFamily:"'DM Mono',monospace" }}>Entries <span style={{ color:"#334155", fontSize:10, fontWeight:400 }}>· tap to edit</span></div>
       {entries.length===0 ? <div style={{ textAlign:"center", padding:"32px 0", color:"#334155", fontSize:13 }}>No entries for {MONTH_NAMES[viewMonth]}.</div>
-      : entries.slice(0,12).map(e=>(
+      : [...entries].sort((a,b) => new Date(b.date) - new Date(a.date)).map(e=>(
         <div key={e.id} className="entry-row" onClick={()=>openEditEntry(e)}>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ width:32, height:32, borderRadius:8, background:(MEMBER_COLORS[e.member]||"#475569")+"20", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:MEMBER_COLORS[e.member]||"#475569" }}>{e.member?e.member[0]:"?"}</div>
-            <div><div style={{ fontSize:13, fontWeight:600, color:"#e2e8f0" }}>{e.member}</div><div style={{ fontSize:11, color:"#475569" }}>{e.category} · {e.date}{e.notes ? ` · ${e.notes}` : ''}</div></div>
+            <div><div style={{ fontSize:13, fontWeight:600, color:"#e2e8f0" }}>{e.member}</div><div style={{ fontSize:11, color:"#475569" }}>{e.category} · {e.date.slice(0,10)}{e.notes ? ` · ${e.notes}` : ''}</div></div>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ fontSize:15, fontWeight:700, color:catColors[e.category]||"#94a3b8", fontFamily:"'DM Mono',monospace" }}>{fmtD(e.amount)}</div>
