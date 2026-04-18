@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbw47vb1bokPOEJYqf4QAkY1wT2y0hqPZq5WBR9bN72OZi5R4iv4rYeFpDyScJrw7C4dFw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxmhYh8sd-xU0AHFFWSnu7IE1UccUr5R8TaVFRrtou9qnsT_LO8skn9X18CVy1AdVjqBQ/exec";
 
 const FAMILY_MEMBERS = ["Matt", "Alice"];
 const PALETTE = ["#4ade80","#f97316","#60a5fa","#a78bfa","#f472b6","#34d399","#fbbf24","#94a3b8","#fb7185","#38bdf8","#c084fc","#fdba74","#86efac","#67e8f9","#fde68a","#d8b4fe"];
@@ -152,7 +152,7 @@ export default function App() {
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
-  const [form, setForm] = useState({ member:"", category:"", amount:"" });
+  const [form, setForm] = useState({ member:"", category:"", amount:"", notes:"" });
   const [editEntry, setEditEntry] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [editCat, setEditCat] = useState(null);
@@ -176,7 +176,7 @@ export default function App() {
     setLoading(true); setError(null);
     try {
       const data = await api({ action: "getAll" });
-      const entries = (data.entries || []).filter(r => r[0]).map(r => ({ id:String(r[0]), date:String(r[1]), member:String(r[2]), category:String(r[3]), amount:parseFloat(r[4]) }));
+      const entries = (data.entries || []).filter(r => r[0]).map(r => ({ id:String(r[0]), date:String(r[1]), member:String(r[2]), category:String(r[3]), amount:parseFloat(r[4]), notes:String(r[5]||'') }));
       const budgetMap = {}, colorMap = {};
       (data.budgets || []).forEach(r => { if (r[0]) { budgetMap[String(r[0])] = parseFloat(r[1]); colorMap[String(r[0])] = String(r[2]); } });
       const lt = (data.longTerm || []).filter(r => r[0]).map(r => ({ name:String(r[0]), saved:parseFloat(r[1])||0, goal:parseFloat(r[2])||0, color:String(r[3]||''), targetDate:String(r[4]||''), startDate:String(r[5]||'') }));
@@ -225,13 +225,13 @@ export default function App() {
 
   async function handleAddSubmit() {
     if (!form.member||!form.category||!form.amount||isNaN(+form.amount)||+form.amount<=0) { showToast("Please fill all fields.", false); return; }
-    const entry = { id:String(nextId), member:form.member, category:form.category, amount:parseFloat((+form.amount).toFixed(2)), date:new Date().toISOString().split("T")[0] };
+    const entry = { id:String(nextId), member:form.member, category:form.category, amount:parseFloat((+form.amount).toFixed(2)), date:new Date().toISOString().split("T")[0], notes:form.notes||'' };
     setSyncing(true);
-    try { await api({ action:"addEntry", ...entry }); setAllEntries(prev=>[entry,...prev]); setNextId(n=>n+1); setForm({member:"",category:"",amount:""}); showToast(`${fmtD(entry.amount)} logged for ${entry.member}.`); setView("dashboard"); }
+    try { await api({ action:"addEntry", ...entry }); setAllEntries(prev=>[entry,...prev]); setNextId(n=>n+1); setForm({member:"",category:"",amount:"",notes:""}); showToast(`${fmtD(entry.amount)} logged for ${entry.member}.`); setView("dashboard"); }
     catch { showToast("Failed to save.", false); } finally { setSyncing(false); }
   }
 
-  function openEditEntry(e) { setEditEntry(e); setEditForm({member:e.member,category:e.category,amount:String(e.amount),date:e.date}); }
+  function openEditEntry(e) { setEditEntry(e); setEditForm({member:e.member,category:e.category,amount:String(e.amount),date:e.date,notes:e.notes||''}); }
   async function saveEditEntry() {
     if (!editForm.member||!editForm.category||!editForm.amount||isNaN(+editForm.amount)||+editForm.amount<=0) { showToast("Please fill all fields.", false); return; }
     const updated = {...editEntry,...editForm,amount:parseFloat((+editForm.amount).toFixed(2))};
@@ -331,7 +331,7 @@ export default function App() {
         <div key={e.id} className="entry-row" onClick={()=>openEditEntry(e)}>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ width:32, height:32, borderRadius:8, background:(MEMBER_COLORS[e.member]||"#475569")+"20", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:MEMBER_COLORS[e.member]||"#475569" }}>{e.member?e.member[0]:"?"}</div>
-            <div><div style={{ fontSize:13, fontWeight:600, color:"#e2e8f0" }}>{e.member}</div><div style={{ fontSize:11, color:"#475569" }}>{e.category} · {e.date}</div></div>
+            <div><div style={{ fontSize:13, fontWeight:600, color:"#e2e8f0" }}>{e.member}</div><div style={{ fontSize:11, color:"#475569" }}>{e.category} · {e.date}{e.notes ? ` · ${e.notes}` : ''}</div></div>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ fontSize:15, fontWeight:700, color:catColors[e.category]||"#94a3b8", fontFamily:"'DM Mono',monospace" }}>{fmtD(e.amount)}</div>
@@ -436,6 +436,7 @@ export default function App() {
             <div><div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:7 }}>Category</div><div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>{categories.map(c=>(<button key={c} className="chip" onClick={()=>setEditForm(f=>({...f,category:c}))} style={{ background:editForm.category===c?catColors[c]+"20":"#0a0f1e", border:`1px solid ${editForm.category===c?catColors[c]:"#1e293b"}`, color:editForm.category===c?catColors[c]:"#475569" }}>{c}</button>))}</div></div>
             <div><div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:7 }}>Amount</div><div style={{ position:"relative" }}><span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#475569" }}>$</span><input className="input-field" type="number" min="0" step="0.01" value={editForm.amount} onChange={e=>setEditForm(f=>({...f,amount:e.target.value}))} style={{ paddingLeft:28 }} /></div></div>
             <div><div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:7 }}>Date</div><input className="input-field" type="date" value={editForm.date} onChange={e=>setEditForm(f=>({...f,date:e.target.value}))} /></div>
+            <div><div style={{ fontSize:11, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:7 }}>Notes <span style={{ color:"#334155", textTransform:"none", letterSpacing:0 }}>(optional)</span></div><textarea className="input-field" placeholder="e.g. Weekly grocery run…" value={editForm.notes||''} onChange={e=>setEditForm(f=>({...f,notes:e.target.value}))} rows={2} style={{ resize:"none", lineHeight:1.5 }} /></div>
             <div style={{ display:"flex", gap:10, marginTop:6 }}><button className="submit-btn" onClick={saveEditEntry} disabled={syncing} style={{ flex:1 }}>Save Changes</button><button className="danger-btn" onClick={()=>deleteEntry(editEntry.id)} disabled={syncing}>Delete</button></div>
           </div>
         </Modal>
@@ -562,6 +563,7 @@ export default function App() {
                       {form.category && (<div style={{ marginTop:10, padding:"10px 14px", borderRadius:10, background:"#0a0f1e", border:"1px solid #1e293b" }}><div style={{ display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:6 }}><span style={{ color:"#64748b" }}>{form.category}</span><span style={{ color:STATUS_ICON[categoryStatuses[form.category]].color, fontFamily:"'DM Mono',monospace", fontWeight:700 }}>{fmt(byCategory[form.category]||0)} / {fmt(budgets[form.category])}</span></div><BudgetBar spent={byCategory[form.category]||0} budget={budgets[form.category]} dayOfMonth={dayOfMonth} daysInMonth={daysInMonth} /></div>)}
                     </div>
                     <div><div style={{ fontSize:12, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:8 }}>Amount</div><div style={{ position:"relative" }}><span style={{ position:"absolute", left:16, top:"50%", transform:"translateY(-50%)", color:"#475569", fontSize:16 }}>$</span><input className="input-field" type="number" min="0" step="0.01" placeholder="0.00" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} style={{ paddingLeft:32 }} /></div></div>
+                    <div><div style={{ fontSize:12, color:"#64748b", fontFamily:"'DM Mono',monospace", textTransform:"uppercase", letterSpacing:1.5, marginBottom:8 }}>Notes <span style={{ color:"#334155", textTransform:"none", letterSpacing:0 }}>(optional)</span></div><textarea className="input-field" placeholder="e.g. Weekly grocery run, Costco trip…" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} rows={2} style={{ resize:"none", lineHeight:1.5 }} /></div>
                     <button className="submit-btn" onClick={handleAddSubmit} disabled={syncing}>{syncing?"Saving…":"Log Spend"}</button>
                   </div>
                 </div>
