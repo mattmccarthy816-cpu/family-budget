@@ -8,18 +8,18 @@ const MEMBER_COLORS = { "Matt": "#60a5fa", "Alice": "#f472b6" };
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 const C = {
-  bg:        "#12100e",
-  bgCard:    "#1c1814",
-  bgInset:   "#0e0c0a",
-  border:    "#2a2420",
-  borderMid: "#1f1b18",
-  textHi:    "#f5f0eb",
-  textMid:   "#a89880",
-  textLo:    "#4a4038",
-  accent:    "#3b82f6",
-  accentDim: "#1e3a5f",
-  sand:      "#c4a882",
-  sandDim:   "#7a6550",
+  bg:        "#0d1117",
+  bgCard:    "#161b22",
+  bgInset:   "#0d1117",
+  border:    "#30363d",
+  borderMid: "#21262d",
+  textHi:    "#e6edf3",
+  textMid:   "#8b949e",
+  textLo:    "#6e7681",
+  accent:    "#388bfd",
+  accentDim: "#1f3a6e",
+  sand:      "#8b949e",
+  sandDim:   "#6e7681",
 };
 
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
@@ -539,48 +539,128 @@ export default function App() {
 
                 {/* Hero */}
                 <div className="card" style={{ padding: isDesktop ? "28px 32px" : "20px 18px", marginBottom: 16 }}>
-                  <div style={{ display: "flex", gap: isDesktop ? 32 : 16, alignItems: "center", flexWrap: "wrap" }}>
-                    <div style={{ display: "flex", gap: isDesktop ? 24 : 14, alignItems: "center", flexWrap: "wrap" }}>
-                      <HeroDonut segments={donutSegments} totalSpend={totalSpend} totalBudget={totalBudget} size={isDesktop ? 160 : 120} />
-                      <div style={{ display: "flex", flexDirection: "column", gap: 9, minWidth: 100 }}>
-                        {donutSegments.filter(s => s.value > 0).map((s, i) => (
-                          <LegendItem key={i} color={s.color} label={s.label} value={s.value} fmt={fmt} />
-                        ))}
+                  {isDesktop ? (
+                    /* ── Desktop: donut left, divider, stats right ── */
+                    <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
+                      <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
+                        <HeroDonut segments={donutSegments} totalSpend={totalSpend} totalBudget={totalBudget} size={160} />
+                        <div style={{ display: "flex", flexDirection: "column", gap: 9, minWidth: 100 }}>
+                          {donutSegments.filter(s => s.value > 0).map((s, i) => (
+                            <LegendItem key={i} color={s.color} label={s.label} value={s.value} fmt={fmt} />
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{ width: 1, height: 100, background: C.border, flexShrink: 0, alignSelf: "center" }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginBottom: 18 }}>
+                          <div>
+                            <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 4 }}>spent</div>
+                            <div style={{ fontSize: 30, fontWeight: 800, color: overBudget ? "#f85149" : C.textHi, letterSpacing: -1, lineHeight: 1 }}>{fmt(totalSpend)}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 4 }}>budget</div>
+                            <div style={{ fontSize: 30, fontWeight: 800, color: C.textLo, letterSpacing: -1, lineHeight: 1 }}>{fmt(totalBudget)}</div>
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: 2 }}>
+                            <div style={{
+                              display: "inline-flex", alignItems: "center", gap: 5,
+                              padding: "5px 12px", borderRadius: 6,
+                              background: diff >= 0 ? "rgba(35,134,54,0.15)" : "rgba(218,54,51,0.15)",
+                              color: diff >= 0 ? "#3fb950" : "#f85149",
+                              fontFamily: "'DM Mono',monospace", fontWeight: 700, fontSize: 14,
+                            }}>
+                              {diff >= 0 ? "+" : "−"}{fmt(Math.abs(diff))} {diff >= 0 ? "under" : "over"}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+                          {FAMILY_MEMBERS.map(m => (
+                            <div key={m} style={{ minWidth: 100 }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                <span style={{ fontSize: 11, color: MEMBER_COLORS[m], fontWeight: 600 }}>{m}</span>
+                                <span style={{ fontSize: 11, color: MEMBER_COLORS[m], fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(byMember[m])}</span>
+                              </div>
+                              <div style={{ background: C.borderMid, borderRadius: 999, height: 3, width: 120 }}>
+                                <div style={{ width: `${(byMember[m] / maxMemberSpend) * 100}%`, height: "100%", background: MEMBER_COLORS[m], borderRadius: 999, transition: "width 0.5s" }} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                    {isDesktop && <div style={{ width: 1, height: 100, background: C.border, flexShrink: 0, alignSelf: "center" }} />}
-                    <div style={{ flex: 1, minWidth: 180 }}>
-                      <div style={{ display: "flex", gap: isDesktop ? 28 : 16, flexWrap: "wrap", marginBottom: 18 }}>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 4 }}>SPENT SO FAR</div>
-                          <div style={{ fontSize: isDesktop ? 30 : 22, fontWeight: 800, color: overBudget ? "#ef4444" : C.textHi, letterSpacing: -1, lineHeight: 1 }}>{fmt(totalSpend)}</div>
+                  ) : (
+                    /* ── Mobile: numbers-first layout ── */
+                    <div>
+                      {/* Big spend number */}
+                      <div style={{ textAlign: "center", marginBottom: 16 }}>
+                        <div style={{ fontSize: 42, fontWeight: 800, color: overBudget ? "#f85149" : C.textHi, fontFamily: "'DM Mono',monospace", letterSpacing: -2, lineHeight: 1 }}>{fmt(totalSpend)}</div>
+                        <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginTop: 5 }}>spent this month</div>
+                      </div>
+
+                      {/* Budget + remaining tiles */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+                        <div style={{ background: C.bgInset, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: "10px 12px" }}>
+                          <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 3 }}>budget</div>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: -0.5 }}>{fmt(totalBudget)}</div>
                         </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 4 }}>TOTAL BUDGET</div>
-                          <div style={{ fontSize: isDesktop ? 30 : 22, fontWeight: 800, color: C.textLo, letterSpacing: -1, lineHeight: 1 }}>{fmt(totalBudget)}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 4 }}>DIFFERENCE</div>
-                          <div style={{ fontSize: isDesktop ? 30 : 22, fontWeight: 800, color: diff >= 0 ? "#4ade80" : "#ef4444", letterSpacing: -1, lineHeight: 1 }}>
+                        <div style={{
+                          background: diff >= 0 ? "rgba(35,134,54,0.1)" : "rgba(218,54,51,0.1)",
+                          border: `0.5px solid ${diff >= 0 ? "rgba(35,134,54,0.3)" : "rgba(218,54,51,0.3)"}`,
+                          borderRadius: 10, padding: "10px 12px"
+                        }}>
+                          <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 3 }}>remaining</div>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: diff >= 0 ? "#3fb950" : "#f85149", fontFamily: "'DM Mono',monospace", letterSpacing: -0.5 }}>
                             {diff >= 0 ? "+" : "−"}{fmt(Math.abs(diff))}
                           </div>
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+
+                      {/* Progress bar */}
+                      <div style={{ marginBottom: 14 }}>
+                        <div style={{ background: C.borderMid, borderRadius: 999, height: 4, overflow: "hidden" }}>
+                          <div style={{
+                            width: `${Math.min((totalSpend / Math.max(totalBudget, 1)) * 100, 100)}%`,
+                            height: "100%", borderRadius: 999, transition: "width 0.5s",
+                            background: overBudget ? "#f85149" : `linear-gradient(90deg, ${C.accent}, #3fb950)`,
+                          }} />
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                          <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>
+                            {isCurrentMonth ? `day ${dayOfMonth} of ${daysInMonth}` : isFutureMonth ? "future" : "past month"}
+                          </div>
+                          <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>
+                            {Math.round((totalSpend / Math.max(totalBudget, 1)) * 100)}%
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Legend 2-col grid */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 8px" }}>
+                        {donutSegments.filter(s => s.value > 0).map((s, i) => (
+                          <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <div style={{ width: 7, height: 7, borderRadius: 2, background: s.color, flexShrink: 0 }} />
+                            <span style={{ fontSize: 10, color: C.textMid, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</span>
+                            <span style={{ fontSize: 10, color: s.color, fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(s.value)}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Member bars */}
+                      <div style={{ display: "flex", gap: 12, marginTop: 14 }}>
                         {FAMILY_MEMBERS.map(m => (
-                          <div key={m} style={{ minWidth: 100 }}>
+                          <div key={m} style={{ flex: 1 }}>
                             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                              <span style={{ fontSize: 11, color: MEMBER_COLORS[m], fontWeight: 600 }}>{m}</span>
-                              <span style={{ fontSize: 11, color: MEMBER_COLORS[m], fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(byMember[m])}</span>
+                              <span style={{ fontSize: 10, color: MEMBER_COLORS[m], fontWeight: 600 }}>{m}</span>
+                              <span style={{ fontSize: 10, color: MEMBER_COLORS[m], fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(byMember[m])}</span>
                             </div>
-                            <div style={{ background: C.borderMid, borderRadius: 999, height: 3, width: 120 }}>
+                            <div style={{ background: C.borderMid, borderRadius: 999, height: 3 }}>
                               <div style={{ width: `${(byMember[m] / maxMemberSpend) * 100}%`, height: "100%", background: MEMBER_COLORS[m], borderRadius: 999, transition: "width 0.5s" }} />
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Sections + Breakdown */}
