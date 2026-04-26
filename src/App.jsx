@@ -165,6 +165,8 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [nextId, setNextId] = useState(1);
   const [expandedSections, setExpandedSections] = useState({});
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
+  const [entriesOpen, setEntriesOpen] = useState(false);
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -540,52 +542,76 @@ export default function App() {
                 {/* Hero */}
                 <div className="card" style={{ padding: isDesktop ? "28px 32px" : "20px 18px", marginBottom: 16 }}>
                   {isDesktop ? (
-                    /* ── Desktop: donut left, divider, stats right ── */
+                    /* ── Desktop: donut left, stats right ── */
                     <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
-                      <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-                        <HeroDonut segments={donutSegments} totalSpend={totalSpend} totalBudget={totalBudget} size={160} />
-                        <div style={{ display: "flex", flexDirection: "column", gap: 9, minWidth: 100 }}>
-                          {donutSegments.filter(s => s.value > 0).map((s, i) => (
-                            <LegendItem key={i} color={s.color} label={s.label} value={s.value} fmt={fmt} />
-                          ))}
-                        </div>
-                      </div>
-                      <div style={{ width: 1, height: 100, background: C.border, flexShrink: 0, alignSelf: "center" }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginBottom: 18 }}>
+                      {/* Donut */}
+                      <HeroDonut segments={donutSegments} totalSpend={totalSpend} totalBudget={totalBudget} size={160} />
+                      {/* Divider */}
+                      <div style={{ width: 1, height: 120, background: C.border, flexShrink: 0 }} />
+                      {/* Stats column */}
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+                        {/* Spend + budget + pill row */}
+                        <div style={{ display: "flex", alignItems: "flex-end", gap: 20, flexWrap: "wrap" }}>
                           <div>
                             <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 4 }}>spent</div>
-                            <div style={{ fontSize: 30, fontWeight: 800, color: overBudget ? "#f85149" : C.textHi, letterSpacing: -1, lineHeight: 1 }}>{fmt(totalSpend)}</div>
+                            <div style={{ fontSize: 36, fontWeight: 800, color: overBudget ? "#f85149" : C.textHi, letterSpacing: -1.5, lineHeight: 1, fontFamily: "'DM Mono',monospace" }}>{fmt(totalSpend)}</div>
                           </div>
-                          <div>
+                          <div style={{ paddingBottom: 4 }}>
                             <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 4 }}>budget</div>
-                            <div style={{ fontSize: 30, fontWeight: 800, color: C.textLo, letterSpacing: -1, lineHeight: 1 }}>{fmt(totalBudget)}</div>
+                            <div style={{ fontSize: 20, fontWeight: 700, color: C.textLo, letterSpacing: -0.5, lineHeight: 1, fontFamily: "'DM Mono',monospace" }}>{fmt(totalBudget)}</div>
                           </div>
-                          <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: 2 }}>
+                          <div style={{ paddingBottom: 6 }}>
                             <div style={{
-                              display: "inline-flex", alignItems: "center", gap: 5,
+                              display: "inline-flex", alignItems: "center",
                               padding: "5px 12px", borderRadius: 6,
                               background: diff >= 0 ? "rgba(35,134,54,0.15)" : "rgba(218,54,51,0.15)",
                               color: diff >= 0 ? "#3fb950" : "#f85149",
-                              fontFamily: "'DM Mono',monospace", fontWeight: 700, fontSize: 14,
+                              fontFamily: "'DM Mono',monospace", fontWeight: 700, fontSize: 13,
                             }}>
                               {diff >= 0 ? "+" : "−"}{fmt(Math.abs(diff))} {diff >= 0 ? "under" : "over"}
                             </div>
                           </div>
                         </div>
-                        <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+                        {/* Progress bar */}
+                        <div>
+                          <div style={{ background: C.borderMid, borderRadius: 999, height: 3, overflow: "hidden" }}>
+                            <div style={{
+                              width: `${Math.min((totalSpend / Math.max(totalBudget, 1)) * 100, 100)}%`,
+                              height: "100%", borderRadius: 999, transition: "width 0.5s",
+                              background: overBudget ? "#f85149" : `linear-gradient(90deg, ${C.accent}, #3fb950)`,
+                            }} />
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                            <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>
+                              {isCurrentMonth ? `day ${dayOfMonth} of ${daysInMonth}` : isFutureMonth ? "future" : "past month"}
+                            </div>
+                            <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>
+                              {Math.round((totalSpend / Math.max(totalBudget, 1)) * 100)}%
+                            </div>
+                          </div>
+                        </div>
+                        {/* Member bars */}
+                        <div style={{ display: "flex", gap: 24 }}>
                           {FAMILY_MEMBERS.map(m => (
-                            <div key={m} style={{ minWidth: 100 }}>
+                            <div key={m} style={{ minWidth: 120 }}>
                               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                                 <span style={{ fontSize: 11, color: MEMBER_COLORS[m], fontWeight: 600 }}>{m}</span>
                                 <span style={{ fontSize: 11, color: MEMBER_COLORS[m], fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(byMember[m])}</span>
                               </div>
-                              <div style={{ background: C.borderMid, borderRadius: 999, height: 3, width: 120 }}>
+                              <div style={{ background: C.borderMid, borderRadius: 999, height: 3 }}>
                                 <div style={{ width: `${(byMember[m] / maxMemberSpend) * 100}%`, height: "100%", background: MEMBER_COLORS[m], borderRadius: 999, transition: "width 0.5s" }} />
                               </div>
                             </div>
                           ))}
                         </div>
+                      </div>
+                      {/* Divider */}
+                      <div style={{ width: 1, height: 120, background: C.border, flexShrink: 0 }} />
+                      {/* Legend */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 9, minWidth: 110 }}>
+                        {donutSegments.filter(s => s.value > 0).map((s, i) => (
+                          <LegendItem key={i} color={s.color} label={s.label} value={s.value} fmt={fmt} />
+                        ))}
                       </div>
                     </div>
                   ) : (
@@ -696,24 +722,36 @@ export default function App() {
                       <SectionBlock mobile />
                     </div>
                     <div className="card" style={{ padding: "18px 16px" }}>
-                      <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 14 }}>BREAKDOWN</div>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                        <thead><tr><th style={{ textAlign: "left", color: C.textLo, padding: "0 0 10px", fontWeight: 500 }}>Cat</th>{FAMILY_MEMBERS.map(m => (<th key={m} style={{ textAlign: "right", color: MEMBER_COLORS[m], padding: "0 0 10px 10px", fontWeight: 600 }}>{m}</th>))}</tr></thead>
-                        <tbody>{categories.filter(c => (byCategory[c] || 0) > 0).map(c => (
-                          <tr key={c} style={{ borderTop: `1px solid ${C.borderMid}` }}>
-                            <td style={{ padding: "8px 0", color: C.textMid, display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: 1, background: catColors[c] || C.textLo, display: "inline-block" }} />{c}</td>
-                            {FAMILY_MEMBERS.map(m => (<td key={m} style={{ textAlign: "right", padding: "8px 0 8px 10px", color: (byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? C.textHi : C.borderMid, fontFamily: "'DM Mono',monospace" }}>{(byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? fmt(byMemberCategory[m][c]) : "—"}</td>))}
-                          </tr>
-                        ))}</tbody>
-                      </table>
+                      <div onClick={() => setBreakdownOpen(o => !o)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}>
+                        <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>BREAKDOWN</div>
+                        <span style={{ fontSize: 10, color: C.textLo, transform: breakdownOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
+                      </div>
+                      {breakdownOpen && (
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, marginTop: 14 }}>
+                          <thead><tr><th style={{ textAlign: "left", color: C.textLo, padding: "0 0 10px", fontWeight: 500, fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>Category</th>{FAMILY_MEMBERS.map(m => (<th key={m} style={{ textAlign: "right", color: MEMBER_COLORS[m], padding: "0 0 10px 10px", fontWeight: 600 }}>{m}</th>))}</tr></thead>
+                          <tbody>{categories.filter(c => (byCategory[c] || 0) > 0).map(c => (
+                            <tr key={c} style={{ borderTop: `1px solid ${C.borderMid}` }}>
+                              <td style={{ padding: "8px 0", color: C.textMid, display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: 1, background: catColors[c] || C.textLo, display: "inline-block" }} />{c}</td>
+                              {FAMILY_MEMBERS.map(m => (<td key={m} style={{ textAlign: "right", padding: "8px 0 8px 10px", color: (byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? C.textHi : C.borderMid, fontFamily: "'DM Mono',monospace" }}>{(byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? fmt(byMemberCategory[m][c]) : "—"}</td>))}
+                            </tr>
+                          ))}</tbody>
+                        </table>
+                      )}
                     </div>
                   </div>
                 )}
 
                 {/* Entries table — full width */}
-                <div className="card" style={{ padding: "20px 24px", marginTop: 16 }}>
-                  <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 14 }}>ENTRIES <span style={{ color: C.borderMid, fontSize: 9 }}>· CLICK TO EDIT</span></div>
-                  {sortedEntries.length === 0 ? (
+                <div className="card" style={{ padding: isDesktop ? "20px 24px" : "18px 16px", marginTop: 16 }}>
+                  {isDesktop ? (
+                    <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 14 }}>ENTRIES <span style={{ color: C.borderMid, fontSize: 9 }}>· CLICK TO EDIT</span></div>
+                  ) : (
+                    <div onClick={() => setEntriesOpen(o => !o)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none", marginBottom: entriesOpen ? 14 : 0 }}>
+                      <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>ENTRIES <span style={{ color: C.borderMid, fontSize: 9 }}>· TAP TO EDIT</span></div>
+                      <span style={{ fontSize: 10, color: C.textLo, transform: entriesOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
+                    </div>
+                  )}
+                  {(isDesktop || entriesOpen) ? (sortedEntries.length === 0 ? (
                     <div style={{ textAlign: "center", padding: "28px 0", color: C.textLo, fontSize: 12 }}>No entries for {MONTH_NAMES[viewMonth]}.</div>
                   ) : isDesktop ? (
                     <>
@@ -757,7 +795,8 @@ export default function App() {
                         </div>
                       ))}
                     </>
-                  )}
+                  )
+                ) : null}
                 </div>
               </div>
             )}
