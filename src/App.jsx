@@ -195,7 +195,7 @@ export default function App() {
   const [editEntry, setEditEntry] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [editCat, setEditCat] = useState(null);
-  const [catForm, setCatForm] = useState({ name: "", budget: "", color: PALETTE[0], type: "expense" });
+  const [catForm, setCatForm] = useState({ name: "", budget: "", color: PALETTE[0], type: "expense", section: "", newSection: "" });
   const [editLT, setEditLT] = useState(null);
   const [editMember, setEditMember] = useState(null);
   const [memberForm, setMemberForm] = useState({ name: "", color: MEMBER_COLOR_PALETTE[0], role: "contributor" });
@@ -273,6 +273,15 @@ export default function App() {
     return result;
   }, [rawSections, categories]);
 
+  // Canonical section names in order
+  const sectionNames = useMemo(() => sectionStructure.filter(s => s.name !== "Other").map(s => s.name), [sectionStructure]);
+  // Which section each category belongs to
+  const catSection = useMemo(() => {
+    const m = {};
+    rawSections.forEach(r => { m[r.category] = r.section; });
+    return m;
+  }, [rawSections]);
+
   const sectionTotals = useMemo(() => {
     const t = {};
     sectionStructure.forEach(sec => {
@@ -323,20 +332,35 @@ export default function App() {
     try { await api({ action: "deleteEntry", id }); setAllEntries(prev => prev.filter(e => e.id !== id)); setEditEntry(null); showToast("Deleted."); }
     catch { showToast("Failed.", false); } finally { setSyncing(false); }
   }
+  async function saveSectionsToSheet(secs) {
+    try { await api({ action: "saveSections", sections: JSON.stringify(secs) }); }
+    catch { showToast("Section sync failed.", false); }
+  }
+
   async function saveBudgetsToSheet(nb, nc, nt) {
     try { await api({ action: "saveBudgets", budgets: JSON.stringify(Object.keys(nb).map(c => ({ category: c, budget: nb[c], color: nc[c] || PALETTE[0], type: nt[c] || "expense" }))) }); }
     catch { showToast("Budget sync failed.", false); }
   }
-  function openNewCat() { setCatForm({ name: "", budget: "", color: PALETTE.find(p => !Object.values(catColors).includes(p)) || PALETTE[0], type: "expense" }); setEditCat("new"); }
-  function openEditCat(name) { setCatForm({ name, budget: String(budgets[name]), color: catColors[name], type: catTypes[name] || "expense" }); setEditCat(name); }
+  function openNewCat() { setCatForm({ name: "", budget: "", color: PALETTE.find(p => !Object.values(catColors).includes(p)) || PALETTE[0], type: "expense", section: sectionNames[0] || "", newSection: "" }); setEditCat("new"); }
+  function openEditCat(name) { setCatForm({ name, budget: String(budgets[name]), color: catColors[name], type: catTypes[name] || "expense", section: catSection[name] || "", newSection: "" }); setEditCat(name); }
   async function saveCat() {
     const name = catForm.name.trim();
     if (!name || !catForm.budget || isNaN(+catForm.budget) || +catForm.budget <= 0) { showToast("Fill name and budget.", false); return; }
     let nb = { ...budgets }, nc = { ...catColors }, nt = { ...catTypes };
     if (editCat === "new") { if (budgets[name]) { showToast("Already exists.", false); return; } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; nt[name] = catForm.type; }
     else { if (name !== editCat && budgets[name]) { showToast("Name taken.", false); return; } if (name !== editCat) { nb[name] = nb[editCat]; delete nb[editCat]; nc[name] = nc[editCat]; delete nc[editCat]; nt[name] = nt[editCat]; delete nt[editCat]; setAllEntries(prev => prev.map(e => e.category === editCat ? { ...e, category: name } : e)); } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; nt[name] = catForm.type; }
+    // Resolve section name
+    const resolvedSection = catForm.section === "__new__" ? catForm.newSection.trim() : catForm.section;
+    // Update rawSections
+    let newRawSections = rawSections.filter(r => r.category !== name && r.category !== editCat);
+    if (resolvedSection) {
+      const maxOrder = newRawSections.reduce((m, r) => Math.max(m, r.order), 0);
+      newRawSections.push({ section: resolvedSection, category: name, order: maxOrder + 1 });
+    }
+    setRawSections(newRawSections);
     setBudgets(nb); setCatColors(nc); setCatTypes(nt); setEditCat(null); showToast(editCat === "new" ? `"${name}" added.` : "Updated.");
     await saveBudgetsToSheet(nb, nc, nt);
+    await saveSectionsToSheet(newRawSections);
   }
   async function deleteCat(catName) {
     if (categories.length <= 1) { showToast("Can't delete the last category.", false); return; }
@@ -590,27 +614,25 @@ export default function App() {
               </div>
             </div>
             <div><FL>Color</FL><div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>{PALETTE.map(p => (<div key={p} className="swatch" style={{ background: p, borderColor: catForm.color === p ? "#fff" : "transparent", boxShadow: catForm.color === p ? "0 0 0 1px #fff" : "none" }} onClick={() => setCatForm(f => ({ ...f, color: p }))} />))}</div></div>
-            <div><FL>Type</FL>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {[
-                  { value: "expense",    label: "Expense",    desc: "Standard spend — pacing logic applies" },
-                  { value: "fixed",      label: "Fixed",      desc: "Recurring charge (rent, subscriptions) — no pacing warnings" },
-                  { value: "investment", label: "Investment", desc: "Stocks, savings — counts against budget, never flagged" },
-                ].map(opt => (
-                  <div key={opt.value} onClick={() => setCatForm(f => ({ ...f, type: opt.value }))}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, cursor: "pointer",
-                      background: catForm.type === opt.value ? C.accentDim : C.bgInset,
-                      border: `1px solid ${catForm.type === opt.value ? C.accent : C.border}`,
-                      transition: "all 0.15s" }}>
-                    <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${catForm.type === opt.value ? C.accent : C.textLo}`,
-                      background: catForm.type === opt.value ? C.accent : "transparent", flexShrink: 0, transition: "all 0.15s" }} />
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: catForm.type === opt.value ? C.textHi : C.textMid }}>{opt.label}</div>
-                      <div style={{ fontSize: 11, color: C.textLo, marginTop: 1 }}>{opt.desc}</div>
-                    </div>
-                  </div>
+            <div>
+              <FL>Section</FL>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 8 }}>
+                {[...sectionNames, "__new__"].map(s => (
+                  <button key={s} onClick={() => setCatForm(f => ({ ...f, section: s }))}
+                    className="chip"
+                    style={{ background: catForm.section === s ? C.accentDim : C.bgInset, border: `1px solid ${catForm.section === s ? C.accent : C.border}`, color: catForm.section === s ? C.textHi : C.textLo }}>
+                    {s === "__new__" ? "+ New section" : s}
+                  </button>
                 ))}
+                <button onClick={() => setCatForm(f => ({ ...f, section: "" }))}
+                  className="chip"
+                  style={{ background: catForm.section === "" ? C.bgInset : "transparent", border: `1px solid ${catForm.section === "" ? C.accent : C.border}`, color: catForm.section === "" ? C.textHi : C.textLo }}>
+                  None
+                </button>
               </div>
+              {catForm.section === "__new__" && (
+                <input className="inp" placeholder="Section name e.g. Living" value={catForm.newSection} onChange={e => setCatForm(f => ({ ...f, newSection: e.target.value }))} style={{ marginTop: 6 }} />
+              )}
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 4 }}><button className="cta" onClick={saveCat} style={{ flex: 1 }}>{editCat === "new" ? "Add" : "Save"}</button>{editCat !== "new" && <button className="del-btn" onClick={() => deleteCat(editCat)}>Delete</button>}</div>
           </div>
