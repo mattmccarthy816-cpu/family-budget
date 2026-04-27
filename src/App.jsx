@@ -182,6 +182,7 @@ export default function App() {
   const [expandedSections, setExpandedSections] = useState({});
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [entriesOpen, setEntriesOpen] = useState(false);
+  const [showAllEntries, setShowAllEntries] = useState(false);
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -244,8 +245,8 @@ export default function App() {
   const byCategory = useMemo(() => { const m = {}; categories.forEach(c => m[c] = 0); entries.forEach(e => { if (m[e.category] !== undefined) m[e.category] += e.amount; }); return m; }, [entries, categories]);
   const byMemberCategory = useMemo(() => { const m = {}; FAMILY_MEMBERS.forEach(n => { m[n] = {}; categories.forEach(c => { m[n][c] = 0; }); }); entries.forEach(e => { if (m[e.member] && m[e.member][e.category] !== undefined) m[e.member][e.category] += e.amount; }); return m; }, [entries, categories]);
   const categoryStatuses = useMemo(() => { const m = {}; categories.forEach(c => { m[c] = getCategoryStatus(byCategory[c] || 0, budgets[c], dayOfMonth, daysInMonth, catTypes[c] || "expense"); }); return m; }, [byCategory, budgets, catTypes, dayOfMonth, daysInMonth, categories]);
-  const alertCount = useMemo(() => Object.values(categoryStatuses).filter(s => s !== "ok").length, [categoryStatuses]);
-  const overCount = useMemo(() => Object.values(categoryStatuses).filter(s => s === "over").length, [categoryStatuses]);
+  const alertCount = useMemo(() => categories.filter(c => (catTypes[c] || "expense") !== "investment" && categoryStatuses[c] !== "ok").length, [categories, catTypes, categoryStatuses]);
+  const overCount = useMemo(() => categories.filter(c => (catTypes[c] || "expense") !== "investment" && categoryStatuses[c] === "over").length, [categories, catTypes, categoryStatuses]);
   const maxMemberSpend = Math.max(...Object.values(byMember), 1);
 
   const sectionStructure = useMemo(() => {
@@ -611,16 +612,23 @@ export default function App() {
                 {/* Hero */}
                 <div className="card" style={{ padding: isDesktop ? "28px 32px" : "20px 18px", marginBottom: 16 }}>
                   {isDesktop ? (
-                    /* ── Desktop: donut left, stats right ── */
-                    <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
-                      {/* Donut */}
-                      <HeroDonut segments={donutSegments} totalSpend={totalSpend} totalBudget={totalBudget} size={160} />
+                    /* ── Desktop: [donut + legend] | divider | stats ── */
+                    <div style={{ display: "flex", gap: 28, alignItems: "center" }}>
+                      {/* Left: donut + legend inline */}
+                      <div style={{ display: "flex", gap: 20, alignItems: "center", flexShrink: 0 }}>
+                        <HeroDonut segments={donutSegments} totalSpend={totalSpend} totalBudget={totalBudget} size={150} />
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          {donutSegments.filter(s => s.value > 0).map((s, i) => (
+                            <LegendItem key={i} color={s.color} label={s.label} value={s.value} fmt={fmt} />
+                          ))}
+                        </div>
+                      </div>
                       {/* Divider */}
-                      <div style={{ width: 1, height: 120, background: C.border, flexShrink: 0 }} />
-                      {/* Stats column */}
-                      <div style={{ flex: 1, maxWidth: 340, display: "flex", flexDirection: "column", gap: 16 }}>
-                        {/* Spend + budget + pill row */}
-                        <div style={{ display: "flex", alignItems: "flex-end", gap: 20, flexWrap: "wrap" }}>
+                      <div style={{ width: 1, alignSelf: "stretch", background: C.border, flexShrink: 0, margin: "4px 0" }} />
+                      {/* Right: stats */}
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
+                        {/* Spend + budget + pill */}
+                        <div style={{ display: "flex", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
                           <div>
                             <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 4 }}>spent</div>
                             <div style={{ fontSize: 36, fontWeight: 800, color: overBudget ? "#f85149" : C.textHi, letterSpacing: -1.5, lineHeight: 1, fontFamily: "'DM Mono',monospace" }}>{fmt(totalSpend)}</div>
@@ -630,39 +638,25 @@ export default function App() {
                             <div style={{ fontSize: 20, fontWeight: 700, color: C.textLo, letterSpacing: -0.5, lineHeight: 1, fontFamily: "'DM Mono',monospace" }}>{fmt(totalBudget)}</div>
                           </div>
                           <div style={{ paddingBottom: 6 }}>
-                            <div style={{
-                              display: "inline-flex", alignItems: "center",
-                              padding: "5px 12px", borderRadius: 6,
-                              background: diff >= 0 ? "rgba(35,134,54,0.15)" : "rgba(218,54,51,0.15)",
-                              color: diff >= 0 ? "#3fb950" : "#f85149",
-                              fontFamily: "'DM Mono',monospace", fontWeight: 700, fontSize: 13,
-                            }}>
+                            <div style={{ display: "inline-flex", alignItems: "center", padding: "5px 12px", borderRadius: 6, background: diff >= 0 ? "rgba(35,134,54,0.15)" : "rgba(218,54,51,0.15)", color: diff >= 0 ? "#3fb950" : "#f85149", fontFamily: "'DM Mono',monospace", fontWeight: 700, fontSize: 13 }}>
                               {diff >= 0 ? "+" : "−"}{fmt(Math.abs(diff))} {diff >= 0 ? "under" : "over"}
                             </div>
                           </div>
                         </div>
                         {/* Progress bar */}
-                        <div>
+                        <div style={{ maxWidth: 280 }}>
                           <div style={{ background: C.borderMid, borderRadius: 999, height: 3, overflow: "hidden" }}>
-                            <div style={{
-                              width: `${Math.min((totalSpend / Math.max(totalBudget, 1)) * 100, 100)}%`,
-                              height: "100%", borderRadius: 999, transition: "width 0.5s",
-                              background: overBudget ? "#f85149" : `linear-gradient(90deg, ${C.accent}, #3fb950)`,
-                            }} />
+                            <div style={{ width: `${Math.min((totalSpend / Math.max(totalBudget, 1)) * 100, 100)}%`, height: "100%", borderRadius: 999, transition: "width 0.5s", background: overBudget ? "#f85149" : `linear-gradient(90deg, ${C.accent}, #3fb950)` }} />
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                            <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>
-                              {isCurrentMonth ? `day ${dayOfMonth} of ${daysInMonth}` : isFutureMonth ? "future" : "past month"}
-                            </div>
-                            <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>
-                              {Math.round((totalSpend / Math.max(totalBudget, 1)) * 100)}%
-                            </div>
+                            <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{isCurrentMonth ? `day ${dayOfMonth} of ${daysInMonth}` : isFutureMonth ? "future" : "past month"}</div>
+                            <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{Math.round((totalSpend / Math.max(totalBudget, 1)) * 100)}%</div>
                           </div>
                         </div>
                         {/* Member bars */}
                         <div style={{ display: "flex", gap: 24 }}>
                           {FAMILY_MEMBERS.map(m => (
-                            <div key={m} style={{ minWidth: 120 }}>
+                            <div key={m} style={{ minWidth: 110 }}>
                               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                                 <span style={{ fontSize: 11, color: MEMBER_COLORS[m], fontWeight: 600 }}>{m}</span>
                                 <span style={{ fontSize: 11, color: MEMBER_COLORS[m], fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(byMember[m])}</span>
@@ -673,14 +667,6 @@ export default function App() {
                             </div>
                           ))}
                         </div>
-                      </div>
-                      {/* Divider */}
-                      <div style={{ width: 1, height: 120, background: C.border, flexShrink: 0 }} />
-                      {/* Legend */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: 9, minWidth: 160, flexShrink: 0 }}>
-                        {donutSegments.filter(s => s.value > 0).map((s, i) => (
-                          <LegendItem key={i} color={s.color} label={s.label} value={s.value} fmt={fmt} />
-                        ))}
                       </div>
                     </div>
                   ) : (
@@ -829,7 +815,7 @@ export default function App() {
                           <div key={h} style={{ padding: "0 10px", fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5 }}>{h}</div>
                         ))}
                       </div>
-                      {sortedEntries.map((e, i) => (
+                      {(showAllEntries ? sortedEntries : sortedEntries.slice(0, 10)).map((e, i) => (
                         <div key={e.id} className="tr-row" style={{ background: i % 2 === 1 ? C.bgInset : "transparent" }} onClick={() => openEditEntry(e)}>
                           <div className="tc" style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: C.textLo }}>{e.date.slice(0, 10)}</div>
                           <div className="tc">
@@ -843,6 +829,13 @@ export default function App() {
                           <div className="tc" style={{ color: C.textLo, fontSize: 11 }}>{e.notes || <span style={{ color: C.borderMid }}>—</span>}</div>
                         </div>
                       ))}
+                      {sortedEntries.length > 10 && (
+                        <div style={{ textAlign: "center", paddingTop: 12 }}>
+                          <button onClick={() => setShowAllEntries(v => !v)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, color: C.textLo, fontSize: 11, fontFamily: "'DM Mono',monospace", padding: "5px 16px", cursor: "pointer", letterSpacing: 0.5 }} onMouseEnter={e => { e.target.style.color = C.textHi; e.target.style.borderColor = C.textMid; }} onMouseLeave={e => { e.target.style.color = C.textLo; e.target.style.borderColor = C.border; }}>
+                            {showAllEntries ? "show less ↑" : `show all ${sortedEntries.length} entries ↓`}
+                          </button>
+                        </div>
+                      )}
                     </>
                   ) : (
                     <>
@@ -863,6 +856,7 @@ export default function App() {
                           <div style={{ padding: "10px", display: "flex", alignItems: "center", justifyContent: "flex-end", fontFamily: "'DM Mono',monospace", fontWeight: 700, color: catColors[e.category] || C.textMid, fontSize: 12 }}>{fmtD(e.amount)}</div>
                         </div>
                       ))}
+
                     </>
                   )
                 ) : null}
