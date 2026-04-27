@@ -24,7 +24,15 @@ const C = {
 
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
 
-function getCategoryStatus(spent, budget, dayOfMonth, daysInMonth) {
+function getCategoryStatus(spent, budget, dayOfMonth, daysInMonth, type = "expense") {
+  // Investment: counts against budget but never flags — intentional spending
+  if (type === "investment") return "ok";
+  // Fixed: known recurring charge — ignore pacing, only flag if actually over
+  if (type === "fixed") {
+    if (spent > budget + 2) return "over";
+    return "ok";
+  }
+  // Expense: full pacing logic
   const progress = dayOfMonth / daysInMonth;
   if (Math.abs(spent - budget) <= 2) return "ok";
   if (spent > budget + 2) return "over";
@@ -36,10 +44,11 @@ function getCategoryStatus(spent, budget, dayOfMonth, daysInMonth) {
 }
 
 const STATUS = {
-  ok:   { icon: "✓", color: "#4ade80" },
-  warn: { icon: "↑", color: "#eab308" },
-  risk: { icon: "↑", color: "#f97316" },
-  over: { icon: "!", color: "#ef4444" },
+  ok:         { icon: "✓",  color: "#4ade80" },
+  warn:       { icon: "↑",  color: "#eab308" },
+  risk:       { icon: "↑",  color: "#f97316" },
+  over:       { icon: "!",  color: "#ef4444" },
+  investment: { icon: "↗",  color: "#388bfd" },
 };
 
 function useIsDesktop() {
@@ -114,17 +123,22 @@ function MiniDonut({ saved, goal, color }) {
   );
 }
 
-function CategoryBar({ spent, budget, color, dayOfMonth, daysInMonth }) {
+function CategoryBar({ spent, budget, color, dayOfMonth, daysInMonth, type = "expense" }) {
   const progress = dayOfMonth / daysInMonth;
   const pct = Math.min((spent / Math.max(budget, 0.01)) * 100, 100);
-  const status = getCategoryStatus(spent, budget, dayOfMonth, daysInMonth);
+  const status = getCategoryStatus(spent, budget, dayOfMonth, daysInMonth, type);
   const projPct = Math.min((spent / Math.max(progress, 0.01) / Math.max(budget, 0.01)) * 100, 100);
-  const barColor = status === "ok" ? color : status === "warn" ? "#eab308" : status === "risk" ? "#f97316" : "#ef4444";
+  const isInvestment = type === "investment";
+  const barColor = isInvestment ? "#388bfd"
+    : status === "ok" ? color
+    : status === "warn" ? "#eab308"
+    : status === "risk" ? "#f97316"
+    : "#ef4444";
   return (
     <div style={{ background: C.borderMid, borderRadius: 999, height: 4, position: "relative" }}>
-      {status !== "over" && <div style={{ position: "absolute", left: 0, top: 0, width: `${projPct}%`, height: "100%", background: barColor + "35", borderRadius: 999 }} />}
+      {status !== "over" && !isInvestment && <div style={{ position: "absolute", left: 0, top: 0, width: `${projPct}%`, height: "100%", background: barColor + "35", borderRadius: 999 }} />}
       <div style={{ position: "absolute", left: 0, top: 0, width: `${pct}%`, height: "100%", background: barColor, borderRadius: 999, transition: "width 0.5s" }} />
-      <div style={{ position: "absolute", top: -4, bottom: -4, left: `${progress * 100}%`, width: 1.5, background: "rgba(255,255,255,0.35)", borderRadius: 1, transform: "translateX(-50%)" }} />
+      {!isInvestment && <div style={{ position: "absolute", top: -4, bottom: -4, left: `${progress * 100}%`, width: 1.5, background: "rgba(255,255,255,0.35)", borderRadius: 1, transform: "translateX(-50%)" }} />}
     </div>
   );
 }
@@ -156,6 +170,7 @@ export default function App() {
   const [allEntries, setAllEntries] = useState([]);
   const [budgets, setBudgets] = useState({});
   const [catColors, setCatColors] = useState({});
+  const [catTypes, setCatTypes] = useState({});
   const [longTerm, setLongTerm] = useState([]);
   const [rawSections, setRawSections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -174,7 +189,7 @@ export default function App() {
   const [editEntry, setEditEntry] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [editCat, setEditCat] = useState(null);
-  const [catForm, setCatForm] = useState({ name: "", budget: "", color: PALETTE[0] });
+  const [catForm, setCatForm] = useState({ name: "", budget: "", color: PALETTE[0], type: "expense" });
   const [editLT, setEditLT] = useState(null);
   const [ltForm, setLtForm] = useState({ name: "", saved: "", goal: "", color: PALETTE[0], targetDate: "", startDate: "" });
 
@@ -195,11 +210,11 @@ export default function App() {
     try {
       const data = await api({ action: "getAll" });
       const entries = (data.entries || []).filter(r => r[0]).map(r => ({ id: String(r[0]), date: String(r[1]), member: String(r[2]), category: String(r[3]), amount: parseFloat(r[4]), notes: String(r[5] || '') }));
-      const bm = {}, cm = {};
-      (data.budgets || []).forEach(r => { if (r[0]) { bm[String(r[0])] = parseFloat(r[1]); cm[String(r[0])] = String(r[2]); } });
+      const bm = {}, cm = {}, tm = {};
+      (data.budgets || []).forEach(r => { if (r[0]) { bm[String(r[0])] = parseFloat(r[1]); cm[String(r[0])] = String(r[2]); tm[String(r[0])] = String(r[3] || "expense"); } });
       const lt = (data.longTerm || []).filter(r => r[0]).map(r => ({ name: String(r[0]), saved: parseFloat(r[1]) || 0, goal: parseFloat(r[2]) || 0, color: String(r[3] || ''), targetDate: String(r[4] || ''), startDate: String(r[5] || '') }));
       const secs = (data.sections || []).filter(r => r[0] && r[1]).map(r => ({ section: String(r[0]), category: String(r[1]), order: parseInt(r[2]) || 0 }));
-      setAllEntries(entries); setBudgets(bm); setCatColors(cm); setLongTerm(lt); setRawSections(secs);
+      setAllEntries(entries); setBudgets(bm); setCatColors(cm); setCatTypes(tm); setLongTerm(lt); setRawSections(secs);
       setNextId(entries.reduce((m, e) => Math.max(m, parseInt(e.id) || 0), 0) + 1);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -225,7 +240,7 @@ export default function App() {
   const byMember = useMemo(() => { const m = {}; FAMILY_MEMBERS.forEach(n => m[n] = 0); entries.forEach(e => { m[e.member] = (m[e.member] || 0) + e.amount; }); return m; }, [entries]);
   const byCategory = useMemo(() => { const m = {}; categories.forEach(c => m[c] = 0); entries.forEach(e => { if (m[e.category] !== undefined) m[e.category] += e.amount; }); return m; }, [entries, categories]);
   const byMemberCategory = useMemo(() => { const m = {}; FAMILY_MEMBERS.forEach(n => { m[n] = {}; categories.forEach(c => { m[n][c] = 0; }); }); entries.forEach(e => { if (m[e.member] && m[e.member][e.category] !== undefined) m[e.member][e.category] += e.amount; }); return m; }, [entries, categories]);
-  const categoryStatuses = useMemo(() => { const m = {}; categories.forEach(c => { m[c] = getCategoryStatus(byCategory[c] || 0, budgets[c], dayOfMonth, daysInMonth); }); return m; }, [byCategory, budgets, dayOfMonth, daysInMonth, categories]);
+  const categoryStatuses = useMemo(() => { const m = {}; categories.forEach(c => { m[c] = getCategoryStatus(byCategory[c] || 0, budgets[c], dayOfMonth, daysInMonth, catTypes[c] || "expense"); }); return m; }, [byCategory, budgets, catTypes, dayOfMonth, daysInMonth, categories]);
   const alertCount = useMemo(() => Object.values(categoryStatuses).filter(s => s !== "ok").length, [categoryStatuses]);
   const overCount = useMemo(() => Object.values(categoryStatuses).filter(s => s === "over").length, [categoryStatuses]);
   const maxMemberSpend = Math.max(...Object.values(byMember), 1);
@@ -287,26 +302,26 @@ export default function App() {
     try { await api({ action: "deleteEntry", id }); setAllEntries(prev => prev.filter(e => e.id !== id)); setEditEntry(null); showToast("Deleted."); }
     catch { showToast("Failed.", false); } finally { setSyncing(false); }
   }
-  async function saveBudgetsToSheet(nb, nc) {
-    try { await api({ action: "saveBudgets", budgets: JSON.stringify(Object.keys(nb).map(c => ({ category: c, budget: nb[c], color: nc[c] || PALETTE[0] }))) }); }
+  async function saveBudgetsToSheet(nb, nc, nt) {
+    try { await api({ action: "saveBudgets", budgets: JSON.stringify(Object.keys(nb).map(c => ({ category: c, budget: nb[c], color: nc[c] || PALETTE[0], type: nt[c] || "expense" }))) }); }
     catch { showToast("Budget sync failed.", false); }
   }
-  function openNewCat() { setCatForm({ name: "", budget: "", color: PALETTE.find(p => !Object.values(catColors).includes(p)) || PALETTE[0] }); setEditCat("new"); }
-  function openEditCat(name) { setCatForm({ name, budget: String(budgets[name]), color: catColors[name] }); setEditCat(name); }
+  function openNewCat() { setCatForm({ name: "", budget: "", color: PALETTE.find(p => !Object.values(catColors).includes(p)) || PALETTE[0], type: "expense" }); setEditCat("new"); }
+  function openEditCat(name) { setCatForm({ name, budget: String(budgets[name]), color: catColors[name], type: catTypes[name] || "expense" }); setEditCat(name); }
   async function saveCat() {
     const name = catForm.name.trim();
     if (!name || !catForm.budget || isNaN(+catForm.budget) || +catForm.budget <= 0) { showToast("Fill name and budget.", false); return; }
-    let nb = { ...budgets }, nc = { ...catColors };
-    if (editCat === "new") { if (budgets[name]) { showToast("Already exists.", false); return; } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; }
-    else { if (name !== editCat && budgets[name]) { showToast("Name taken.", false); return; } if (name !== editCat) { nb[name] = nb[editCat]; delete nb[editCat]; nc[name] = nc[editCat]; delete nc[editCat]; setAllEntries(prev => prev.map(e => e.category === editCat ? { ...e, category: name } : e)); } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; }
-    setBudgets(nb); setCatColors(nc); setEditCat(null); showToast(editCat === "new" ? `"${name}" added.` : "Updated.");
-    await saveBudgetsToSheet(nb, nc);
+    let nb = { ...budgets }, nc = { ...catColors }, nt = { ...catTypes };
+    if (editCat === "new") { if (budgets[name]) { showToast("Already exists.", false); return; } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; nt[name] = catForm.type; }
+    else { if (name !== editCat && budgets[name]) { showToast("Name taken.", false); return; } if (name !== editCat) { nb[name] = nb[editCat]; delete nb[editCat]; nc[name] = nc[editCat]; delete nc[editCat]; nt[name] = nt[editCat]; delete nt[editCat]; setAllEntries(prev => prev.map(e => e.category === editCat ? { ...e, category: name } : e)); } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; nt[name] = catForm.type; }
+    setBudgets(nb); setCatColors(nc); setCatTypes(nt); setEditCat(null); showToast(editCat === "new" ? `"${name}" added.` : "Updated.");
+    await saveBudgetsToSheet(nb, nc, nt);
   }
   async function deleteCat(catName) {
     if (categories.length <= 1) { showToast("Can't delete the last category.", false); return; }
-    const nb = { ...budgets }; delete nb[catName]; const nc = { ...catColors }; delete nc[catName];
-    setBudgets(nb); setCatColors(nc); setAllEntries(prev => prev.filter(e => e.category !== catName)); setEditCat(null); showToast(`"${catName}" deleted.`);
-    await saveBudgetsToSheet(nb, nc);
+    const nb = { ...budgets }; delete nb[catName]; const nc = { ...catColors }; delete nc[catName]; const nt = { ...catTypes }; delete nt[catName];
+    setBudgets(nb); setCatColors(nc); setCatTypes(nt); setAllEntries(prev => prev.filter(e => e.category !== catName)); setEditCat(null); showToast(`"${catName}" deleted.`);
+    await saveBudgetsToSheet(nb, nc, nt);
   }
   function openNewLT() { setLtForm({ name: "", saved: "", goal: "", color: PALETTE[0], targetDate: "", startDate: new Date().toISOString().slice(0, 7) }); setEditLT("new"); }
   function openEditLT(i) { const it = longTerm[i]; setLtForm({ name: it.name, saved: String(it.saved), goal: String(it.goal), color: it.color || PALETTE[0], targetDate: it.targetDate || "", startDate: it.startDate || "" }); setEditLT(i); }
@@ -376,7 +391,7 @@ export default function App() {
                         <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budgets[c])}</span>
                       </div>
                     </div>
-                    <CategoryBar spent={spent} budget={budgets[c]} color={catColors[c] || C.accent} dayOfMonth={dayOfMonth} daysInMonth={daysInMonth} />
+                    <CategoryBar spent={spent} budget={budgets[c]} color={catColors[c] || C.accent} dayOfMonth={dayOfMonth} daysInMonth={daysInMonth} type={catTypes[c] || "expense"} />
                   </div>
                 </div>
               );
@@ -492,7 +507,50 @@ export default function App() {
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div><FL>Name</FL><input className="inp" type="text" placeholder="e.g. Subscriptions" value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value }))} /></div>
             <div><FL>Monthly Budget</FL><div style={{ position: "relative" }}><span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.textLo }}>$</span><input className="inp" type="number" min="0" value={catForm.budget} onChange={e => setCatForm(f => ({ ...f, budget: e.target.value }))} style={{ paddingLeft: 28 }} /></div></div>
+            <div>
+              <FL>Category Type</FL>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {[
+                  { value: "expense",    label: "Expense",    desc: "Standard spending — full pacing logic applies" },
+                  { value: "fixed",      label: "Fixed",      desc: "Recurring charge (rent, subscriptions) — no pacing warnings" },
+                  { value: "investment", label: "Investment",  desc: "Positive spend (stocks, savings) — counts toward budget, never flagged" },
+                ].map(opt => (
+                  <div key={opt.value} onClick={() => setCatForm(f => ({ ...f, type: opt.value }))}
+                    style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", borderRadius: 8, cursor: "pointer",
+                      border: `1px solid ${catForm.type === opt.value ? (opt.value === "investment" ? "#388bfd" : opt.value === "fixed" ? C.textLo : C.accent) : C.border}`,
+                      background: catForm.type === opt.value ? (opt.value === "investment" ? "rgba(56,139,253,0.08)" : "rgba(255,255,255,0.03)") : "transparent" }}>
+                    <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${catForm.type === opt.value ? C.accent : C.borderMid}`, background: catForm.type === opt.value ? C.accent : "transparent", flexShrink: 0, marginTop: 1 }} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.textHi }}>{opt.label}</div>
+                      <div style={{ fontSize: 11, color: C.textLo, marginTop: 2 }}>{opt.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
             <div><FL>Color</FL><div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>{PALETTE.map(p => (<div key={p} className="swatch" style={{ background: p, borderColor: catForm.color === p ? "#fff" : "transparent", boxShadow: catForm.color === p ? "0 0 0 1px #fff" : "none" }} onClick={() => setCatForm(f => ({ ...f, color: p }))} />))}</div></div>
+            <div><FL>Type</FL>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {[
+                  { value: "expense",    label: "Expense",    desc: "Standard spend — pacing logic applies" },
+                  { value: "fixed",      label: "Fixed",      desc: "Recurring charge (rent, subscriptions) — no pacing warnings" },
+                  { value: "investment", label: "Investment", desc: "Stocks, savings — counts against budget, never flagged" },
+                ].map(opt => (
+                  <div key={opt.value} onClick={() => setCatForm(f => ({ ...f, type: opt.value }))}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, cursor: "pointer",
+                      background: catForm.type === opt.value ? C.accentDim : C.bgInset,
+                      border: `1px solid ${catForm.type === opt.value ? C.accent : C.border}`,
+                      transition: "all 0.15s" }}>
+                    <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${catForm.type === opt.value ? C.accent : C.textLo}`,
+                      background: catForm.type === opt.value ? C.accent : "transparent", flexShrink: 0, transition: "all 0.15s" }} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: catForm.type === opt.value ? C.textHi : C.textMid }}>{opt.label}</div>
+                      <div style={{ fontSize: 11, color: C.textLo, marginTop: 1 }}>{opt.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
             <div style={{ display: "flex", gap: 10, marginTop: 4 }}><button className="cta" onClick={saveCat} style={{ flex: 1 }}>{editCat === "new" ? "Add" : "Save"}</button>{editCat !== "new" && <button className="del-btn" onClick={() => deleteCat(editCat)}>Delete</button>}</div>
           </div>
         </Modal>
@@ -828,7 +886,7 @@ export default function App() {
                             <span style={{ color: C.textLo }}>{form.category}</span>
                             <span style={{ color: STATUS[categoryStatuses[form.category]].color, fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(byCategory[form.category] || 0)} / {fmt(budgets[form.category])}</span>
                           </div>
-                          <CategoryBar spent={byCategory[form.category] || 0} budget={budgets[form.category]} color={catColors[form.category] || C.accent} dayOfMonth={dayOfMonth} daysInMonth={daysInMonth} />
+                          <CategoryBar spent={byCategory[form.category] || 0} budget={budgets[form.category]} color={catColors[form.category] || C.accent} dayOfMonth={dayOfMonth} daysInMonth={daysInMonth} type={catTypes[form.category] || "expense"} />
                         </div>
                       )}
                     </div>
@@ -851,15 +909,20 @@ export default function App() {
                   {categories.map(c => {
                     const status = categoryStatuses[c];
                     const sc = STATUS[status];
+                    const ctype = catTypes[c] || "expense";
                     return (
                       <div key={c} onClick={() => openEditCat(c)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 8px", borderBottom: `1px solid ${C.borderMid}`, cursor: "pointer", borderRadius: 8, transition: "background 0.12s" }} onMouseEnter={e => e.currentTarget.style.background = C.bgInset} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={{ width: 10, height: 10, borderRadius: 3, background: catColors[c] || C.textLo, flexShrink: 0 }} />
                           <span style={{ fontSize: 14, color: C.textHi, fontWeight: 600 }}>{c}</span>
-                          {status !== "ok" && <span style={{ fontSize: 10, color: sc.color, fontWeight: 800 }}>{sc.icon}</span>}
+                          {ctype === "investment" && <span style={{ fontSize: 9, color: "#388bfd", background: "rgba(56,139,253,0.12)", padding: "1px 6px", borderRadius: 4, fontWeight: 600, letterSpacing: 0.5 }}>invest</span>}
+                          {ctype === "fixed" && <span style={{ fontSize: 9, color: C.textLo, background: C.bgInset, padding: "1px 6px", borderRadius: 4, fontWeight: 600, letterSpacing: 0.5 }}>fixed</span>}
+                          {catTypes[c] === "investment" && <span style={{ fontSize: 9, color: "#388bfd", fontWeight: 700, background: "rgba(56,139,253,0.12)", padding: "1px 5px", borderRadius: 3 }}>↗ invest</span>}
+                          {catTypes[c] === "fixed" && <span style={{ fontSize: 9, color: C.textLo, fontWeight: 700, background: C.bgInset, padding: "1px 5px", borderRadius: 3, border: `1px solid ${C.border}` }}>fixed</span>}
+                          {status !== "ok" && catTypes[c] === "expense" && <span style={{ fontSize: 10, color: sc.color, fontWeight: 800 }}>{sc.icon}</span>}
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: sc.color, fontFamily: "'DM Mono',monospace" }}>{fmt(byCategory[c] || 0)}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: ctype === "investment" ? "#388bfd" : sc.color, fontFamily: "'DM Mono',monospace" }}>{fmt(byCategory[c] || 0)}</span>
                           <span style={{ fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budgets[c])}</span>
                           <span style={{ color: C.textLo }}>›</span>
                         </div>
