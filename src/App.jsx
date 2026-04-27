@@ -384,7 +384,9 @@ export default function App() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                         <span style={{ fontSize: 12, color: C.textMid, fontWeight: 500 }}>{c}</span>
-                        {status !== "ok" && <span style={{ fontSize: 10, color: sc.color, fontWeight: 800 }}>{sc.icon}</span>}
+                        {status !== "ok" && (catTypes[c] || "expense") === "expense" && <span style={{ fontSize: 10, color: sc.color, fontWeight: 800 }}>{sc.icon}</span>}
+                        {(catTypes[c] || "expense") === "investment" && <span style={{ fontSize: 9, color: "#388bfd", fontWeight: 700, background: "rgba(56,139,253,0.12)", padding: "1px 5px", borderRadius: 3 }}>↗</span>}
+                        {(catTypes[c] || "expense") === "fixed" && <span style={{ fontSize: 9, color: C.textLo, fontWeight: 600, background: C.bgInset, padding: "1px 5px", borderRadius: 3, border: `1px solid ${C.border}` }}>fixed</span>}
                       </div>
                       <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: sc.color, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
@@ -607,7 +609,7 @@ export default function App() {
                       {/* Divider */}
                       <div style={{ width: 1, height: 120, background: C.border, flexShrink: 0 }} />
                       {/* Stats column */}
-                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+                      <div style={{ flex: 1, maxWidth: 340, display: "flex", flexDirection: "column", gap: 16 }}>
                         {/* Spend + budget + pill row */}
                         <div style={{ display: "flex", alignItems: "flex-end", gap: 20, flexWrap: "wrap" }}>
                           <div>
@@ -666,7 +668,7 @@ export default function App() {
                       {/* Divider */}
                       <div style={{ width: 1, height: 120, background: C.border, flexShrink: 0 }} />
                       {/* Legend */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: 9, minWidth: 110 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 9, minWidth: 160, flexShrink: 0 }}>
                         {donutSegments.filter(s => s.value > 0).map((s, i) => (
                           <LegendItem key={i} color={s.color} label={s.label} value={s.value} fmt={fmt} />
                         ))}
@@ -760,7 +762,7 @@ export default function App() {
                     <div className="card" style={{ padding: "20px 20px" }}>
                       <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 14 }}>BREAKDOWN</div>
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                        <thead><tr><th style={{ textAlign: "left", color: C.textLo, padding: "0 0 10px", fontWeight: 500, fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>CAT</th>{FAMILY_MEMBERS.map(m => (<th key={m} style={{ textAlign: "right", color: MEMBER_COLORS[m], padding: "0 0 10px 10px", fontWeight: 600, fontSize: 11 }}>{m}</th>))}</tr></thead>
+                        <thead><tr><th style={{ textAlign: "left", color: C.textLo, padding: "0 0 10px", fontWeight: 500, fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>Category</th>{FAMILY_MEMBERS.map(m => (<th key={m} style={{ textAlign: "right", color: MEMBER_COLORS[m], padding: "0 0 10px 10px", fontWeight: 600, fontSize: 11 }}>{m}</th>))}</tr></thead>
                         <tbody>{categories.filter(c => (byCategory[c] || 0) > 0).map(c => (
                           <tr key={c} style={{ borderTop: `1px solid ${C.borderMid}` }}>
                             <td style={{ padding: "8px 0", color: C.textMid, display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: 1, background: catColors[c] || C.textLo, display: "inline-block", flexShrink: 0 }} />{c}</td>
