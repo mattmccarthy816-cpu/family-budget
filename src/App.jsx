@@ -65,7 +65,7 @@ function HeroDonut({ segments, totalSpend, totalBudget, size = 180 }) {
   const r = 68, cx = 90, cy = 90, sw = 16;
   const circ = 2 * Math.PI * r;
   const total = Math.max(totalBudget, totalSpend, 1);
-  const overBudget = alertableSpend > alertableBudget + 2;
+  const overBudget = totalSpend > totalBudget + 2;
   const fmt = n => `$${Math.round(n).toLocaleString("en-US")}`;
   let offset = 0;
   const arcs = segments.filter(s => s.value > 0).map(s => {
