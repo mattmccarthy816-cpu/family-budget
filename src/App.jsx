@@ -212,7 +212,7 @@ export default function App() {
       const data = await api({ action: "getAll" });
       const entries = (data.entries || []).filter(r => r[0]).map(r => ({ id: String(r[0]), date: String(r[1]), member: String(r[2]), category: String(r[3]), amount: parseFloat(r[4]), notes: String(r[5] || '') }));
       const bm = {}, cm = {}, tm = {};
-      (data.budgets || []).forEach(r => { if (r[0]) { bm[String(r[0])] = parseFloat(r[1]); cm[String(r[0])] = String(r[2]); tm[String(r[0])] = String(r[3] || "expense"); } });
+      (data.budgets || []).forEach(r => { if (r[0]) { bm[String(r[0])] = parseFloat(r[1]); cm[String(r[0])] = String(r[2]); const rawType = String(r[3] || ""); tm[String(r[0])] = ["expense","fixed","investment"].includes(rawType) ? rawType : "expense"; } });
       const lt = (data.longTerm || []).filter(r => r[0]).map(r => ({ name: String(r[0]), saved: parseFloat(r[1]) || 0, goal: parseFloat(r[2]) || 0, color: String(r[3] || ''), targetDate: String(r[4] || ''), startDate: String(r[5] || '') }));
       const secs = (data.sections || []).filter(r => r[0] && r[1]).map(r => ({ section: String(r[0]), category: String(r[1]), order: parseInt(r[2]) || 0 }));
       setAllEntries(entries); setBudgets(bm); setCatColors(cm); setCatTypes(tm); setLongTerm(lt); setRawSections(secs);
@@ -465,7 +465,7 @@ export default function App() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ display: "flex", gap: 2, background: C.bgInset, borderRadius: 10, padding: 3 }}>
-                  {[["dashboard","Budget Dashboard"],["longterm","Long Term Goals"],["budgets","Budget Details"]].map(([v, label]) => (
+                  {[["dashboard","Budget Dashboard"],["review","Review"],["longterm","Long Term Goals"],["budgets","Budget Details"]].map(([v, label]) => (
                     <button key={v} className={`npill ${view === v ? "active" : ""}`} onClick={() => setView(v)}>{label}</button>
                   ))}
                 </div>
@@ -486,7 +486,7 @@ export default function App() {
                 <button onClick={() => setView("add")} style={{ background: C.accent, border: "none", borderRadius: 9, color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 16px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Add</button>
               </div>
               <div style={{ display: "flex", borderTop: `1px solid ${C.border}`, marginLeft: -16, marginRight: -16, paddingLeft: 8, paddingRight: 8, paddingBottom: 6 }}>
-                {[["dashboard","Dashboard"],["longterm","Long Term"],["budgets","Details"]].map(([v, label]) => (
+                {[["dashboard","Dashboard"],["review","Review"],["longterm","Long Term"],["budgets","Details"]].map(([v, label]) => (
                   <button key={v} className={`npill ${view === v ? "active" : ""}`} onClick={() => setView(v)} style={{ flex: 1, textAlign: "center", fontSize: 12, padding: "7px 4px" }}>{label}</button>
                 ))}
               </div>
@@ -612,56 +612,57 @@ export default function App() {
                 {/* Hero */}
                 <div className="card" style={{ padding: isDesktop ? "28px 32px" : "20px 18px", marginBottom: 16 }}>
                   {isDesktop ? (
-                    /* ── Desktop: [donut + legend] | divider | stats ── */
-                    <div style={{ display: "flex", gap: 28, alignItems: "center" }}>
-                      {/* Left: donut + legend inline */}
-                      <div style={{ display: "flex", gap: 20, alignItems: "center", flexShrink: 0 }}>
-                        <HeroDonut segments={donutSegments} totalSpend={totalSpend} totalBudget={totalBudget} size={150} />
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    /* ── Desktop: [donut | legend] | divider | stats ── */
+                    <div style={{ display: "flex", gap: 32, alignItems: "stretch" }}>
+                      {/* Left: donut + legend — fixed width, generous spacing */}
+                      <div style={{ display: "flex", gap: 28, alignItems: "center", flexShrink: 0, minWidth: 320 }}>
+                        <HeroDonut segments={donutSegments} totalSpend={totalSpend} totalBudget={totalBudget} size={160} />
+                        <div style={{ display: "flex", flexDirection: "column", gap: 11, justifyContent: "center" }}>
                           {donutSegments.filter(s => s.value > 0).map((s, i) => (
                             <LegendItem key={i} color={s.color} label={s.label} value={s.value} fmt={fmt} />
                           ))}
                         </div>
                       </div>
                       {/* Divider */}
-                      <div style={{ width: 1, alignSelf: "stretch", background: C.border, flexShrink: 0, margin: "4px 0" }} />
-                      {/* Right: stats */}
-                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
+                      <div style={{ width: 1, background: C.border, flexShrink: 0, alignSelf: "stretch" }} />
+                      {/* Right: stats — fills remaining space */}
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 18, paddingLeft: 4 }}>
                         {/* Spend + budget + pill */}
-                        <div style={{ display: "flex", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", alignItems: "flex-end", gap: 20, flexWrap: "wrap" }}>
                           <div>
-                            <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 4 }}>spent</div>
-                            <div style={{ fontSize: 36, fontWeight: 800, color: overBudget ? "#f85149" : C.textHi, letterSpacing: -1.5, lineHeight: 1, fontFamily: "'DM Mono',monospace" }}>{fmt(totalSpend)}</div>
-                          </div>
-                          <div style={{ paddingBottom: 4 }}>
-                            <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 4 }}>budget</div>
-                            <div style={{ fontSize: 20, fontWeight: 700, color: C.textLo, letterSpacing: -0.5, lineHeight: 1, fontFamily: "'DM Mono',monospace" }}>{fmt(totalBudget)}</div>
+                            <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 6 }}>spent</div>
+                            <div style={{ fontSize: 42, fontWeight: 800, color: overBudget ? "#f85149" : C.textHi, letterSpacing: -2, lineHeight: 1, fontFamily: "'DM Mono',monospace" }}>{fmt(totalSpend)}</div>
                           </div>
                           <div style={{ paddingBottom: 6 }}>
-                            <div style={{ display: "inline-flex", alignItems: "center", padding: "5px 12px", borderRadius: 6, background: diff >= 0 ? "rgba(35,134,54,0.15)" : "rgba(218,54,51,0.15)", color: diff >= 0 ? "#3fb950" : "#f85149", fontFamily: "'DM Mono',monospace", fontWeight: 700, fontSize: 13 }}>
+                            <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 6 }}>budget</div>
+                            <div style={{ fontSize: 22, fontWeight: 700, color: C.textLo, letterSpacing: -0.5, lineHeight: 1, fontFamily: "'DM Mono',monospace" }}>{fmt(totalBudget)}</div>
+                          </div>
+                          <div style={{ paddingBottom: 8 }}>
+                            <div style={{ display: "inline-flex", alignItems: "center", padding: "6px 14px", borderRadius: 7, background: diff >= 0 ? "rgba(35,134,54,0.15)" : "rgba(218,54,51,0.15)", color: diff >= 0 ? "#3fb950" : "#f85149", fontFamily: "'DM Mono',monospace", fontWeight: 700, fontSize: 14 }}>
                               {diff >= 0 ? "+" : "−"}{fmt(Math.abs(diff))} {diff >= 0 ? "under" : "over"}
                             </div>
                           </div>
                         </div>
-                        {/* Progress bar */}
-                        <div style={{ maxWidth: 280 }}>
-                          <div style={{ background: C.borderMid, borderRadius: 999, height: 3, overflow: "hidden" }}>
+                        {/* Progress bar — full width of stats panel */}
+                        <div>
+                          <div style={{ background: C.borderMid, borderRadius: 999, height: 4, overflow: "hidden", position: "relative" }}>
                             <div style={{ width: `${Math.min((totalSpend / Math.max(totalBudget, 1)) * 100, 100)}%`, height: "100%", borderRadius: 999, transition: "width 0.5s", background: overBudget ? "#f85149" : `linear-gradient(90deg, ${C.accent}, #3fb950)` }} />
+                            {isCurrentMonth && <div style={{ position: "absolute", top: 0, bottom: 0, left: `${(dayOfMonth / daysInMonth) * 100}%`, width: 2, background: "rgba(255,255,255,0.3)", transform: "translateX(-50%)" }} />}
                           </div>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                            <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{isCurrentMonth ? `day ${dayOfMonth} of ${daysInMonth}` : isFutureMonth ? "future" : "past month"}</div>
-                            <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{Math.round((totalSpend / Math.max(totalBudget, 1)) * 100)}%</div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
+                            <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{isCurrentMonth ? `day ${dayOfMonth} of ${daysInMonth}` : isFutureMonth ? "future" : "past month"}</div>
+                            <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{Math.round((totalSpend / Math.max(totalBudget, 1)) * 100)}% of budget</div>
                           </div>
                         </div>
                         {/* Member bars */}
-                        <div style={{ display: "flex", gap: 24 }}>
+                        <div style={{ display: "flex", gap: 28 }}>
                           {FAMILY_MEMBERS.map(m => (
-                            <div key={m} style={{ minWidth: 110 }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                <span style={{ fontSize: 11, color: MEMBER_COLORS[m], fontWeight: 600 }}>{m}</span>
-                                <span style={{ fontSize: 11, color: MEMBER_COLORS[m], fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(byMember[m])}</span>
+                            <div key={m} style={{ flex: 1 }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                                <span style={{ fontSize: 12, color: MEMBER_COLORS[m], fontWeight: 600 }}>{m}</span>
+                                <span style={{ fontSize: 12, color: MEMBER_COLORS[m], fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(byMember[m])}</span>
                               </div>
-                              <div style={{ background: C.borderMid, borderRadius: 999, height: 3 }}>
+                              <div style={{ background: C.borderMid, borderRadius: 999, height: 4 }}>
                                 <div style={{ width: `${(byMember[m] / maxMemberSpend) * 100}%`, height: "100%", background: MEMBER_COLORS[m], borderRadius: 999, transition: "width 0.5s" }} />
                               </div>
                             </div>
@@ -1010,6 +1011,195 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            {view === "review" && (() => {
+              // ── Review data — computed for selected month vs prior month ──
+              const revYear = viewYear, revMonth = viewMonth;
+              const prevRevMonth = revMonth === 0 ? 11 : revMonth - 1;
+              const prevRevYear  = revMonth === 0 ? revYear - 1 : revYear;
+              const revPrefix  = `${revYear}-${String(revMonth + 1).padStart(2, "0")}`;
+              const prevPrefix = `${prevRevYear}-${String(prevRevMonth + 1).padStart(2, "0")}`;
+              const revEntries  = allEntries.filter(e => e.date.startsWith(revPrefix));
+              const prevEntries = allEntries.filter(e => e.date.startsWith(prevPrefix));
+              const revDays  = getDaysInMonth(revYear, revMonth);
+              const revToday = isCurrentMonth ? now.getDate() : revDays;
+
+              // Totals
+              const revTotal  = revEntries.reduce((s, e) => s + e.amount, 0);
+              const prevTotal = prevEntries.reduce((s, e) => s + e.amount, 0);
+              const revBudget = Object.values(budgets).reduce((s, v) => s + v, 0);
+              const revDiff   = revBudget - revTotal;
+              const momDelta  = prevTotal > 0 ? revTotal - prevTotal : null;
+
+              // Per-category
+              const revByCat  = {};
+              const prevByCat = {};
+              categories.forEach(c => { revByCat[c] = 0; prevByCat[c] = 0; });
+              revEntries.forEach(e  => { if (revByCat[e.category]  !== undefined) revByCat[e.category]  += e.amount; });
+              prevEntries.forEach(e => { if (prevByCat[e.category] !== undefined) prevByCat[e.category] += e.amount; });
+
+              // Only expense/fixed cats matter for best/worst — investments excluded
+              const alertableCats = categories.filter(c => (catTypes[c] || "expense") !== "investment");
+              const catsWithSpend = alertableCats.filter(c => revByCat[c] > 0 || budgets[c] > 0);
+
+              // % of budget used per category (for ranking)
+              const catPct = c => budgets[c] > 0 ? revByCat[c] / budgets[c] : 0;
+              const sorted = [...catsWithSpend].sort((a, b) => catPct(b) - catPct(a));
+              const worst = sorted.slice(0, 3);
+              const best  = [...catsWithSpend].filter(c => revByCat[c] > 0).sort((a, b) => catPct(a) - catPct(b)).slice(0, 3);
+
+              // Biggest individual entries
+              const topEntries = [...revEntries].sort((a, b) => b.amount - a.amount).slice(0, 5);
+
+              // Member split
+              const revByMember = {};
+              FAMILY_MEMBERS.forEach(m => revByMember[m] = 0);
+              revEntries.forEach(e => { if (revByMember[e.member] !== undefined) revByMember[e.member] += e.amount; });
+
+              const isFinal = !isCurrentMonth && !isFutureMonth;
+              const progress = revToday / revDays;
+
+              const StatTile = ({ label, value, sub, color }) => (
+                <div style={{ background: C.bgInset, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: "14px 16px", flex: 1, minWidth: 100 }}>
+                  <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 6 }}>{label}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: color || C.textHi, fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1 }}>{value}</div>
+                  {sub && <div style={{ fontSize: 10, color: C.textLo, marginTop: 5 }}>{sub}</div>}
+                </div>
+              );
+
+              const CatRow = ({ c, rank, highlight }) => {
+                const spent = revByCat[c] || 0;
+                const budget = budgets[c] || 0;
+                const pct = budget > 0 ? Math.min(spent / budget, 1.5) : 0;
+                const over = spent > budget + 2;
+                const color = catColors[c] || C.textMid;
+                const prevSpent = prevByCat[c] || 0;
+                const delta = prevSpent > 0 ? spent - prevSpent : null;
+                return (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: `1px solid ${C.borderMid}` }}>
+                    <div style={{ width: 20, fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace", flexShrink: 0, textAlign: "center" }}>{rank}</div>
+                    <div style={{ width: 6, height: 6, borderRadius: 2, background: color, flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                        <span style={{ fontSize: 12, color: C.textMid, fontWeight: 500 }}>{c}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {delta !== null && <span style={{ fontSize: 10, color: delta > 0 ? "#f85149" : "#3fb950", fontFamily: "'DM Mono',monospace" }}>{delta > 0 ? "+" : ""}{fmt(delta)} vs last</span>}
+                          <span style={{ fontSize: 12, fontWeight: 700, color: over ? "#f85149" : C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
+                          <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budget)}</span>
+                        </div>
+                      </div>
+                      <div style={{ background: C.borderMid, borderRadius: 999, height: 3, overflow: "hidden" }}>
+                        <div style={{ width: `${Math.min(pct * 100, 100)}%`, height: "100%", background: over ? "#f85149" : color, borderRadius: 999, transition: "width 0.5s" }} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              };
+
+              return (
+                <div className="fu" style={{ maxWidth: isDesktop ? 860 : "100%" }}>
+
+                  {/* Header */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+                    <div>
+                      <div style={{ fontSize: isDesktop ? 20 : 16, fontWeight: 800, color: C.textHi, letterSpacing: -0.5 }}>
+                        {MONTH_NAMES[revMonth]} {revYear} {isFinal ? "Review" : "· In Progress"}
+                      </div>
+                      <div style={{ fontSize: 11, color: C.textLo, marginTop: 3 }}>
+                        {isFinal ? `Final · ${revDays} days` : `Day ${revToday} of ${revDays} · ${Math.round(progress * 100)}% through month`}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button className="month-btn" onClick={prevMonth}>← {MONTH_NAMES[prevRevMonth].slice(0,3)}</button>
+                      {!isCurrentMonth && <button className="month-btn" onClick={nextMonth}>{MONTH_NAMES[viewMonth === 11 ? 0 : viewMonth + 1].slice(0,3)} →</button>}
+                    </div>
+                  </div>
+
+                  {/* Stat tiles row */}
+                  <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+                    <StatTile label="SPENT" value={fmt(revTotal)} sub={`of ${fmt(revBudget)} budget`} color={revTotal > revBudget + 2 ? "#f85149" : C.textHi} />
+                    <StatTile
+                      label={revDiff >= 0 ? "UNDER BUDGET" : "OVER BUDGET"}
+                      value={`${revDiff >= 0 ? "+" : "−"}${fmt(Math.abs(revDiff))}`}
+                      sub={revDiff >= 0 ? "great work" : "over limit"}
+                      color={revDiff >= 0 ? "#3fb950" : "#f85149"}
+                    />
+                    {momDelta !== null && (
+                      <StatTile
+                        label="VS LAST MONTH"
+                        value={`${momDelta >= 0 ? "+" : "−"}${fmt(Math.abs(momDelta))}`}
+                        sub={momDelta >= 0 ? "more than " + MONTH_NAMES[prevRevMonth].slice(0,3) : "less than " + MONTH_NAMES[prevRevMonth].slice(0,3)}
+                        color={momDelta > 0 ? "#f85149" : "#3fb950"}
+                      />
+                    )}
+                    {FAMILY_MEMBERS.map(m => (
+                      <StatTile key={m} label={m.toUpperCase()} value={fmt(revByMember[m] || 0)} color={MEMBER_COLORS[m]} />
+                    ))}
+                  </div>
+
+                  {/* Progress bar */}
+                  {!isFinal && (
+                    <div className="card" style={{ padding: "14px 18px", marginBottom: 16 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                        <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>MONTH PROGRESS</span>
+                        <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{Math.round(progress * 100)}% of days elapsed · {Math.round((revTotal / Math.max(revBudget, 1)) * 100)}% of budget used</span>
+                      </div>
+                      <div style={{ background: C.borderMid, borderRadius: 999, height: 4, overflow: "hidden", position: "relative" }}>
+                        <div style={{ width: `${Math.min((revTotal / Math.max(revBudget, 1)) * 100, 100)}%`, height: "100%", background: revTotal > revBudget + 2 ? "#f85149" : `linear-gradient(90deg, ${C.accent}, #3fb950)`, borderRadius: 999, transition: "width 0.5s" }} />
+                        <div style={{ position: "absolute", top: 0, bottom: 0, left: `${progress * 100}%`, width: 2, background: "rgba(255,255,255,0.4)", transform: "translateX(-50%)" }} />
+                      </div>
+                      <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", marginTop: 5 }}>
+                        {revTotal <= revBudget
+                          ? `On track — ${fmt(revBudget - revTotal)} remaining with ${revDays - revToday} days to go`
+                          : `${fmt(revTotal - revBudget)} over budget`}
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: 14, marginBottom: 16 }}>
+                    {/* Worst categories */}
+                    <div className="card" style={{ padding: "18px 20px" }}>
+                      <div style={{ fontSize: 10, color: "#f85149", fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 4 }}>HIGHEST USAGE</div>
+                      <div style={{ fontSize: 11, color: C.textLo, marginBottom: 12 }}>Categories closest to or over budget</div>
+                      {worst.length === 0
+                        ? <div style={{ fontSize: 12, color: C.textLo }}>No spend yet.</div>
+                        : worst.map((c, i) => <CatRow key={c} c={c} rank={i + 1} />)
+                      }
+                    </div>
+
+                    {/* Best categories */}
+                    <div className="card" style={{ padding: "18px 20px" }}>
+                      <div style={{ fontSize: 10, color: "#3fb950", fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 4 }}>LOWEST USAGE</div>
+                      <div style={{ fontSize: 11, color: C.textLo, marginBottom: 12 }}>Categories with most budget remaining</div>
+                      {best.length === 0
+                        ? <div style={{ fontSize: 12, color: C.textLo }}>No spend yet.</div>
+                        : best.map((c, i) => <CatRow key={c} c={c} rank={i + 1} />)
+                      }
+                    </div>
+                  </div>
+
+                  {/* Biggest entries */}
+                  <div className="card" style={{ padding: "18px 20px", marginBottom: 16 }}>
+                    <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 14 }}>TOP ENTRIES THIS MONTH</div>
+                    {topEntries.length === 0
+                      ? <div style={{ fontSize: 12, color: C.textLo }}>No entries yet.</div>
+                      : topEntries.map((e, i) => (
+                        <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: i < topEntries.length - 1 ? `1px solid ${C.borderMid}` : "none" }}>
+                          <div style={{ width: 20, fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace", textAlign: "center", flexShrink: 0 }}>{i + 1}</div>
+                          <div style={{ width: 5, height: 5, borderRadius: 1, background: catColors[e.category] || C.textLo, flexShrink: 0 }} />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 12, color: C.textMid, fontWeight: 500 }}>{e.category}{e.notes ? <span style={{ color: C.textLo, fontWeight: 400 }}> · {e.notes}</span> : ""}</div>
+                            <div style={{ fontSize: 10, color: C.textLo, marginTop: 2 }}>{e.date.slice(0,10)} · {e.member}</div>
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: catColors[e.category] || C.textMid, fontFamily: "'DM Mono',monospace" }}>{fmtD(e.amount)}</div>
+                        </div>
+                      ))
+                    }
+                  </div>
+
+                </div>
+              );
+            })()}
           </>
         )}
       </div>
