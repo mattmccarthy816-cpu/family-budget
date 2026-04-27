@@ -2,9 +2,13 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 
 const API_URL = "https://script.google.com/macros/s/AKfycbxbNc2pXZT8AsSgXNS9mjtaGda24l3kTl3Etvex1xmMV58_SX9DynXqXItYFwBYwaqryA/exec";
 
-const FAMILY_MEMBERS = ["Matt", "Alice"];
 const PALETTE = ["#60a5fa","#f97316","#4ade80","#a78bfa","#f472b6","#34d399","#fbbf24","#94a3b8","#fb7185","#38bdf8","#c084fc","#fdba74","#86efac","#67e8f9","#fde68a","#d8b4fe"];
-const MEMBER_COLORS = { "Matt": "#60a5fa", "Alice": "#f472b6" };
+const MEMBER_COLOR_PALETTE = ["#60a5fa","#f472b6","#34d399","#fbbf24","#fb7185","#a78bfa"];
+const DEFAULT_MEMBERS = [
+  { name: "Matt",  color: "#60a5fa", role: "owner" },
+  { name: "Alice", color: "#f472b6", role: "owner" },
+];
+const MAX_MEMBERS = 6;
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 const C = {
@@ -171,6 +175,7 @@ export default function App() {
   const [budgets, setBudgets] = useState({});
   const [catColors, setCatColors] = useState({});
   const [catTypes, setCatTypes] = useState({});
+  const [members, setMembers] = useState(DEFAULT_MEMBERS);
   const [longTerm, setLongTerm] = useState([]);
   const [rawSections, setRawSections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -192,9 +197,13 @@ export default function App() {
   const [editCat, setEditCat] = useState(null);
   const [catForm, setCatForm] = useState({ name: "", budget: "", color: PALETTE[0], type: "expense" });
   const [editLT, setEditLT] = useState(null);
+  const [editMember, setEditMember] = useState(null);
+  const [memberForm, setMemberForm] = useState({ name: "", color: MEMBER_COLOR_PALETTE[0], role: "contributor" });
   const [ltForm, setLtForm] = useState({ name: "", saved: "", goal: "", color: PALETTE[0], targetDate: "", startDate: "" });
 
   const categories = useMemo(() => Object.keys(budgets), [budgets]);
+  const memberNames  = useMemo(() => members.map(m => m.name), [members]);
+  const memberColors = useMemo(() => Object.fromEntries(members.map(m => [m.name, m.color])), [members]);
   const showToast = useCallback((msg, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3000); }, []);
 
   const api = useCallback(async (params) => {
@@ -215,7 +224,9 @@ export default function App() {
       (data.budgets || []).forEach(r => { if (r[0]) { bm[String(r[0])] = parseFloat(r[1]); cm[String(r[0])] = String(r[2]); const rawType = String(r[3] || ""); tm[String(r[0])] = ["expense","fixed","investment"].includes(rawType) ? rawType : "expense"; } });
       const lt = (data.longTerm || []).filter(r => r[0]).map(r => ({ name: String(r[0]), saved: parseFloat(r[1]) || 0, goal: parseFloat(r[2]) || 0, color: String(r[3] || ''), targetDate: String(r[4] || ''), startDate: String(r[5] || '') }));
       const secs = (data.sections || []).filter(r => r[0] && r[1]).map(r => ({ section: String(r[0]), category: String(r[1]), order: parseInt(r[2]) || 0 }));
+      const mems = (data.members || []).filter(r => r[0]).map(r => ({ name: String(r[0]), color: String(r[1] || MEMBER_COLOR_PALETTE[0]), role: String(r[2] || "contributor") }));
       setAllEntries(entries); setBudgets(bm); setCatColors(cm); setCatTypes(tm); setLongTerm(lt); setRawSections(secs);
+      if (mems.length > 0) setMembers(mems);
       setNextId(entries.reduce((m, e) => Math.max(m, parseInt(e.id) || 0), 0) + 1);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -241,9 +252,9 @@ export default function App() {
   // Spend that should trigger alerts — excludes investment categories
   const alertableSpend = useMemo(() => entries.reduce((s, e) => (catTypes[e.category] || "expense") === "investment" ? s : s + e.amount, 0), [entries, catTypes]);
   const alertableBudget = useMemo(() => categories.reduce((s, c) => (catTypes[c] || "expense") === "investment" ? s : s + (budgets[c] || 0), 0), [categories, budgets, catTypes]);
-  const byMember = useMemo(() => { const m = {}; FAMILY_MEMBERS.forEach(n => m[n] = 0); entries.forEach(e => { m[e.member] = (m[e.member] || 0) + e.amount; }); return m; }, [entries]);
+  const byMember = useMemo(() => { const m = {}; memberNames.forEach(n => m[n] = 0); entries.forEach(e => { m[e.member] = (m[e.member] || 0) + e.amount; }); return m; }, [entries]);
   const byCategory = useMemo(() => { const m = {}; categories.forEach(c => m[c] = 0); entries.forEach(e => { if (m[e.category] !== undefined) m[e.category] += e.amount; }); return m; }, [entries, categories]);
-  const byMemberCategory = useMemo(() => { const m = {}; FAMILY_MEMBERS.forEach(n => { m[n] = {}; categories.forEach(c => { m[n][c] = 0; }); }); entries.forEach(e => { if (m[e.member] && m[e.member][e.category] !== undefined) m[e.member][e.category] += e.amount; }); return m; }, [entries, categories]);
+  const byMemberCategory = useMemo(() => { const m = {}; memberNames.forEach(n => { m[n] = {}; categories.forEach(c => { m[n][c] = 0; }); }); entries.forEach(e => { if (m[e.member] && m[e.member][e.category] !== undefined) m[e.member][e.category] += e.amount; }); return m; }, [entries, categories]);
   const categoryStatuses = useMemo(() => { const m = {}; categories.forEach(c => { m[c] = getCategoryStatus(byCategory[c] || 0, budgets[c], dayOfMonth, daysInMonth, catTypes[c] || "expense"); }); return m; }, [byCategory, budgets, catTypes, dayOfMonth, daysInMonth, categories]);
   const alertCount = useMemo(() => categories.filter(c => (catTypes[c] || "expense") !== "investment" && categoryStatuses[c] !== "ok").length, [categories, catTypes, categoryStatuses]);
   const overCount = useMemo(() => categories.filter(c => (catTypes[c] || "expense") !== "investment" && categoryStatuses[c] === "over").length, [categories, catTypes, categoryStatuses]);
@@ -333,6 +344,44 @@ export default function App() {
     setBudgets(nb); setCatColors(nc); setCatTypes(nt); setAllEntries(prev => prev.filter(e => e.category !== catName)); setEditCat(null); showToast(`"${catName}" deleted.`);
     await saveBudgetsToSheet(nb, nc, nt);
   }
+
+  async function saveMembersToSheet(mems) {
+    try { await api({ action: "saveMembers", members: JSON.stringify(mems.map(m => ({ name: m.name, color: m.color, role: m.role }))) }); }
+    catch { showToast("Member sync failed.", false); }
+  }
+  function openNewMember() {
+    if (members.length >= MAX_MEMBERS) { showToast(`Max ${MAX_MEMBERS} members.`, false); return; }
+    const usedColors = members.map(m => m.color);
+    const nextColor = MEMBER_COLOR_PALETTE.find(c => !usedColors.includes(c)) || MEMBER_COLOR_PALETTE[0];
+    setMemberForm({ name: "", color: nextColor, role: "contributor" });
+    setEditMember("new");
+  }
+  function openEditMember(name) {
+    const m = members.find(m => m.name === name);
+    if (!m) return;
+    setMemberForm({ name: m.name, color: m.color, role: m.role });
+    setEditMember(name);
+  }
+  async function saveMember() {
+    const name = memberForm.name.trim();
+    if (!name) { showToast("Name required.", false); return; }
+    let nm;
+    if (editMember === "new") {
+      if (members.find(m => m.name === name)) { showToast("Name already taken.", false); return; }
+      nm = [...members, { name, color: memberForm.color, role: memberForm.role }];
+    } else {
+      nm = members.map(m => m.name === editMember ? { ...m, name, color: memberForm.color, role: memberForm.role } : m);
+      if (name !== editMember) setAllEntries(prev => prev.map(e => e.member === editMember ? { ...e, member: name } : e));
+    }
+    setMembers(nm); setEditMember(null); showToast(editMember === "new" ? `"${name}" added.` : "Updated.");
+    await saveMembersToSheet(nm);
+  }
+  async function deleteMember(memberName) {
+    if (members.length <= 1) { showToast("Need at least one member.", false); return; }
+    const nm = members.filter(m => m.name !== memberName);
+    setMembers(nm); setEditMember(null); showToast(`"${memberName}" removed.`);
+    await saveMembersToSheet(nm);
+  }
   function openNewLT() { setLtForm({ name: "", saved: "", goal: "", color: PALETTE[0], targetDate: "", startDate: new Date().toISOString().slice(0, 7) }); setEditLT("new"); }
   function openEditLT(i) { const it = longTerm[i]; setLtForm({ name: it.name, saved: String(it.saved), goal: String(it.goal), color: it.color || PALETTE[0], targetDate: it.targetDate || "", startDate: it.startDate || "" }); setEditLT(i); }
   async function saveLT() {
@@ -357,9 +406,9 @@ export default function App() {
   const mw = isDesktop ? 1320 : 700;
 
   const MemberChips = ({ value, onChange }) => (
-    <div style={{ display: "flex", gap: 8 }}>
-      {FAMILY_MEMBERS.map(m => (
-        <button key={m} onClick={() => onChange(m)} style={{ flex: 1, padding: "10px 0", border: `1px solid ${value === m ? MEMBER_COLORS[m] : C.border}`, borderRadius: 10, background: value === m ? MEMBER_COLORS[m] + "20" : C.bgInset, color: value === m ? MEMBER_COLORS[m] : C.textLo, fontFamily: "'Sora',sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}>{m}</button>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      {memberNames.map(m => (
+        <button key={m} onClick={() => onChange(m)} style={{ flex: 1, minWidth: 70, padding: "10px 0", border: `1px solid ${value === m ? memberColors[m] : C.border}`, borderRadius: 10, background: value === m ? memberColors[m] + "20" : C.bgInset, color: value === m ? memberColors[m] : C.textLo, fontFamily: "'Sora',sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}>{m}</button>
       ))}
     </div>
   );
@@ -465,7 +514,7 @@ export default function App() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ display: "flex", gap: 2, background: C.bgInset, borderRadius: 10, padding: 3 }}>
-                  {[["dashboard","Budget Dashboard"],["review","Review"],["longterm","Long Term Goals"],["budgets","Budget Details"]].map(([v, label]) => (
+                  {[["dashboard","Budget Dashboard"],["review","Review"],["longterm","Long Term Goals"],["budgets","Budget Details"],["members","Members"]].map(([v, label]) => (
                     <button key={v} className={`npill ${view === v ? "active" : ""}`} onClick={() => setView(v)}>{label}</button>
                   ))}
                 </div>
@@ -486,7 +535,7 @@ export default function App() {
                 <button onClick={() => setView("add")} style={{ background: C.accent, border: "none", borderRadius: 9, color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 16px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Add</button>
               </div>
               <div style={{ display: "flex", borderTop: `1px solid ${C.border}`, marginLeft: -16, marginRight: -16, paddingLeft: 8, paddingRight: 8, paddingBottom: 6 }}>
-                {[["dashboard","Dashboard"],["review","Review"],["longterm","Long Term"],["budgets","Details"]].map(([v, label]) => (
+                {[["dashboard","Dashboard"],["review","Review"],["longterm","Long Term"],["budgets","Details"],["members","Team"]].map(([v, label]) => (
                   <button key={v} className={`npill ${view === v ? "active" : ""}`} onClick={() => setView(v)} style={{ flex: 1, textAlign: "center", fontSize: 12, padding: "7px 4px" }}>{label}</button>
                 ))}
               </div>
@@ -502,7 +551,7 @@ export default function App() {
         <Modal onClose={() => setEditEntry(null)}>
           <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: C.textHi }}>Edit Entry</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div><FL>Member</FL><MemberChips value={editForm.member} onChange={m => setEditForm(f => ({ ...f, member: m }))} /></div>
+            <div><FL>Member</FL><MemberChips value={editForm.member} onChange={m => setEditForm(f => ({ ...f, member: m }))} memberNames={memberNames} memberColors={memberColors} /></div>
             <div><FL>Category</FL><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{categories.map(c => (<button key={c} className="chip" onClick={() => setEditForm(f => ({ ...f, category: c }))} style={{ background: editForm.category === c ? catColors[c] + "25" : C.bgInset, border: `1px solid ${editForm.category === c ? catColors[c] : C.border}`, color: editForm.category === c ? catColors[c] : C.textLo }}>{c}</button>))}</div></div>
             <div><FL>Amount</FL><div style={{ position: "relative" }}><span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.textLo }}>$</span><input className="inp" type="number" min="0" step="0.01" value={editForm.amount} onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} style={{ paddingLeft: 28 }} /></div></div>
             <div><FL>Date</FL><input className="inp" type="date" value={editForm.date} onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} style={{ colorScheme: "dark" }} /></div>
@@ -654,16 +703,16 @@ export default function App() {
                             <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{Math.round((totalSpend / Math.max(totalBudget, 1)) * 100)}% of budget</div>
                           </div>
                         </div>
-                        {/* Member bars */}
-                        <div style={{ display: "flex", gap: 28 }}>
-                          {FAMILY_MEMBERS.map(m => (
-                            <div key={m} style={{ flex: 1 }}>
+                        {/* Member bars — 2-col grid handles 2-6 gracefully */}
+                        <div style={{ display: "grid", gridTemplateColumns: members.length <= 2 ? "1fr 1fr" : "1fr 1fr 1fr", gap: "10px 24px" }}>
+                          {memberNames.map(m => (
+                            <div key={m}>
                               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                                <span style={{ fontSize: 12, color: MEMBER_COLORS[m], fontWeight: 600 }}>{m}</span>
-                                <span style={{ fontSize: 12, color: MEMBER_COLORS[m], fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(byMember[m])}</span>
+                                <span style={{ fontSize: 12, color: memberColors[m], fontWeight: 600 }}>{m}</span>
+                                <span style={{ fontSize: 12, color: memberColors[m], fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(byMember[m])}</span>
                               </div>
                               <div style={{ background: C.borderMid, borderRadius: 999, height: 4 }}>
-                                <div style={{ width: `${(byMember[m] / maxMemberSpend) * 100}%`, height: "100%", background: MEMBER_COLORS[m], borderRadius: 999, transition: "width 0.5s" }} />
+                                <div style={{ width: `${(byMember[m] / maxMemberSpend) * 100}%`, height: "100%", background: memberColors[m], borderRadius: 999, transition: "width 0.5s" }} />
                               </div>
                             </div>
                           ))}
@@ -727,16 +776,16 @@ export default function App() {
                         ))}
                       </div>
 
-                      {/* Member bars */}
-                      <div style={{ display: "flex", gap: 12, marginTop: 14 }}>
-                        {FAMILY_MEMBERS.map(m => (
-                          <div key={m} style={{ flex: 1 }}>
+                      {/* Member bars — 2 cols on mobile */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 14px", marginTop: 14 }}>
+                        {memberNames.map(m => (
+                          <div key={m}>
                             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                              <span style={{ fontSize: 10, color: MEMBER_COLORS[m], fontWeight: 600 }}>{m}</span>
-                              <span style={{ fontSize: 10, color: MEMBER_COLORS[m], fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(byMember[m])}</span>
+                              <span style={{ fontSize: 10, color: memberColors[m], fontWeight: 600 }}>{m}</span>
+                              <span style={{ fontSize: 10, color: memberColors[m], fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(byMember[m])}</span>
                             </div>
                             <div style={{ background: C.borderMid, borderRadius: 999, height: 3 }}>
-                              <div style={{ width: `${(byMember[m] / maxMemberSpend) * 100}%`, height: "100%", background: MEMBER_COLORS[m], borderRadius: 999, transition: "width 0.5s" }} />
+                              <div style={{ width: `${(byMember[m] / maxMemberSpend) * 100}%`, height: "100%", background: memberColors[m], borderRadius: 999, transition: "width 0.5s" }} />
                             </div>
                           </div>
                         ))}
@@ -758,11 +807,11 @@ export default function App() {
                     <div className="card" style={{ padding: "20px 20px" }}>
                       <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 14 }}>BREAKDOWN</div>
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                        <thead><tr><th style={{ textAlign: "left", color: C.textLo, padding: "0 0 10px", fontWeight: 500, fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>Category</th>{FAMILY_MEMBERS.map(m => (<th key={m} style={{ textAlign: "right", color: MEMBER_COLORS[m], padding: "0 0 10px 10px", fontWeight: 600, fontSize: 11 }}>{m}</th>))}</tr></thead>
+                        <thead><tr><th style={{ textAlign: "left", color: C.textLo, padding: "0 0 10px", fontWeight: 500, fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>Category</th>{memberNames.map(m => (<th key={m} style={{ textAlign: "right", color: memberColors[m], padding: "0 0 10px 10px", fontWeight: 600, fontSize: 11 }}>{m}</th>))}</tr></thead>
                         <tbody>{categories.filter(c => (byCategory[c] || 0) > 0).map(c => (
                           <tr key={c} style={{ borderTop: `1px solid ${C.borderMid}` }}>
                             <td style={{ padding: "8px 0", color: C.textMid, display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: 1, background: catColors[c] || C.textLo, display: "inline-block", flexShrink: 0 }} />{c}</td>
-                            {FAMILY_MEMBERS.map(m => (<td key={m} style={{ textAlign: "right", padding: "8px 0 8px 10px", color: (byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? C.textHi : C.borderMid, fontFamily: "'DM Mono',monospace", fontSize: 11 }}>{(byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? fmt(byMemberCategory[m][c]) : "—"}</td>))}
+                            {memberNames.map(m => (<td key={m} style={{ textAlign: "right", padding: "8px 0 8px 10px", color: (byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? C.textHi : C.borderMid, fontFamily: "'DM Mono',monospace", fontSize: 11 }}>{(byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? fmt(byMemberCategory[m][c]) : "—"}</td>))}
                           </tr>
                         ))}</tbody>
                       </table>
@@ -784,11 +833,11 @@ export default function App() {
                       </div>
                       {breakdownOpen && (
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, marginTop: 14 }}>
-                          <thead><tr><th style={{ textAlign: "left", color: C.textLo, padding: "0 0 10px", fontWeight: 500, fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>Category</th>{FAMILY_MEMBERS.map(m => (<th key={m} style={{ textAlign: "right", color: MEMBER_COLORS[m], padding: "0 0 10px 10px", fontWeight: 600 }}>{m}</th>))}</tr></thead>
+                          <thead><tr><th style={{ textAlign: "left", color: C.textLo, padding: "0 0 10px", fontWeight: 500, fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>Category</th>{memberNames.map(m => (<th key={m} style={{ textAlign: "right", color: memberColors[m], padding: "0 0 10px 10px", fontWeight: 600 }}>{m}</th>))}</tr></thead>
                           <tbody>{categories.filter(c => (byCategory[c] || 0) > 0).map(c => (
                             <tr key={c} style={{ borderTop: `1px solid ${C.borderMid}` }}>
                               <td style={{ padding: "8px 0", color: C.textMid, display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: 1, background: catColors[c] || C.textLo, display: "inline-block" }} />{c}</td>
-                              {FAMILY_MEMBERS.map(m => (<td key={m} style={{ textAlign: "right", padding: "8px 0 8px 10px", color: (byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? C.textHi : C.borderMid, fontFamily: "'DM Mono',monospace" }}>{(byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? fmt(byMemberCategory[m][c]) : "—"}</td>))}
+                              {memberNames.map(m => (<td key={m} style={{ textAlign: "right", padding: "8px 0 8px 10px", color: (byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? C.textHi : C.borderMid, fontFamily: "'DM Mono',monospace" }}>{(byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? fmt(byMemberCategory[m][c]) : "—"}</td>))}
                             </tr>
                           ))}</tbody>
                         </table>
@@ -820,7 +869,7 @@ export default function App() {
                         <div key={e.id} className="tr-row" style={{ background: i % 2 === 1 ? C.bgInset : "transparent" }} onClick={() => openEditEntry(e)}>
                           <div className="tc" style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: C.textLo }}>{e.date.slice(0, 10)}</div>
                           <div className="tc">
-                            <div style={{ width: 22, height: 22, borderRadius: 6, background: (MEMBER_COLORS[e.member] || C.textLo) + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: MEMBER_COLORS[e.member] || C.textLo }}>{e.member ? e.member[0] : "?"}</div>
+                            <div style={{ width: 22, height: 22, borderRadius: 6, background: (memberColors[e.member] || C.textLo) + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: memberColors[e.member] || C.textLo }}>{e.member ? e.member[0] : "?"}</div>
                           </div>
                           <div className="tc" style={{ gap: 6 }}>
                             <span style={{ width: 5, height: 5, borderRadius: 1, background: catColors[e.category] || C.textLo, display: "inline-block", flexShrink: 0 }} />
@@ -872,7 +921,7 @@ export default function App() {
                   <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6, color: C.textHi }}>Log a spend</div>
                   <div style={{ fontSize: 13, color: C.textLo, marginBottom: 24 }}>Who's spending, what category, how much.</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                    <div><FL>Who are you?</FL><MemberChips value={form.member} onChange={m => setForm(f => ({ ...f, member: m }))} /></div>
+                    <div><FL>Who are you?</FL><MemberChips value={form.member} onChange={m => setForm(f => ({ ...f, member: m }))} memberNames={memberNames} memberColors={memberColors} /></div>
                     <div>
                       <FL>Category</FL>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
@@ -1053,7 +1102,7 @@ export default function App() {
 
               // Member split
               const revByMember = {};
-              FAMILY_MEMBERS.forEach(m => revByMember[m] = 0);
+              memberNames.forEach(m => revByMember[m] = 0);
               revEntries.forEach(e => { if (revByMember[e.member] !== undefined) revByMember[e.member] += e.amount; });
 
               const isFinal = !isCurrentMonth && !isFutureMonth;
@@ -1132,8 +1181,8 @@ export default function App() {
                         color={momDelta > 0 ? "#f85149" : "#3fb950"}
                       />
                     )}
-                    {FAMILY_MEMBERS.map(m => (
-                      <StatTile key={m} label={m.toUpperCase()} value={fmt(revByMember[m] || 0)} color={MEMBER_COLORS[m]} />
+                    {memberNames.map(m => (
+                      <StatTile key={m} label={m.toUpperCase()} value={fmt(revByMember[m] || 0)} color={memberColors[m]} />
                     ))}
                   </div>
 
@@ -1200,6 +1249,96 @@ export default function App() {
                 </div>
               );
             })()}
+
+            {/* MEMBERS */}
+            {view === "members" && (
+              <div className="fu" style={{ maxWidth: 520, margin: "0 auto" }}>
+                <div className="card" style={{ padding: 24 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: C.textHi }}>Household Members</div>
+                      <div style={{ fontSize: 11, color: C.textLo, marginTop: 3 }}>{members.length} of {MAX_MEMBERS} max</div>
+                    </div>
+                    <button onClick={openNewMember} style={{ background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 8, color: C.sand, fontSize: 12, fontWeight: 600, padding: "7px 14px", cursor: "pointer", fontFamily: "'Sora',sans-serif", opacity: members.length >= MAX_MEMBERS ? 0.4 : 1 }}>+ Add</button>
+                  </div>
+
+                  {/* Member capacity bar */}
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ background: C.borderMid, borderRadius: 999, height: 3, overflow: "hidden" }}>
+                      <div style={{ width: `${(members.length / MAX_MEMBERS) * 100}%`, height: "100%", background: C.accent, borderRadius: 999, transition: "width 0.4s" }} />
+                    </div>
+                  </div>
+
+                  {/* Member list */}
+                  {members.map(m => (
+                    <div key={m.name} onClick={() => openEditMember(m.name)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 8px", borderBottom: `1px solid ${C.borderMid}`, cursor: "pointer", borderRadius: 8, transition: "background 0.12s" }} onMouseEnter={e => e.currentTarget.style.background = C.bgInset} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: m.color + "25", border: `1.5px solid ${m.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: m.color, flexShrink: 0 }}>{m.name[0]}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.textHi }}>{m.name}</div>
+                        <div style={{ fontSize: 10, color: C.textLo, marginTop: 2, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5 }}>{m.role}</div>
+                      </div>
+                      <div style={{ fontSize: 11, color: C.textLo }}>edit →</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Edit / New member modal */}
+                {editMember !== null && (
+                  <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}>
+                    <div className="card" style={{ width: "100%", maxWidth: 380, padding: 24, display: "flex", flexDirection: "column", gap: 18 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: C.textHi }}>{editMember === "new" ? "Add Member" : `Edit ${editMember}`}</div>
+
+                      <div><FL>Name</FL><input className="inp" value={memberForm.name} onChange={e => setMemberForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Jordan" /></div>
+
+                      <div><FL>Role</FL>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {[
+                            { value: "owner",       label: "Owner",       desc: "Full access — edit budgets, members, all data" },
+                            { value: "contributor", label: "Contributor", desc: "Can log entries and view the dashboard" },
+                            { value: "viewer",      label: "Viewer",      desc: "Read-only access" },
+                          ].map(opt => (
+                            <div key={opt.value} onClick={() => setMemberForm(f => ({ ...f, role: opt.value }))} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, cursor: "pointer", background: memberForm.role === opt.value ? C.accentDim : C.bgInset, border: `1px solid ${memberForm.role === opt.value ? C.accent : C.border}`, transition: "all 0.15s" }}>
+                              <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${memberForm.role === opt.value ? C.accent : C.textLo}`, background: memberForm.role === opt.value ? C.accent : "transparent", flexShrink: 0, transition: "all 0.15s" }} />
+                              <div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: memberForm.role === opt.value ? C.textHi : C.textMid }}>{opt.label}</div>
+                                <div style={{ fontSize: 11, color: C.textLo, marginTop: 1 }}>{opt.desc}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div><FL>Color</FL>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          {MEMBER_COLOR_PALETTE.map(col => (
+                            <div key={col} onClick={() => setMemberForm(f => ({ ...f, color: col }))} style={{ width: 32, height: 32, borderRadius: 8, background: col, cursor: "pointer", border: memberForm.color === col ? `3px solid #fff` : `3px solid transparent`, boxShadow: memberForm.color === col ? `0 0 0 1px ${col}` : "none", transition: "all 0.15s" }} />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Preview */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, background: C.bgInset, border: `1px solid ${C.border}` }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: memberForm.color + "25", border: `1.5px solid ${memberForm.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: memberForm.color }}>
+                          {memberForm.name ? memberForm.name[0].toUpperCase() : "?"}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: C.textHi }}>{memberForm.name || "Name"}</div>
+                          <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{memberForm.role}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 10 }}>
+                        <button className="cta" onClick={saveMember} style={{ flex: 1 }}>Save</button>
+                        <button onClick={() => setEditMember(null)} style={{ flex: 1, background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 10, color: C.textMid, fontSize: 13, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>Cancel</button>
+                      </div>
+                      {editMember !== "new" && members.length > 1 && (
+                        <button onClick={() => { if (confirm(`Remove ${editMember}?`)) deleteMember(editMember); }} style={{ background: "none", border: "none", color: "#f85149", fontSize: 12, cursor: "pointer", textAlign: "center", fontFamily: "'Sora',sans-serif" }}>Remove member</button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
