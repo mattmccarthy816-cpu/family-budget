@@ -65,7 +65,7 @@ function HeroDonut({ segments, totalSpend, totalBudget, size = 180 }) {
   const r = 68, cx = 90, cy = 90, sw = 16;
   const circ = 2 * Math.PI * r;
   const total = Math.max(totalBudget, totalSpend, 1);
-  const overBudget = totalSpend > totalBudget + 2;
+  const overBudget = alertableSpend > alertableBudget + 2;
   const fmt = n => `$${Math.round(n).toLocaleString("en-US")}`;
   let offset = 0;
   const arcs = segments.filter(s => s.value > 0).map(s => {
@@ -237,6 +237,9 @@ export default function App() {
 
   const totalSpend = useMemo(() => entries.reduce((s, e) => s + e.amount, 0), [entries]);
   const totalBudget = useMemo(() => Object.values(budgets).reduce((s, v) => s + v, 0), [budgets]);
+  // Spend that should trigger alerts — excludes investment categories
+  const alertableSpend = useMemo(() => entries.reduce((s, e) => (catTypes[e.category] || "expense") === "investment" ? s : s + e.amount, 0), [entries, catTypes]);
+  const alertableBudget = useMemo(() => categories.reduce((s, c) => (catTypes[c] || "expense") === "investment" ? s : s + (budgets[c] || 0), 0), [categories, budgets, catTypes]);
   const byMember = useMemo(() => { const m = {}; FAMILY_MEMBERS.forEach(n => m[n] = 0); entries.forEach(e => { m[e.member] = (m[e.member] || 0) + e.amount; }); return m; }, [entries]);
   const byCategory = useMemo(() => { const m = {}; categories.forEach(c => m[c] = 0); entries.forEach(e => { if (m[e.category] !== undefined) m[e.category] += e.amount; }); return m; }, [entries, categories]);
   const byMemberCategory = useMemo(() => { const m = {}; FAMILY_MEMBERS.forEach(n => { m[n] = {}; categories.forEach(c => { m[n][c] = 0; }); }); entries.forEach(e => { if (m[e.member] && m[e.member][e.category] !== undefined) m[e.member][e.category] += e.amount; }); return m; }, [entries, categories]);
@@ -261,10 +264,16 @@ export default function App() {
   const sectionTotals = useMemo(() => {
     const t = {};
     sectionStructure.forEach(sec => {
-      t[sec.name] = { spent: sec.cats.reduce((s, c) => s + (byCategory[c] || 0), 0), budget: sec.cats.reduce((s, c) => s + (budgets[c] || 0), 0) };
+      t[sec.name] = {
+        spent: sec.cats.reduce((s, c) => s + (byCategory[c] || 0), 0),
+        budget: sec.cats.reduce((s, c) => s + (budgets[c] || 0), 0),
+        // alertableSpent excludes investment categories within the section
+        alertableSpent: sec.cats.reduce((s, c) => (catTypes[c] || "expense") === "investment" ? s : s + (byCategory[c] || 0), 0),
+        alertableBudget: sec.cats.reduce((s, c) => (catTypes[c] || "expense") === "investment" ? s : s + (budgets[c] || 0), 0),
+      };
     });
     return t;
-  }, [sectionStructure, byCategory, budgets]);
+  }, [sectionStructure, byCategory, budgets, catTypes]);
 
   const donutSegments = useMemo(() => sectionStructure.map((sec, i) => ({
     label: sec.name,
@@ -274,7 +283,7 @@ export default function App() {
 
   const ltColor = (item, i) => item.color && item.color !== '' ? item.color : PALETTE[i % PALETTE.length];
   const diff = totalBudget - totalSpend;
-  const overBudget = totalSpend > totalBudget + 2;
+  const overBudget = alertableSpend > alertableBudget + 2;
   const sortedEntries = useMemo(() => [...entries].sort((a, b) => new Date(b.date) - new Date(a.date)), [entries]);
 
   function prevMonth() { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); } else setViewMonth(m => m - 1); }
@@ -359,7 +368,7 @@ export default function App() {
       {sectionStructure.map(sec => {
         const totals = sectionTotals[sec.name];
         const isExpanded = !!expandedSections[sec.name];
-        const secOver = totals.spent > totals.budget + 2;
+        const secOver = totals.alertableSpent > totals.alertableBudget + 2;
         return (
           <div key={sec.name}>
             <div onClick={() => toggleSection(sec.name)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", cursor: "pointer", borderBottom: `1px solid ${C.borderMid}`, userSelect: "none" }}>
