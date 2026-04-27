@@ -199,7 +199,7 @@ export default function App() {
   const [editLT, setEditLT] = useState(null);
   const [editMember, setEditMember] = useState(null);
   const [memberForm, setMemberForm] = useState({ name: "", color: MEMBER_COLOR_PALETTE[0], role: "contributor" });
-  const [ltForm, setLtForm] = useState({ name: "", saved: "", goal: "", color: PALETTE[0], targetDate: "", startDate: "" });
+  const [ltForm, setLtForm] = useState({ name: "", saved: "", goal: "", color: PALETTE[0], targetDate: "", startDate: "", type: "fixed", monthlyContribution: "" });
 
   const categories = useMemo(() => Object.keys(budgets), [budgets]);
   const memberNames  = useMemo(() => members.map(m => m.name), [members]);
@@ -222,7 +222,30 @@ export default function App() {
       const entries = (data.entries || []).filter(r => r[0]).map(r => ({ id: String(r[0]), date: String(r[1]), member: String(r[2]), category: String(r[3]), amount: parseFloat(r[4]), notes: String(r[5] || '') }));
       const bm = {}, cm = {}, tm = {};
       (data.budgets || []).forEach(r => { if (r[0]) { bm[String(r[0])] = parseFloat(r[1]); cm[String(r[0])] = String(r[2]); const rawType = String(r[3] || ""); tm[String(r[0])] = ["expense","fixed","investment"].includes(rawType) ? rawType : "expense"; } });
-      const lt = (data.longTerm || []).filter(r => r[0]).map(r => ({ name: String(r[0]), saved: parseFloat(r[1]) || 0, goal: parseFloat(r[2]) || 0, color: String(r[3] || ''), targetDate: String(r[4] || ''), startDate: String(r[5] || '') }));
+      const parseMonthStr = v => {
+        if (!v) return '';
+        const s = String(v).trim();
+        // Already YYYY-MM
+        if (/^\d{4}-\d{2}$/.test(s)) return s;
+        // Google Sheets serial date number
+        if (/^\d{5}$/.test(s)) {
+          const d = new Date(Math.round((parseFloat(s) - 25569) * 86400 * 1000));
+          return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        }
+        // ISO datetime string
+        const m = s.match(/(\d{4})-(\d{2})/);
+        return m ? `${m[1]}-${m[2]}` : '';
+      };
+      const lt = (data.longTerm || []).filter(r => r[0]).map(r => ({
+        name: String(r[0]),
+        saved: parseFloat(r[1]) || 0,
+        goal: parseFloat(r[2]) || 0,
+        color: String(r[3] || ''),
+        targetDate: parseMonthStr(r[4]),
+        startDate: parseMonthStr(r[5]),
+        type: ['fixed','investment','debt'].includes(String(r[6]||'')) ? String(r[6]) : 'fixed',
+        monthlyContribution: parseFloat(r[7]) || 0,
+      }));
       const secs = (data.sections || []).filter(r => r[0] && r[1]).map(r => ({ section: String(r[0]), category: String(r[1]), order: parseInt(r[2]) || 0 }));
       const mems = (data.members || []).filter(r => r[0]).map(r => ({ name: String(r[0]), color: String(r[1] || MEMBER_COLOR_PALETTE[0]), role: String(r[2] || "contributor") }));
       setAllEntries(entries); setBudgets(bm); setCatColors(cm); setCatTypes(tm); setLongTerm(lt); setRawSections(secs);
@@ -406,17 +429,17 @@ export default function App() {
     setMembers(nm); setEditMember(null); showToast(`"${memberName}" removed.`);
     await saveMembersToSheet(nm);
   }
-  function openNewLT() { setLtForm({ name: "", saved: "", goal: "", color: PALETTE[0], targetDate: "", startDate: new Date().toISOString().slice(0, 7) }); setEditLT("new"); }
-  function openEditLT(i) { const it = longTerm[i]; setLtForm({ name: it.name, saved: String(it.saved), goal: String(it.goal), color: it.color || PALETTE[0], targetDate: it.targetDate || "", startDate: it.startDate || "" }); setEditLT(i); }
+  function openNewLT() { setLtForm({ name: "", saved: "", goal: "", color: PALETTE[0], targetDate: "", startDate: new Date().toISOString().slice(0, 7), type: "fixed", monthlyContribution: "" }); setEditLT("new"); }
+  function openEditLT(i) { const it = longTerm[i]; setLtForm({ name: it.name, saved: String(it.saved), goal: String(it.goal), color: it.color || PALETTE[0], targetDate: it.targetDate || "", startDate: it.startDate || "", type: it.type || "fixed", monthlyContribution: String(it.monthlyContribution || "") }); setEditLT(i); }
   async function saveLT() {
     const name = ltForm.name.trim();
     if (!name || ltForm.saved === "" || ltForm.goal === "" || isNaN(+ltForm.saved) || isNaN(+ltForm.goal)) { showToast("Fill all fields.", false); return; }
     let next = [...longTerm];
-    const item = { name, saved: parseFloat((+ltForm.saved).toFixed(2)), goal: parseFloat((+ltForm.goal).toFixed(2)), color: ltForm.color || PALETTE[0], targetDate: ltForm.targetDate || "", startDate: ltForm.startDate || "" };
+    const item = { name, saved: parseFloat((+ltForm.saved).toFixed(2)), goal: parseFloat((+ltForm.goal).toFixed(2)), color: ltForm.color || PALETTE[0], targetDate: ltForm.targetDate || "", startDate: ltForm.startDate || "", type: ltForm.type || "fixed", monthlyContribution: parseFloat((+ltForm.monthlyContribution).toFixed(2)) || 0 };
     if (editLT === "new") next.push(item); else next[editLT] = item;
     setLongTerm(next); setEditLT(null); showToast(editLT === "new" ? `"${name}" added.` : "Updated.");
     setSyncing(true);
-    try { await api({ action: "saveLongTerm", items: JSON.stringify(next) }); }
+    try { await api({ action: "saveLongTerm", items: JSON.stringify(next.map(it => ({ ...it, type: it.type || 'fixed', monthlyContribution: it.monthlyContribution || 0 }))) }); }
     catch { showToast("Sync failed.", false); } finally { setSyncing(false); }
   }
   async function deleteLT(i) {
@@ -645,14 +668,57 @@ export default function App() {
           <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: C.textHi }}>{editLT === "new" ? "New Goal" : "Edit Goal"}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div><FL>Name</FL><input className="inp" type="text" placeholder="e.g. Emergency Fund" value={ltForm.name} onChange={e => setLtForm(f => ({ ...f, name: e.target.value }))} /></div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <div style={{ flex: 1 }}><FL>Saved</FL><div style={{ position: "relative" }}><span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.textLo }}>$</span><input className="inp" type="number" min="0" step="0.01" value={ltForm.saved} onChange={e => setLtForm(f => ({ ...f, saved: e.target.value }))} style={{ paddingLeft: 28 }} /></div></div>
-              <div style={{ flex: 1 }}><FL>Goal</FL><div style={{ position: "relative" }}><span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.textLo }}>$</span><input className="inp" type="number" min="0" step="0.01" value={ltForm.goal} onChange={e => setLtForm(f => ({ ...f, goal: e.target.value }))} style={{ paddingLeft: 28 }} /></div></div>
+
+            {/* Goal type */}
+            <div>
+              <FL>Goal Type</FL>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {[
+                  { value: "fixed",      label: "Savings",    desc: "Building toward a fixed target (emergency fund, down payment, car)" },
+                  { value: "investment", label: "Investment",  desc: "Market-growth account — projects at 7% annual return" },
+                  { value: "debt",       label: "Debt payoff", desc: "Paying down a balance (mortgage extra, loan, credit card)" },
+                ].map(opt => (
+                  <div key={opt.value} onClick={() => setLtForm(f => ({ ...f, type: opt.value }))}
+                    style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "9px 12px", borderRadius: 8, cursor: "pointer",
+                      background: ltForm.type === opt.value ? C.accentDim : C.bgInset,
+                      border: `1px solid ${ltForm.type === opt.value ? C.accent : C.border}`, transition: "all 0.15s" }}>
+                    <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${ltForm.type === opt.value ? C.accent : C.textLo}`, background: ltForm.type === opt.value ? C.accent : "transparent", flexShrink: 0, marginTop: 2, transition: "all 0.15s" }} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: ltForm.type === opt.value ? C.textHi : C.textMid }}>{opt.label}</div>
+                      <div style={{ fontSize: 11, color: C.textLo, marginTop: 1 }}>{opt.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+
+            {/* Amounts */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <FL>{ltForm.type === 'debt' ? 'Current Balance' : 'Current Amount'}</FL>
+                <div style={{ position: "relative" }}><span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.textLo }}>$</span><input className="inp" type="number" min="0" step="0.01" value={ltForm.saved} onChange={e => setLtForm(f => ({ ...f, saved: e.target.value }))} style={{ paddingLeft: 28 }} /></div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <FL>{ltForm.type === 'debt' ? 'Original Balance' : 'Goal Amount'}</FL>
+                <div style={{ position: "relative" }}><span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.textLo }}>$</span><input className="inp" type="number" min="0" step="0.01" value={ltForm.goal} onChange={e => setLtForm(f => ({ ...f, goal: e.target.value }))} style={{ paddingLeft: 28 }} /></div>
+              </div>
+            </div>
+
+            {/* Monthly contribution */}
+            <div>
+              <FL>{ltForm.type === 'debt' ? 'Monthly Extra Payment' : 'Monthly Contribution'}</FL>
+              <div style={{ position: "relative" }}><span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.textLo }}>$</span><input className="inp" type="number" min="0" step="0.01" placeholder="0.00" value={ltForm.monthlyContribution} onChange={e => setLtForm(f => ({ ...f, monthlyContribution: e.target.value }))} style={{ paddingLeft: 28 }} /></div>
+              <div style={{ fontSize: 10, color: C.textLo, marginTop: 5 }}>
+                {ltForm.type === 'investment' ? 'Used to project growth at 7% annual return' : 'Used to calculate on-track pacing'}
+              </div>
+            </div>
+
+            {/* Dates */}
             <div style={{ display: "flex", gap: 10 }}>
               <div style={{ flex: 1 }}><FL>Start Date</FL><input className="inp" type="month" value={ltForm.startDate} onChange={e => setLtForm(f => ({ ...f, startDate: e.target.value }))} style={{ colorScheme: "dark" }} /></div>
               <div style={{ flex: 1 }}><FL>Target Date</FL><input className="inp" type="month" value={ltForm.targetDate} onChange={e => setLtForm(f => ({ ...f, targetDate: e.target.value }))} style={{ colorScheme: "dark" }} /></div>
             </div>
+
             <div><FL>Color</FL><div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>{PALETTE.map(p => (<div key={p} className="swatch" style={{ background: p, borderColor: ltForm.color === p ? "#fff" : "transparent", boxShadow: ltForm.color === p ? "0 0 0 1px #fff" : "none" }} onClick={() => setLtForm(f => ({ ...f, color: p }))} />))}</div></div>
             <div style={{ display: "flex", gap: 10, marginTop: 4 }}><button className="cta" onClick={saveLT} disabled={syncing} style={{ flex: 1 }}>{editLT === "new" ? "Add Goal" : "Save"}</button>{editLT !== "new" && <button className="del-btn" onClick={() => deleteLT(editLT)}>Delete</button>}</div>
           </div>
@@ -1015,73 +1081,147 @@ export default function App() {
             )}
 
             {/* LONG TERM */}
-            {view === "longterm" && (
-              <div className="fu">
-                {longTerm.length === 0
-                  ? <div style={{ textAlign: "center", padding: "60px 0", color: C.textLo, fontSize: 13 }}>No goals yet.</div>
-                  : (
-                    <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : "1fr", gap: 14 }}>
-                      {longTerm.map((item, i) => {
-                        const pct = item.goal > 0 ? Math.min(item.saved / item.goal, 1) : 0;
-                        const color = ltColor(item, i);
-                        const remaining = Math.max(item.goal - item.saved, 0);
-                        const done = item.saved >= item.goal;
-                        let pacingPct = null;
-                        if (item.targetDate && item.goal > 0 && !done) {
-                          const target = new Date(item.targetDate + '-01');
-                          const start = item.startDate ? new Date(item.startDate + '-01') : new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                          const totalDur = target - start;
-                          const elapsed = now - start;
-                          if (totalDur > 0 && elapsed >= 0) pacingPct = Math.min(elapsed / totalDur, 0.98);
-                        }
-                        return (
-                          <div key={i} className="lt-card" onClick={() => openEditLT(i)}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: C.textHi }}>{item.name}</div>
-                              <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>edit ›</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                              <div style={{ position: "relative", flexShrink: 0 }}>
-                                <MiniDonut saved={item.saved} goal={item.goal} color={color} />
-                                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                  <div style={{ fontSize: 12, fontWeight: 700, color, fontFamily: "'DM Mono',monospace" }}>{Math.round(pct * 100)}%</div>
+            {view === "longterm" && (() => {
+              // ── Projection helpers ──
+              const monthsBetween = (startStr, endStr) => {
+                if (!startStr || !endStr) return null;
+                const [sy, sm] = startStr.split('-').map(Number);
+                const [ey, em] = endStr.split('-').map(Number);
+                return (ey - sy) * 12 + (em - sm);
+              };
+              const nowStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+              // Compound investment projection: FV of lump sum + FV of monthly payments
+              const investmentProjection = (currentValue, monthly, monthsLeft, annualRate = 0.07) => {
+                if (monthsLeft <= 0) return currentValue;
+                const r = annualRate / 12;
+                const fvLump = currentValue * Math.pow(1 + r, monthsLeft);
+                const fvPmt = monthly > 0 ? monthly * ((Math.pow(1 + r, monthsLeft) - 1) / r) : 0;
+                return fvLump + fvPmt;
+              };
+              // Monthly contribution needed to reach goal by target date (compound)
+              const requiredMonthlyInvestment = (currentValue, goal, monthsLeft, annualRate = 0.07) => {
+                if (monthsLeft <= 0) return 0;
+                const r = annualRate / 12;
+                const fvLump = currentValue * Math.pow(1 + r, monthsLeft);
+                const remaining = goal - fvLump;
+                if (remaining <= 0) return 0;
+                return remaining / ((Math.pow(1 + r, monthsLeft) - 1) / r);
+              };
+              // Monthly needed for linear fixed/debt goals
+              const requiredMonthlyFixed = (remaining, monthsLeft) => monthsLeft > 0 ? remaining / monthsLeft : 0;
+
+              return (
+                <div className="fu">
+                  {longTerm.length === 0
+                    ? <div style={{ textAlign: "center", padding: "60px 0", color: C.textLo, fontSize: 13 }}>No goals yet.</div>
+                    : (
+                      <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : "1fr", gap: 14 }}>
+                        {longTerm.map((item, i) => {
+                          const color = ltColor(item, i);
+                          const type = item.type || 'fixed';
+                          const isDebt = type === 'debt';
+                          const isInv  = type === 'investment';
+                          const done   = isDebt ? item.saved <= 0 : item.saved >= item.goal;
+                          const pct    = item.goal > 0 ? Math.min(isDebt ? 1 - (item.saved / item.goal) : item.saved / item.goal, 1) : 0;
+                          const remaining = isDebt ? item.saved : Math.max(item.goal - item.saved, 0);
+                          const monthsLeft = monthsBetween(nowStr, item.targetDate);
+                          const monthsElapsed = item.startDate ? monthsBetween(item.startDate, nowStr) : null;
+                          const totalMonths = (item.startDate && item.targetDate) ? monthsBetween(item.startDate, item.targetDate) : null;
+                          const pacingPct = totalMonths > 0 && monthsElapsed !== null ? Math.min(monthsElapsed / totalMonths, 0.98) : null;
+                          const monthly = item.monthlyContribution || 0;
+
+                          // Narrative insight line
+                          let insight = null;
+                          if (!done && monthsLeft !== null && monthsLeft > 0) {
+                            if (isInv) {
+                              const projVal = investmentProjection(item.saved, monthly, monthsLeft);
+                              const reqMonthly = requiredMonthlyInvestment(item.saved, item.goal, monthsLeft);
+                              if (monthly > 0) {
+                                if (projVal >= item.goal) insight = { text: `On track · projected ${fmt(Math.round(projVal))} by target`, ok: true };
+                                else insight = { text: `Need ${fmt(Math.round(reqMonthly))}/mo to hit goal · currently ${fmt(monthly)}/mo`, ok: false };
+                              } else {
+                                insight = { text: `Add monthly contribution to see projection`, ok: null };
+                              }
+                            } else {
+                              const req = requiredMonthlyFixed(remaining, monthsLeft);
+                              if (monthly > 0) {
+                                const pace = monthly >= req;
+                                const months = Math.ceil(remaining / monthly);
+                                insight = { text: pace ? `On track · ${months} months at current pace` : `Need ${fmt(Math.round(req))}/mo · currently ${fmt(monthly)}/mo`, ok: pace };
+                              } else {
+                                insight = { text: `${fmt(Math.round(req))}/mo needed to hit ${item.targetDate ? new Date(item.targetDate+'-01').toLocaleDateString('en-US',{month:'short',year:'numeric'}) : 'target'}`, ok: null };
+                              }
+                            }
+                          }
+
+                          // Type badge
+                          const typeBadge = { fixed: { label: 'savings', color: '#3fb950' }, investment: { label: '↗ invest', color: '#388bfd' }, debt: { label: 'debt ↓', color: '#f97316' } }[type];
+
+                          return (
+                            <div key={i} className="lt-card" onClick={() => openEditLT(i)}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                                <div>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: C.textHi, marginBottom: 4 }}>{item.name}</div>
+                                  <span style={{ fontSize: 9, color: typeBadge.color, background: typeBadge.color + '18', padding: '2px 7px', borderRadius: 4, fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{typeBadge.label}</span>
                                 </div>
+                                <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>edit ›</span>
                               </div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                {done ? (
-                                  <div style={{ background: color + "18", border: `1px solid ${color}35`, borderRadius: 10, padding: "10px 12px" }}>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color, marginBottom: 4 }}>🎉 Goal reached!</div>
-                                    <div style={{ fontSize: 11, color: C.textMid, lineHeight: 1.5 }}>You can now put extra funds towards other goals!</div>
+
+                              {done ? (
+                                <div style={{ background: color + '18', border: `1px solid ${color}35`, borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color, marginBottom: 3 }}>{isDebt ? '🎉 Paid off!' : '🎉 Goal reached!'}</div>
+                                  <div style={{ fontSize: 11, color: C.textMid }}>Great work — redirect funds toward your next goal.</div>
+                                </div>
+                              ) : (
+                                <>
+                                  {/* Key numbers */}
+                                  <div style={{ display: 'flex', gap: 14, marginBottom: 10 }}>
+                                    <div>
+                                      <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 2 }}>{isDebt ? 'REMAINING' : 'SAVED'}</div>
+                                      <div style={{ fontSize: 17, fontWeight: 800, color, fontFamily: "'DM Mono',monospace", letterSpacing: -0.5 }}>{fmt(item.saved)}</div>
+                                    </div>
+                                    <div>
+                                      <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 2 }}>{isDebt ? 'ORIGINAL' : 'GOAL'}</div>
+                                      <div style={{ fontSize: 17, fontWeight: 700, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: -0.5 }}>{fmt(item.goal)}</div>
+                                    </div>
+                                    {item.targetDate && (
+                                      <div>
+                                        <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 2 }}>TARGET</div>
+                                        <div style={{ fontSize: 13, fontWeight: 600, color: C.textMid, fontFamily: "'DM Mono',monospace" }}>{new Date(item.targetDate+'-01').toLocaleDateString('en-US',{month:'short',year:'numeric'})}</div>
+                                      </div>
+                                    )}
                                   </div>
-                                ) : (
-                                  <>
-                                    <div style={{ display: "flex", gap: 14, marginBottom: 6 }}>
-                                      <div><div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 2 }}>SAVED</div><div style={{ fontSize: 16, fontWeight: 700, color, fontFamily: "'DM Mono',monospace" }}>{fmt(item.saved)}</div></div>
-                                      <div><div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 2 }}>GOAL</div><div style={{ fontSize: 16, fontWeight: 600, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{fmt(item.goal)}</div></div>
+
+                                  {/* Progress bar with pacing marker */}
+                                  <div style={{ background: C.borderMid, borderRadius: 999, height: 4, position: 'relative', marginBottom: 6 }}>
+                                    <div style={{ width: `${pct * 100}%`, height: '100%', background: color, borderRadius: 999, transition: 'width 0.5s' }} />
+                                    {pacingPct !== null && <div style={{ position: 'absolute', top: -3, bottom: -3, left: `${pacingPct * 100}%`, width: 2, background: 'rgba(255,255,255,0.4)', borderRadius: 1, transform: 'translateX(-50%)' }} />}
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                                    <span style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{Math.round(pct * 100)}% {isDebt ? 'paid' : 'saved'}</span>
+                                    {pacingPct !== null && <span style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>│ expected today</span>}
+                                  </div>
+
+                                  {/* Insight line */}
+                                  {insight && (
+                                    <div style={{ fontSize: 11, color: insight.ok === true ? '#3fb950' : insight.ok === false ? '#f85149' : C.textLo, background: insight.ok === true ? 'rgba(63,185,80,0.08)' : insight.ok === false ? 'rgba(248,81,73,0.08)' : C.bgInset, padding: '7px 10px', borderRadius: 7, fontFamily: "'DM Mono',monospace" }}>
+                                      {insight.text}
                                     </div>
-                                    <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>
-                                      {fmt(remaining)} to go{item.targetDate ? ` · ${new Date(item.targetDate + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : ''}
-                                    </div>
-                                  </>
-                                )}
-                              </div>
+                                  )}
+                                </>
+                              )}
                             </div>
-                            <div style={{ marginTop: 14, background: C.borderMid, borderRadius: 999, height: 4, position: "relative" }}>
-                              <div style={{ width: `${pct * 100}%`, height: "100%", background: color, borderRadius: 999, transition: "width 0.5s" }} />
-                              {pacingPct !== null && <div style={{ position: "absolute", top: -3, bottom: -3, left: `${pacingPct * 100}%`, width: 2, background: "rgba(255,255,255,0.45)", borderRadius: 1, transform: "translateX(-50%)" }} />}
-                            </div>
-                            {pacingPct !== null && <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}><span style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>— EXPECTED TODAY</span></div>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                <div style={{ marginTop: 16, background: C.bgCard, border: `1px dashed ${C.border}`, borderRadius: 14, padding: "18px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-                  <div style={{ fontSize: 13, color: C.textLo }}>Looking to track a new long-term goal?</div>
-                  <button onClick={openNewLT} style={{ background: C.accent, border: "none", borderRadius: 9, color: "#fff", fontSize: 12, fontWeight: 700, padding: "9px 20px", cursor: "pointer", fontFamily: "'Sora',sans-serif", whiteSpace: "nowrap" }}>Add</button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  <div style={{ marginTop: 16, background: C.bgCard, border: `1px dashed ${C.border}`, borderRadius: 14, padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                    <div style={{ fontSize: 13, color: C.textLo }}>Add a new goal to track</div>
+                    <button onClick={openNewLT} style={{ background: C.accent, border: 'none', borderRadius: 9, color: '#fff', fontSize: 12, fontWeight: 700, padding: '9px 20px', cursor: 'pointer', fontFamily: "'Sora',sans-serif", whiteSpace: 'nowrap' }}>Add Goal</button>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {view === "review" && (() => {
               // ── Review data — computed for selected month vs prior month ──
