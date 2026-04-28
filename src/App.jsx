@@ -338,8 +338,11 @@ export default function App() {
       const type = catTypes[c] || "expense";
       const spent = byCategory[c] || 0;
       const budget = budgets[c] || 0;
-      if (type === "investment" || type === "fixed") return sum + Math.min(spent, budget);
-      return sum + (progress > 0 ? spent / progress : spent);
+      // Fixed/investment: project at full budget (planned, not variable)
+      if (type === "investment" || type === "fixed") return sum + budget;
+      // Expense: extrapolate from current pace, but never project less than already spent
+      const projected = progress > 0 ? spent / progress : spent;
+      return sum + Math.max(projected, spent);
     }, 0);
     const projectedDiff = totalBudget - projectedSpend;
     const projectedOver = projectedDiff < -2;
@@ -933,68 +936,108 @@ export default function App() {
 
                 {/* Projection + Pulse card */}
                 {(isCurrentMonth || (!isCurrentMonth && !isFutureMonth)) && (
-                  <div className="card" style={{ padding: isDesktop ? "16px 32px" : "14px 18px", marginBottom: 16 }}>
+                  <div className="card" style={{ padding: isDesktop ? "18px 28px" : "14px 18px", marginBottom: 16 }}>
                     {isCurrentMonth ? (
-                      <div style={{ display: "flex", alignItems: "center", gap: isDesktop ? 32 : 16, flexWrap: "wrap" }}>
-                        {/* Projection */}
-                        {projection && dayOfMonth >= 5 && (
-                          <div style={{ display: "flex", alignItems: "center", gap: isDesktop ? 24 : 14, flex: 1 }}>
-                            <div>
-                              <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 3 }}>projected month-end</div>
-                              <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 800, color: projection.projectedOver ? "#f85149" : "#3fb950", fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1px 1fr 1px 1fr" : "1fr", gap: isDesktop ? 0 : 14 }}>
+
+                        {/* Col 1 — Projection */}
+                        <div style={{ padding: isDesktop ? "4px 24px 4px 0" : 0 }}>
+                          <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 6 }}>projected month-end</div>
+                          {projection && dayOfMonth >= 5 ? (
+                            <>
+                              <div style={{ fontSize: 22, fontWeight: 800, color: projection.projectedOver ? "#f85149" : "#3fb950", fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1, marginBottom: 5 }}>
                                 {projection.projectedDiff >= 0 ? "+" : "−"}{fmt(Math.abs(projection.projectedDiff))}
                               </div>
-                              <div style={{ fontSize: 10, color: C.textLo, marginTop: 3 }}>
+                              <div style={{ fontSize: 11, color: C.textLo }}>
                                 {projection.projectedOver
-                                  ? `on track to exceed budget by ${fmt(Math.abs(projection.projectedDiff))}`
-                                  : `on track to finish ${fmt(projection.projectedDiff)} under budget`}
+                                  ? `exceeding budget by ${fmt(Math.abs(projection.projectedDiff))}`
+                                  : `finishing ${fmt(projection.projectedDiff)} under`}
                               </div>
-                            </div>
-                            {isDesktop && <div style={{ width: 1, height: 40, background: C.border, flexShrink: 0 }} />}
-                          </div>
-                        )}
-                        {/* Monthly pulse signals */}
-                        <div style={{ display: "flex", gap: isDesktop ? 24 : 16, alignItems: "center", flexWrap: "wrap" }}>
-                          {/* Under budget */}
-                          <div style={{ display: "flex", flex: "column", alignItems: isDesktop ? "flex-start" : "center", gap: 3 }}>
-                            <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 2 }}>budget</div>
-                            <div style={{ fontSize: 15, lineHeight: 1 }}>{overBudget ? "🔴" : diff > totalBudget * 0.15 ? "🟢" : "🟡"}</div>
-                            <div style={{ fontSize: 9, color: C.textLo, marginTop: 2 }}>{overBudget ? "over" : diff > totalBudget * 0.15 ? "on track" : "close"}</div>
-                          </div>
-                          {/* vs last month */}
-                          {prevMonthTotals > 0 && (
-                            <div style={{ display: "flex", flexDirection: "column", alignItems: isDesktop ? "flex-start" : "center", gap: 3 }}>
-                              <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 2 }}>vs last month</div>
-                              <div style={{ fontSize: 15, lineHeight: 1 }}>{totalSpend < prevMonthTotals ? "↓" : totalSpend > prevMonthTotals * 1.1 ? "↑" : "→"}</div>
-                              <div style={{ fontSize: 9, color: C.textLo, marginTop: 2 }}>
-                                {totalSpend < prevMonthTotals ? fmt(prevMonthTotals - totalSpend) + " less" : totalSpend > prevMonthTotals ? fmt(totalSpend - prevMonthTotals) + " more" : "similar"}
-                              </div>
-                            </div>
+                            </>
+                          ) : (
+                            <div style={{ fontSize: 11, color: C.textLo, marginTop: 4 }}>available after day 5</div>
                           )}
-                          {/* Goals pulse */}
-                          {goalPulse && (
-                            <div style={{ display: "flex", flexDirection: "column", alignItems: isDesktop ? "flex-start" : "center", gap: 3 }}>
-                              <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 2 }}>goals</div>
-                              <div style={{ fontSize: 15, lineHeight: 1 }}>{goalPulse.onTrack === goalPulse.total ? "🟢" : goalPulse.onTrack === 0 ? "🔴" : "🟡"}</div>
-                              <div style={{ fontSize: 9, color: C.textLo, marginTop: 2 }}>{goalPulse.onTrack}/{goalPulse.total} on track</div>
+                        </div>
+
+                        {/* Divider */}
+                        {isDesktop && <div style={{ background: C.border, width: 1, alignSelf: "stretch" }} />}
+
+                        {/* Col 2 — Pulse signals */}
+                        <div style={{ padding: isDesktop ? "4px 24px" : 0, display: "flex", flexDirection: isDesktop ? "column" : "row", gap: isDesktop ? 10 : 20 }}>
+                          <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: isDesktop ? 2 : 0, alignSelf: isDesktop ? "auto" : "center" }}>this month</div>
+                          <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+                            {/* Budget status */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                              <div style={{ width: 8, height: 8, borderRadius: "50%", background: overBudget ? "#f85149" : diff > totalBudget * 0.15 ? "#3fb950" : "#eab308", flexShrink: 0 }} />
+                              <span style={{ fontSize: 11, color: C.textMid }}>{overBudget ? "over budget" : diff > totalBudget * 0.15 ? "on track" : "close to limit"}</span>
+                            </div>
+                            {/* vs last month */}
+                            {prevMonthTotals > 0 && (
+                              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                                <span style={{ fontSize: 12, color: totalSpend < prevMonthTotals ? "#3fb950" : totalSpend > prevMonthTotals * 1.05 ? "#f85149" : C.textLo }}>
+                                  {totalSpend < prevMonthTotals ? "↓" : totalSpend > prevMonthTotals * 1.05 ? "↑" : "→"}
+                                </span>
+                                <span style={{ fontSize: 11, color: C.textMid }}>
+                                  {totalSpend < prevMonthTotals
+                                    ? `${fmt(prevMonthTotals - totalSpend)} less than last month`
+                                    : totalSpend > prevMonthTotals
+                                    ? `${fmt(totalSpend - prevMonthTotals)} more than last month`
+                                    : "similar to last month"}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Divider */}
+                        {isDesktop && <div style={{ background: C.border, width: 1, alignSelf: "stretch" }} />}
+
+                        {/* Col 3 — Goals pulse */}
+                        <div style={{ padding: isDesktop ? "4px 0 4px 24px" : 0 }}>
+                          <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 6 }}>long-term goals</div>
+                          {goalPulse ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                <div style={{ width: 8, height: 8, borderRadius: "50%", background: goalPulse.onTrack === goalPulse.total ? "#3fb950" : goalPulse.onTrack === 0 ? "#f85149" : "#eab308", flexShrink: 0 }} />
+                                <span style={{ fontSize: 11, color: C.textMid }}>{goalPulse.onTrack} of {goalPulse.total} on track</span>
+                              </div>
+                              <button onClick={() => setView("longterm")} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, color: C.textLo, fontSize: 10, fontFamily: "'DM Mono',monospace", padding: "4px 10px", cursor: "pointer", textAlign: "left", width: "fit-content" }}>
+                                view goals →
+                              </button>
+                            </div>
+                          ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                              <div style={{ fontSize: 11, color: C.textLo }}>No goals set yet</div>
+                              <button onClick={() => setView("longterm")} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, color: C.textLo, fontSize: 10, fontFamily: "'DM Mono',monospace", padding: "4px 10px", cursor: "pointer", textAlign: "left", width: "fit-content" }}>
+                                add a goal →
+                              </button>
                             </div>
                           )}
                         </div>
+
                       </div>
                     ) : (
-                      /* Past month — show final result */
-                      <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                        <div>
-                          <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 3 }}>final result</div>
-                          <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 800, color: diff >= 0 ? "#3fb950" : "#f85149", fontFamily: "'DM Mono',monospace", letterSpacing: -0.5 }}>
+                      /* Past month — final result + comparison */
+                      <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "auto 1px 1fr" : "1fr", gap: isDesktop ? 0 : 10 }}>
+                        <div style={{ padding: isDesktop ? "4px 28px 4px 0" : 0 }}>
+                          <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 6 }}>final result</div>
+                          <div style={{ fontSize: 22, fontWeight: 800, color: diff >= 0 ? "#3fb950" : "#f85149", fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1 }}>
                             {diff >= 0 ? "+" : "−"}{fmt(Math.abs(diff))} {diff >= 0 ? "under" : "over"}
                           </div>
                         </div>
+                        {isDesktop && <div style={{ background: C.border, width: 1, alignSelf: "stretch" }} />}
                         {prevMonthTotals > 0 && (
-                          <div style={{ fontSize: 11, color: C.textLo, paddingTop: 14 }}>
-                            {totalSpend < prevMonthTotals
-                              ? `${fmt(prevMonthTotals - totalSpend)} less than the month before`
-                              : `${fmt(totalSpend - prevMonthTotals)} more than the month before`}
+                          <div style={{ padding: isDesktop ? "4px 0 4px 28px" : 0, display: "flex", alignItems: "center" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                              <span style={{ fontSize: 14, color: totalSpend < prevMonthTotals ? "#3fb950" : "#f85149" }}>
+                                {totalSpend < prevMonthTotals ? "↓" : "↑"}
+                              </span>
+                              <span style={{ fontSize: 12, color: C.textMid }}>
+                                {totalSpend < prevMonthTotals
+                                  ? `${fmt(prevMonthTotals - totalSpend)} less than the month before`
+                                  : `${fmt(totalSpend - prevMonthTotals)} more than the month before`}
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1428,7 +1471,7 @@ export default function App() {
               };
 
               return (
-                <div className="fu" style={{ maxWidth: isDesktop ? 860 : "100%" }}>
+                <div className="fu">
 
                   {/* Header */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
