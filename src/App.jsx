@@ -498,7 +498,7 @@ export default function App() {
     const next = longTerm.filter((_, idx) => idx !== i);
     setLongTerm(next); setEditLT(null); showToast("Deleted.");
     setSyncing(true);
-    try { await api({ action: "saveLongTerm", items: JSON.stringify(next) }); }
+    try { await api({ action: "saveLongTerm", items: JSON.stringify(next.map(it => ({ ...it, type: it.type || 'fixed', monthlyContribution: it.monthlyContribution || 0 }))) }); }
     catch { showToast("Sync failed.", false); } finally { setSyncing(false); }
   }
 
