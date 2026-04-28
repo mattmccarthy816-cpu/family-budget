@@ -338,9 +338,9 @@ export default function App() {
       const type = catTypes[c] || "expense";
       const spent = byCategory[c] || 0;
       const budget = budgets[c] || 0;
-      // Fixed/investment: project at full budget (planned, not variable)
-      if (type === "investment" || type === "fixed") return sum + budget;
-      // Expense: extrapolate from current pace, but never project less than already spent
+      // Fixed/investment: use whichever is higher — can't un-spend logged amounts
+      if (type === "investment" || type === "fixed") return sum + Math.max(spent, budget);
+      // Expense: extrapolate from current pace, but never less than already spent
       const projected = progress > 0 ? spent / progress : spent;
       return sum + Math.max(projected, spent);
     }, 0);
@@ -938,80 +938,86 @@ export default function App() {
                 {(isCurrentMonth || (!isCurrentMonth && !isFutureMonth)) && (
                   <div className="card" style={{ padding: isDesktop ? "18px 28px" : "14px 18px", marginBottom: 16 }}>
                     {isCurrentMonth ? (
-                      <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1px 1fr 1px 1fr" : "1fr", gap: isDesktop ? 0 : 14 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1px 1fr 1px 1fr" : "1fr", gap: isDesktop ? 0 : 16 }}>
 
-                        {/* Col 1 — Projection */}
-                        <div style={{ padding: isDesktop ? "4px 24px 4px 0" : 0 }}>
-                          <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 6 }}>projected month-end</div>
+                        {/* Col 1 — Projection: primary focal point */}
+                        <div style={{ padding: isDesktop ? "4px 28px 4px 0" : 0 }}>
+                          <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 8 }}>projected month-end</div>
                           {projection && dayOfMonth >= 5 ? (
                             <>
-                              <div style={{ fontSize: 22, fontWeight: 800, color: projection.projectedOver ? "#f85149" : "#3fb950", fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1, marginBottom: 5 }}>
+                              <div style={{ fontSize: isDesktop ? 28 : 24, fontWeight: 800, color: projection.projectedOver ? "#f85149" : "#3fb950", fontFamily: "'DM Mono',monospace", letterSpacing: -1, lineHeight: 1, marginBottom: 6 }}>
                                 {projection.projectedDiff >= 0 ? "+" : "−"}{fmt(Math.abs(projection.projectedDiff))}
                               </div>
-                              <div style={{ fontSize: 11, color: C.textLo }}>
+                              <div style={{ fontSize: 12, color: C.textLo }}>
                                 {projection.projectedOver
-                                  ? `exceeding budget by ${fmt(Math.abs(projection.projectedDiff))}`
-                                  : `finishing ${fmt(projection.projectedDiff)} under`}
+                                  ? `on track to exceed budget by ${fmt(Math.abs(projection.projectedDiff))}`
+                                  : `on track to finish ${fmt(Math.round(projection.projectedDiff))} under budget`}
                               </div>
                             </>
                           ) : (
-                            <div style={{ fontSize: 11, color: C.textLo, marginTop: 4 }}>available after day 5</div>
+                            <div style={{ fontSize: 12, color: C.textLo, marginTop: 4 }}>projection available after day 5</div>
                           )}
                         </div>
 
                         {/* Divider */}
                         {isDesktop && <div style={{ background: C.border, width: 1, alignSelf: "stretch" }} />}
 
-                        {/* Col 2 — Pulse signals */}
-                        <div style={{ padding: isDesktop ? "4px 24px" : 0, display: "flex", flexDirection: isDesktop ? "column" : "row", gap: isDesktop ? 10 : 20 }}>
-                          <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: isDesktop ? 2 : 0, alignSelf: isDesktop ? "auto" : "center" }}>this month</div>
-                          <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-                            {/* Budget status */}
-                            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                              <div style={{ width: 8, height: 8, borderRadius: "50%", background: overBudget ? "#f85149" : diff > totalBudget * 0.15 ? "#3fb950" : "#eab308", flexShrink: 0 }} />
-                              <span style={{ fontSize: 11, color: C.textMid }}>{overBudget ? "over budget" : diff > totalBudget * 0.15 ? "on track" : "close to limit"}</span>
-                            </div>
-                            {/* vs last month */}
-                            {prevMonthTotals > 0 && (
-                              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                                <span style={{ fontSize: 12, color: totalSpend < prevMonthTotals ? "#3fb950" : totalSpend > prevMonthTotals * 1.05 ? "#f85149" : C.textLo }}>
+                        {/* Col 2 — vs last month: secondary signal, no redundant budget dot */}
+                        <div style={{ padding: isDesktop ? "4px 28px" : 0 }}>
+                          <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 8 }}>vs last month</div>
+                          {prevMonthTotals > 0 ? (
+                            <>
+                              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
+                                <span style={{ fontSize: isDesktop ? 28 : 24, fontWeight: 800, color: totalSpend < prevMonthTotals ? "#3fb950" : totalSpend > prevMonthTotals * 1.05 ? "#f85149" : C.textMid, fontFamily: "'DM Mono',monospace", letterSpacing: -1, lineHeight: 1 }}>
                                   {totalSpend < prevMonthTotals ? "↓" : totalSpend > prevMonthTotals * 1.05 ? "↑" : "→"}
                                 </span>
-                                <span style={{ fontSize: 11, color: C.textMid }}>
-                                  {totalSpend < prevMonthTotals
-                                    ? `${fmt(prevMonthTotals - totalSpend)} less than last month`
-                                    : totalSpend > prevMonthTotals
-                                    ? `${fmt(totalSpend - prevMonthTotals)} more than last month`
-                                    : "similar to last month"}
-                                </span>
+                                {totalSpend !== prevMonthTotals && (
+                                  <span style={{ fontSize: 16, fontWeight: 700, color: totalSpend < prevMonthTotals ? "#3fb950" : "#f85149", fontFamily: "'DM Mono',monospace" }}>
+                                    {fmt(Math.abs(totalSpend - prevMonthTotals))}
+                                  </span>
+                                )}
                               </div>
-                            )}
-                          </div>
+                              <div style={{ fontSize: 12, color: C.textLo }}>
+                                {totalSpend < prevMonthTotals ? "less spent so far" : totalSpend > prevMonthTotals * 1.05 ? "more spent so far" : "similar pace to last month"}
+                              </div>
+                            </>
+                          ) : (
+                            <div style={{ fontSize: 12, color: C.textLo, marginTop: 4 }}>no prior month data</div>
+                          )}
                         </div>
 
                         {/* Divider */}
                         {isDesktop && <div style={{ background: C.border, width: 1, alignSelf: "stretch" }} />}
 
-                        {/* Col 3 — Goals pulse */}
-                        <div style={{ padding: isDesktop ? "4px 0 4px 24px" : 0 }}>
-                          <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 6 }}>long-term goals</div>
-                          {goalPulse ? (
-                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                                <div style={{ width: 8, height: 8, borderRadius: "50%", background: goalPulse.onTrack === goalPulse.total ? "#3fb950" : goalPulse.onTrack === 0 ? "#f85149" : "#eab308", flexShrink: 0 }} />
-                                <span style={{ fontSize: 11, color: C.textMid }}>{goalPulse.onTrack} of {goalPulse.total} on track</span>
-                              </div>
-                              <button onClick={() => setView("longterm")} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, color: C.textLo, fontSize: 10, fontFamily: "'DM Mono',monospace", padding: "4px 10px", cursor: "pointer", textAlign: "left", width: "fit-content" }}>
-                                view goals →
-                              </button>
-                            </div>
-                          ) : (
-                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                              <div style={{ fontSize: 11, color: C.textLo }}>No goals set yet</div>
-                              <button onClick={() => setView("longterm")} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, color: C.textLo, fontSize: 10, fontFamily: "'DM Mono',monospace", padding: "4px 10px", cursor: "pointer", textAlign: "left", width: "fit-content" }}>
+                        {/* Col 3 — Goals: 66%+ green, 34-65% yellow, 1-33% red */}
+                        <div style={{ padding: isDesktop ? "4px 0 4px 28px" : 0 }}>
+                          <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 8 }}>long-term goals</div>
+                          {goalPulse ? (() => {
+                            const pct = goalPulse.total > 0 ? goalPulse.onTrack / goalPulse.total : 0;
+                            const goalColor = pct >= 0.66 ? "#3fb950" : pct >= 0.34 ? "#eab308" : "#f85149";
+                            const goalLabel = pct >= 0.66 ? "on track" : pct >= 0.34 ? "needs attention" : "off track";
+                            return (
+                              <>
+                                <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
+                                  <span style={{ fontSize: isDesktop ? 28 : 24, fontWeight: 800, color: goalColor, fontFamily: "'DM Mono',monospace", letterSpacing: -1, lineHeight: 1 }}>
+                                    {goalPulse.onTrack}<span style={{ fontSize: 14, color: C.textLo }}>/{goalPulse.total}</span>
+                                  </span>
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                  <div style={{ fontSize: 12, color: goalColor }}>{goalLabel}</div>
+                                  <button onClick={() => setView("longterm")} style={{ background: "none", border: "none", color: C.textLo, fontSize: 11, fontFamily: "'DM Mono',monospace", cursor: "pointer", padding: 0 }}>
+                                    view →
+                                  </button>
+                                </div>
+                              </>
+                            );
+                          })() : (
+                            <>
+                              <div style={{ fontSize: 12, color: C.textLo, marginBottom: 8, marginTop: 4 }}>no goals set yet</div>
+                              <button onClick={() => setView("longterm")} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, color: C.textLo, fontSize: 11, fontFamily: "'DM Mono',monospace", padding: "4px 10px", cursor: "pointer" }}>
                                 add a goal →
                               </button>
-                            </div>
+                            </>
                           )}
                         </div>
 
