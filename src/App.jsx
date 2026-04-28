@@ -1439,6 +1439,85 @@ export default function App() {
               const isFinal = !isCurrentMonth && !isFutureMonth;
               const progress = revToday / revDays;
 
+              // ── Narrative summary — template-based, no AI ──
+              const buildSummary = () => {
+                const sentences = [];
+                const monthName = MONTH_NAMES[revMonth];
+                const prevMonthName = MONTH_NAMES[prevRevMonth];
+                const underPct = revBudget > 0 ? revDiff / revBudget : 0;
+
+                // S1 — Overall verdict
+                if (isFinal) {
+                  if (revDiff < -2) sentences.push(`${monthName} was a tough month — you came in ${fmt(Math.abs(revDiff))} over budget.`);
+                  else if (underPct > 0.2) sentences.push(`${monthName} was a strong month — you finished ${fmt(revDiff)} under budget, one of your better margins.`);
+                  else if (underPct > 0.1) sentences.push(`${monthName} was a solid month — you came in ${fmt(revDiff)} under budget.`);
+                  else sentences.push(`${monthName} was a close one — you finished just ${fmt(revDiff)} under budget.`);
+                } else {
+                  const spendPct = revBudget > 0 ? revTotal / revBudget : 0;
+                  if (spendPct > progress + 0.1) sentences.push(`You're ${Math.round(progress * 100)}% through ${monthName} and spend is running ahead of pace — ${fmt(revTotal)} logged so far against a ${fmt(revBudget)} budget.`);
+                  else sentences.push(`You're ${Math.round(progress * 100)}% through ${monthName} with ${fmt(revTotal)} logged — tracking ${fmt(revDiff)} under budget so far.`);
+                }
+
+                // S2 — Month over month
+                if (momDelta !== null && prevTotal > 0) {
+                  const absDelta = Math.abs(momDelta);
+                  if (momDelta < -10) sentences.push(`That's ${fmt(absDelta)} less than ${prevMonthName}, which is encouraging.`);
+                  else if (momDelta > 10) sentences.push(`That's ${fmt(absDelta)} more than ${prevMonthName}.`);
+                  else sentences.push(`Spend is running at a similar level to ${prevMonthName}.`);
+                }
+
+                // S3 — Highest usage category
+                if (worst.length > 0) {
+                  const c = worst[0];
+                  const spent = revByCat[c] || 0;
+                  const budget = budgets[c] || 0;
+                  const pct = budget > 0 ? spent / budget : 0;
+                  if (spent > budget + 2) sentences.push(`${c} was your biggest pressure point, coming in at ${fmt(spent)} against a ${fmt(budget)} budget.`);
+                  else if (pct > 0.85) sentences.push(`${c} ran close to its limit at ${Math.round(pct * 100)}% of budget.`);
+                  else if (pct > 0.5) sentences.push(`${c} was your highest usage category at ${Math.round(pct * 100)}% of budget, though still within range.`);
+                }
+
+                // S4 — Best category
+                if (best.length > 0) {
+                  const c = best[0];
+                  const spent = revByCat[c] || 0;
+                  const budget = budgets[c] || 0;
+                  if (spent > 0 && budget > 0) {
+                    sentences.push(`On the other end, ${c} came in well under at ${fmt(spent)} of its ${fmt(budget)} budget.`);
+                  }
+                }
+
+                // S5 — Biggest single entry
+                if (topEntries.length > 0) {
+                  const e = topEntries[0];
+                  const noteStr = e.notes ? ` (${e.notes})` : "";
+                  sentences.push(`Your largest single spend was ${fmtD(e.amount)} on ${e.category}${noteStr}.`);
+                }
+
+                // S6 — Member split (2+ members, meaningful gap)
+                if (memberNames.length >= 2 && revTotal > 0) {
+                  const sorted = [...memberNames].sort((a, b) => (revByMember[b] || 0) - (revByMember[a] || 0));
+                  const top = sorted[0], second = sorted[1];
+                  const topAmt = revByMember[top] || 0, secAmt = revByMember[second] || 0;
+                  if (topAmt > 0 && secAmt > 0 && Math.abs(topAmt - secAmt) > 50) {
+                    sentences.push(`${top} accounted for ${fmt(topAmt)} of total spend, ${second} for ${fmt(secAmt)}.`);
+                  }
+                }
+
+                // S7 — Forward look (in-progress only)
+                if (!isFinal && projection) {
+                  if (projection.projectedOver) {
+                    const worstCat = worst[0] || null;
+                    sentences.push(`At current pace you're on track to finish around ${fmt(projection.projectedSpend)} — worth keeping an eye on${worstCat ? ` ${worstCat}` : " spending"}.`);
+                  } else {
+                    sentences.push(`At current pace you'll finish the month around ${fmt(projection.projectedSpend)}, well within budget.`);
+                  }
+                }
+
+                return sentences.join(" ");
+              };
+              const summaryText = buildSummary();
+
               const StatTile = ({ label, value, sub, color }) => (
                 <div style={{ background: C.bgInset, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: "14px 16px", flex: 1, minWidth: 100 }}>
                   <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 6 }}>{label}</div>
@@ -1494,6 +1573,18 @@ export default function App() {
                       {!isCurrentMonth && <button className="month-btn" onClick={nextMonth}>{MONTH_NAMES[viewMonth === 11 ? 0 : viewMonth + 1].slice(0,3)} →</button>}
                     </div>
                   </div>
+
+                  {/* Narrative summary card */}
+                  {summaryText && (
+                    <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 16, borderLeft: `3px solid ${C.accent}` }}>
+                      <div style={{ fontSize: 10, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 10 }}>
+                        {isFinal ? "MONTHLY SUMMARY" : "IN PROGRESS"}
+                      </div>
+                      <div style={{ fontSize: isDesktop ? 14 : 13, color: C.textMid, lineHeight: 1.7, fontStyle: "normal" }}>
+                        {summaryText}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Stat tiles row */}
                   <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
