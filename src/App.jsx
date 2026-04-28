@@ -328,6 +328,55 @@ export default function App() {
   const ltColor = (item, i) => item.color && item.color !== '' ? item.color : PALETTE[i % PALETTE.length];
   const diff = totalBudget - totalSpend;
   const overBudget = alertableSpend > alertableBudget + 2;
+
+  // ── Month-end projection ──
+  const projection = useMemo(() => {
+    if (!isCurrentMonth || dayOfMonth < 5) return null;
+    const progress = dayOfMonth / daysInMonth;
+    // Project only expense categories — fixed/investment count at budget amount (known/intentional)
+    const projectedSpend = categories.reduce((sum, c) => {
+      const type = catTypes[c] || "expense";
+      const spent = byCategory[c] || 0;
+      const budget = budgets[c] || 0;
+      if (type === "investment" || type === "fixed") return sum + Math.min(spent, budget);
+      return sum + (progress > 0 ? spent / progress : spent);
+    }, 0);
+    const projectedDiff = totalBudget - projectedSpend;
+    const projectedOver = projectedDiff < -2;
+    return { projectedSpend, projectedDiff, projectedOver };
+  }, [isCurrentMonth, dayOfMonth, daysInMonth, categories, catTypes, byCategory, budgets, totalBudget]);
+
+  // ── Previous month totals for pulse signals ──
+  const prevMonthTotals = useMemo(() => {
+    const pm = viewMonth === 0 ? 11 : viewMonth - 1;
+    const py = viewMonth === 0 ? viewYear - 1 : viewYear;
+    const prefix = `${py}-${String(pm + 1).padStart(2, "0")}`;
+    const prevEntries = allEntries.filter(e => e.date.startsWith(prefix));
+    return prevEntries.reduce((s, e) => s + e.amount, 0);
+  }, [allEntries, viewMonth, viewYear]);
+
+  // ── Goal pulse: how many LT goals are on track ──
+  const goalPulse = useMemo(() => {
+    if (longTerm.length === 0) return null;
+    const nowStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const onTrack = longTerm.filter(item => {
+      if (!item.targetDate || !item.monthlyContribution) return true; // no data = neutral
+      const months = (() => {
+        const [sy, sm] = nowStr.split('-').map(Number);
+        const [ey, em] = item.targetDate.split('-').map(Number);
+        return (ey - sy) * 12 + (em - sm);
+      })();
+      if (months <= 0) return item.saved >= item.goal;
+      if (item.type === 'investment') {
+        const r = 0.07 / 12;
+        const fv = item.saved * Math.pow(1+r, months) + item.monthlyContribution * ((Math.pow(1+r,months)-1)/r);
+        return fv >= item.goal;
+      }
+      const projected = item.saved + item.monthlyContribution * months;
+      return projected >= item.goal;
+    });
+    return { total: longTerm.length, onTrack: onTrack.length };
+  }, [longTerm, now]);
   const sortedEntries = useMemo(() => [...entries].sort((a, b) => new Date(b.date) - new Date(a.date)), [entries]);
 
   function prevMonth() { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); } else setViewMonth(m => m - 1); }
@@ -881,6 +930,77 @@ export default function App() {
                     </div>
                   )}
                 </div>
+
+                {/* Projection + Pulse card */}
+                {(isCurrentMonth || (!isCurrentMonth && !isFutureMonth)) && (
+                  <div className="card" style={{ padding: isDesktop ? "16px 32px" : "14px 18px", marginBottom: 16 }}>
+                    {isCurrentMonth ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: isDesktop ? 32 : 16, flexWrap: "wrap" }}>
+                        {/* Projection */}
+                        {projection && dayOfMonth >= 5 && (
+                          <div style={{ display: "flex", alignItems: "center", gap: isDesktop ? 24 : 14, flex: 1 }}>
+                            <div>
+                              <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 3 }}>projected month-end</div>
+                              <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 800, color: projection.projectedOver ? "#f85149" : "#3fb950", fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1 }}>
+                                {projection.projectedDiff >= 0 ? "+" : "−"}{fmt(Math.abs(projection.projectedDiff))}
+                              </div>
+                              <div style={{ fontSize: 10, color: C.textLo, marginTop: 3 }}>
+                                {projection.projectedOver
+                                  ? `on track to exceed budget by ${fmt(Math.abs(projection.projectedDiff))}`
+                                  : `on track to finish ${fmt(projection.projectedDiff)} under budget`}
+                              </div>
+                            </div>
+                            {isDesktop && <div style={{ width: 1, height: 40, background: C.border, flexShrink: 0 }} />}
+                          </div>
+                        )}
+                        {/* Monthly pulse signals */}
+                        <div style={{ display: "flex", gap: isDesktop ? 24 : 16, alignItems: "center", flexWrap: "wrap" }}>
+                          {/* Under budget */}
+                          <div style={{ display: "flex", flex: "column", alignItems: isDesktop ? "flex-start" : "center", gap: 3 }}>
+                            <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 2 }}>budget</div>
+                            <div style={{ fontSize: 15, lineHeight: 1 }}>{overBudget ? "🔴" : diff > totalBudget * 0.15 ? "🟢" : "🟡"}</div>
+                            <div style={{ fontSize: 9, color: C.textLo, marginTop: 2 }}>{overBudget ? "over" : diff > totalBudget * 0.15 ? "on track" : "close"}</div>
+                          </div>
+                          {/* vs last month */}
+                          {prevMonthTotals > 0 && (
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: isDesktop ? "flex-start" : "center", gap: 3 }}>
+                              <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 2 }}>vs last month</div>
+                              <div style={{ fontSize: 15, lineHeight: 1 }}>{totalSpend < prevMonthTotals ? "↓" : totalSpend > prevMonthTotals * 1.1 ? "↑" : "→"}</div>
+                              <div style={{ fontSize: 9, color: C.textLo, marginTop: 2 }}>
+                                {totalSpend < prevMonthTotals ? fmt(prevMonthTotals - totalSpend) + " less" : totalSpend > prevMonthTotals ? fmt(totalSpend - prevMonthTotals) + " more" : "similar"}
+                              </div>
+                            </div>
+                          )}
+                          {/* Goals pulse */}
+                          {goalPulse && (
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: isDesktop ? "flex-start" : "center", gap: 3 }}>
+                              <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 2 }}>goals</div>
+                              <div style={{ fontSize: 15, lineHeight: 1 }}>{goalPulse.onTrack === goalPulse.total ? "🟢" : goalPulse.onTrack === 0 ? "🔴" : "🟡"}</div>
+                              <div style={{ fontSize: 9, color: C.textLo, marginTop: 2 }}>{goalPulse.onTrack}/{goalPulse.total} on track</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      /* Past month — show final result */
+                      <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                        <div>
+                          <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 3 }}>final result</div>
+                          <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 800, color: diff >= 0 ? "#3fb950" : "#f85149", fontFamily: "'DM Mono',monospace", letterSpacing: -0.5 }}>
+                            {diff >= 0 ? "+" : "−"}{fmt(Math.abs(diff))} {diff >= 0 ? "under" : "over"}
+                          </div>
+                        </div>
+                        {prevMonthTotals > 0 && (
+                          <div style={{ fontSize: 11, color: C.textLo, paddingTop: 14 }}>
+                            {totalSpend < prevMonthTotals
+                              ? `${fmt(prevMonthTotals - totalSpend)} less than the month before`
+                              : `${fmt(totalSpend - prevMonthTotals)} more than the month before`}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Sections + Breakdown */}
                 {isDesktop ? (
