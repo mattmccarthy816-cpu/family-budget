@@ -169,6 +169,104 @@ const FL = ({ children }) => (
   <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>{children}</div>
 );
 
+
+// ── Net Worth Chart — pure SVG, no external lib ──
+function NetWorthChart({ data, isDesktop }) {
+  if (!data || data.length === 0) return null;
+
+  // Aggregate to monthly if > 8 points
+  const points = (() => {
+    if (data.length <= 8) return data;
+    // Group by YYYY-MM, take last value per month
+    const byMonth = {};
+    data.forEach(d => {
+      const month = d.date.slice(0, 7);
+      byMonth[month] = d; // last entry wins
+    });
+    return Object.values(byMonth).sort((a, b) => a.date.localeCompare(b.date));
+  })();
+
+  const W = isDesktop ? 640 : 300;
+  const H = 140;
+  const PAD = { top: 16, right: 16, bottom: 32, left: 56 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  const values = points.map(p => p.total);
+  const minVal = Math.min(...values) * 0.95;
+  const maxVal = Math.max(...values) * 1.05;
+  const range = maxVal - minVal || 1;
+
+  const x = i => PAD.left + (i / Math.max(points.length - 1, 1)) * chartW;
+  const y = v => PAD.top + chartH - ((v - minVal) / range) * chartH;
+
+  const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(p.total).toFixed(1)}`).join(' ');
+  const areaD = `${pathD} L ${x(points.length - 1).toFixed(1)} ${(PAD.top + chartH).toFixed(1)} L ${PAD.left.toFixed(1)} ${(PAD.top + chartH).toFixed(1)} Z`;
+
+  // Y axis labels — 3 ticks
+  const ticks = [minVal, minVal + range / 2, maxVal];
+  const fmtK = v => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${Math.round(v)}`;
+
+  // X axis labels — first and last, plus middle if space
+  const xLabels = points.length > 1
+    ? [0, Math.floor((points.length - 1) / 2), points.length - 1].filter((v, i, a) => a.indexOf(v) === i)
+    : [0];
+  const fmtDate = str => {
+    const d = new Date(str + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+  };
+
+  // Latest value and change
+  const latest = points[points.length - 1];
+  const prev = points[points.length - 2];
+  const change = prev ? latest.total - prev.total : null;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 14 }}>
+        <div style={{ fontSize: 28, fontWeight: 800, color: C.textHi, fontFamily: "'DM Mono',monospace", letterSpacing: -1 }}>
+          ${Math.round(latest.total).toLocaleString('en-US')}
+        </div>
+        {change !== null && (
+          <div style={{ fontSize: 13, color: change >= 0 ? '#3fb950' : '#f85149', fontFamily: "'DM Mono',monospace", fontWeight: 600 }}>
+            {change >= 0 ? '+' : '−'}${Math.abs(Math.round(change)).toLocaleString('en-US')}
+            <span style={{ fontSize: 10, color: C.textLo, marginLeft: 4 }}>vs last snapshot</span>
+          </div>
+        )}
+      </div>
+      <svg width={W} height={H} style={{ display: 'block', maxWidth: '100%' }}>
+        <defs>
+          <linearGradient id="nwGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={C.accent} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={C.accent} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        {/* Y grid lines */}
+        {ticks.map((t, i) => (
+          <g key={i}>
+            <line x1={PAD.left} y1={y(t)} x2={W - PAD.right} y2={y(t)} stroke={C.borderMid} strokeWidth="1" strokeDasharray="3,3" />
+            <text x={PAD.left - 6} y={y(t) + 4} textAnchor="end" fontSize="9" fill={C.textLo} fontFamily="'DM Mono',monospace">{fmtK(t)}</text>
+          </g>
+        ))}
+        {/* Area fill */}
+        <path d={areaD} fill="url(#nwGrad)" />
+        {/* Line */}
+        <path d={pathD} fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Data points */}
+        {points.map((p, i) => (
+          <circle key={i} cx={x(i)} cy={y(p.total)} r="3" fill={C.accent} stroke={C.bgCard} strokeWidth="1.5" />
+        ))}
+        {/* X axis labels */}
+        {xLabels.map(i => (
+          <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize="9" fill={C.textLo} fontFamily="'DM Mono',monospace">
+            {fmtDate(points[i].date)}
+          </text>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
 export default function App() {
   const isDesktop = useIsDesktop();
   const [allEntries, setAllEntries] = useState([]);
@@ -178,6 +276,7 @@ export default function App() {
   const [members, setMembers] = useState(DEFAULT_MEMBERS);
   const [longTerm, setLongTerm] = useState([]);
   const [rawSections, setRawSections] = useState([]);
+  const [netWorth, setNetWorth] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
@@ -248,7 +347,12 @@ export default function App() {
       }));
       const secs = (data.sections || []).filter(r => r[0] && r[1]).map(r => ({ section: String(r[0]), category: String(r[1]), order: parseInt(r[2]) || 0 }));
       const mems = (data.members || []).filter(r => r[0]).map(r => ({ name: String(r[0]), color: String(r[1] || MEMBER_COLOR_PALETTE[0]), role: String(r[2] || "contributor") }));
-      setAllEntries(entries); setBudgets(bm); setCatColors(cm); setCatTypes(tm); setLongTerm(lt); setRawSections(secs);
+      const nw = (data.netWorth || []).filter(r => r[0]).map(r => ({
+        date: String(r[0]).slice(0, 10),
+        total: parseFloat(r[1]) || 0,
+        breakdown: (() => { try { return JSON.parse(String(r[2] || '[]')); } catch { return []; } })()
+      })).sort((a, b) => a.date.localeCompare(b.date));
+      setAllEntries(entries); setBudgets(bm); setCatColors(cm); setCatTypes(tm); setLongTerm(lt); setRawSections(secs); setNetWorth(nw);
       if (mems.length > 0) setMembers(mems);
       setNextId(entries.reduce((m, e) => Math.max(m, parseInt(e.id) || 0), 0) + 1);
     } catch (err) { setError(err.message); }
@@ -1279,8 +1383,117 @@ export default function App() {
               // Monthly needed for linear fixed/debt goals
               const requiredMonthlyFixed = (remaining, monthsLeft) => monthsLeft > 0 ? remaining / monthsLeft : 0;
 
+              // ── Net worth chart section ──
+              const totalNetWorth = longTerm.reduce((s, item) => s + (item.type === 'debt' ? -item.saved : item.saved), 0);
+
+              // ── Goals outlook summary — template-based ──
+              const buildGoalsOutlook = () => {
+                if (longTerm.length === 0) return null;
+                const sentences = [];
+
+                // Per-goal analysis
+                const goalInsights = longTerm.map(item => {
+                  const type = item.type || 'fixed';
+                  const isDebt = type === 'debt';
+                  const isInv = type === 'investment';
+                  const done = isDebt ? item.saved <= 0 : item.saved >= item.goal;
+                  if (done) return { name: item.name, onTrack: true, done: true };
+                  const monthly = item.monthlyContribution || 0;
+                  const monthsLeft = monthsBetween(nowStr, item.targetDate);
+
+                  if (isInv && monthsLeft > 0) {
+                    const projVal = investmentProjection(item.saved, monthly, monthsLeft);
+                    const reqMonthly = requiredMonthlyInvestment(item.saved, item.goal, monthsLeft);
+                    const onTrack = projVal >= item.goal;
+                    return { name: item.name, type, onTrack, projVal, reqMonthly, monthly, monthsLeft };
+                  }
+                  if (monthsLeft > 0) {
+                    const remaining = isDebt ? item.saved : Math.max(item.goal - item.saved, 0);
+                    const reqMonthly = requiredMonthlyFixed(remaining, monthsLeft);
+                    const projSaved = item.saved + (isDebt ? -(monthly * monthsLeft) : (monthly * monthsLeft));
+                    const onTrack = isDebt ? projSaved <= 0 : projSaved >= item.goal;
+                    const monthsAtPace = monthly > 0 ? Math.ceil(remaining / monthly) : null;
+                    return { name: item.name, type, onTrack, reqMonthly, monthly, monthsLeft, monthsAtPace, remaining };
+                  }
+                  return { name: item.name, type, onTrack: true };
+                });
+
+                const onTrackCount = goalInsights.filter(g => g.onTrack).length;
+                const offTrack = goalInsights.filter(g => !g.onTrack);
+                const total = goalInsights.length;
+
+                // S1 — Cross-goal summary
+                if (onTrackCount === total) {
+                  sentences.push(`All ${total} of your long-term goals are on track — great position to be in.`);
+                } else if (onTrackCount === 0) {
+                  sentences.push(`None of your current goals are fully on track, but small increases to monthly contributions would make a meaningful difference.`);
+                } else {
+                  const worstGoal = offTrack[0];
+                  sentences.push(`${onTrackCount} of your ${total} goals are on track. ${worstGoal.name} needs the most attention.`);
+                }
+
+                // S2-N — Per off-track goal detail
+                offTrack.slice(0, 3).forEach(g => {
+                  if (g.type === 'investment') {
+                    if (g.monthly > 0) {
+                      sentences.push(`${g.name} is projected to reach ${fmt(Math.round(g.projVal))} by your target — ${fmt(Math.round(g.goal - g.projVal))} short. Increasing contributions to ${fmt(Math.round(g.reqMonthly))}/month would close the gap.`);
+                    } else {
+                      sentences.push(`${g.name} has no monthly contribution set — add one to see what you're on track to reach.`);
+                    }
+                  } else if (g.type === 'debt') {
+                    if (g.monthly > 0 && g.monthsLeft > 0) {
+                      sentences.push(`${g.name} won't be fully paid off by your target date at the current rate. An extra ${fmt(Math.round(g.reqMonthly - g.monthly))}/month in payments would get you there.`);
+                    } else if (g.monthsAtPace) {
+                      sentences.push(`${g.name} will be paid off in approximately ${g.monthsAtPace} months at the current rate.`);
+                    }
+                  } else {
+                    if (g.monthly > 0 && g.monthsLeft > 0) {
+                      const behindMonths = g.monthsAtPace ? g.monthsAtPace - g.monthsLeft : null;
+                      if (behindMonths && behindMonths > 0) {
+                        sentences.push(`${g.name} is pacing about ${behindMonths} month${behindMonths > 1 ? 's' : ''} behind. Bumping contributions from ${fmt(g.monthly)} to ${fmt(Math.round(g.reqMonthly))}/month would put you back on schedule.`);
+                      } else {
+                        sentences.push(`${g.name} needs ${fmt(Math.round(g.reqMonthly))}/month to hit its target — you're currently contributing ${fmt(g.monthly)}/month.`);
+                      }
+                    } else if (!g.monthly) {
+                      sentences.push(`${g.name} has no monthly contribution set — add one to see your projected timeline.`);
+                    }
+                  }
+                });
+
+                return sentences.join(' ');
+              };
+              const goalsOutlook = buildGoalsOutlook();
+
               return (
                 <div className="fu">
+                  {/* Net worth chart */}
+                  <div className="card" style={{ padding: isDesktop ? "22px 28px" : "18px 18px", marginBottom: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: netWorth.length > 0 ? 0 : 8 }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 4 }}>NET WORTH</div>
+                        {netWorth.length === 0 && (
+                          <>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: C.textHi, fontFamily: "'DM Mono',monospace", letterSpacing: -1, marginBottom: 6 }}>
+                              ${Math.round(totalNetWorth).toLocaleString("en-US")}
+                            </div>
+                            <div style={{ fontSize: 11, color: C.textLo, marginTop: 4 }}>
+                              Snapshots will appear here once the weekly trigger runs. Current total reflects today's goal values.
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>weekly snapshots</div>
+                    </div>
+                    {netWorth.length > 0 && <NetWorthChart data={netWorth} isDesktop={isDesktop} />}
+                  </div>
+
+                  {/* Goals outlook summary */}
+                  {goalsOutlook && (
+                    <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 16, borderLeft: `3px solid ${C.accent}` }}>
+                      <div style={{ fontSize: 10, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 10 }}>GOALS OUTLOOK</div>
+                      <div style={{ fontSize: isDesktop ? 14 : 13, color: C.textMid, lineHeight: 1.7 }}>{goalsOutlook}</div>
+                    </div>
+                  )}
                   {longTerm.length === 0
                     ? <div style={{ textAlign: "center", padding: "60px 0", color: C.textLo, fontSize: 13 }}>No goals yet.</div>
                     : (
@@ -1499,8 +1712,11 @@ export default function App() {
                   const sorted = [...memberNames].sort((a, b) => (revByMember[b] || 0) - (revByMember[a] || 0));
                   const top = sorted[0], second = sorted[1];
                   const topAmt = revByMember[top] || 0, secAmt = revByMember[second] || 0;
-                  if (topAmt > 0 && secAmt > 0 && Math.abs(topAmt - secAmt) > 50) {
-                    sentences.push(`${top} accounted for ${fmt(topAmt)} of total spend, ${second} for ${fmt(secAmt)}.`);
+                  if (topAmt > 0 && secAmt > 0 && revTotal > 0) {
+                    const splitPct = (topAmt - secAmt) / revTotal;
+                    if (splitPct < 0.05) sentences.push(`Spending was evenly split — ${top} at ${fmt(topAmt)}, ${second} at ${fmt(secAmt)}.`);
+                    else if (splitPct < 0.15) sentences.push(`${top} drove slightly more of the spend at ${fmt(topAmt)} versus ${fmt(secAmt)} for ${second}.`);
+                    else sentences.push(`There was a notable difference in spend — ${top} accounted for ${fmt(topAmt)} compared to ${fmt(secAmt)} for ${second}.`);
                   }
                 }
 
