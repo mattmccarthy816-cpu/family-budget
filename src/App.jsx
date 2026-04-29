@@ -466,22 +466,34 @@ export default function App() {
   const goalPulse = useMemo(() => {
     if (longTerm.length === 0) return null;
     const nowStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    const onTrack = longTerm.filter(item => {
-      if (!item.targetDate || !item.monthlyContribution) return true; // no data = neutral
-      const months = (() => {
-        const [sy, sm] = nowStr.split('-').map(Number);
-        const [ey, em] = item.targetDate.split('-').map(Number);
-        return (ey - sy) * 12 + (em - sm);
-      })();
-      if (months <= 0) return item.saved >= item.goal;
-      if (item.type === 'investment') {
+    // Shared on-track logic — must match buildGoalsOutlook in LT tab
+    const isGoalOnTrack = item => {
+      const type = item.type || 'fixed';
+      const isDebt = type === 'debt';
+      // Already done
+      if (isDebt ? item.saved <= 0 : item.saved >= item.goal) return true;
+      // No target date — can't assess, treat as neutral/on track
+      if (!item.targetDate) return true;
+      const [sy, sm] = nowStr.split('-').map(Number);
+      const [ey, em] = item.targetDate.split('-').map(Number);
+      const months = (ey - sy) * 12 + (em - sm);
+      // Target already passed
+      if (months <= 0) return isDebt ? item.saved <= 0 : item.saved >= item.goal;
+      // No monthly contribution — flag as needs attention (not on track)
+      if (!item.monthlyContribution) return false;
+      const monthly = item.monthlyContribution;
+      if (type === 'investment') {
         const r = 0.07 / 12;
-        const fv = item.saved * Math.pow(1+r, months) + item.monthlyContribution * ((Math.pow(1+r,months)-1)/r);
+        const fv = item.saved * Math.pow(1+r, months) + monthly * ((Math.pow(1+r,months)-1)/r);
         return fv >= item.goal;
       }
-      const projected = item.saved + item.monthlyContribution * months;
-      return projected >= item.goal;
-    });
+      const remaining = isDebt ? item.saved : Math.max(item.goal - item.saved, 0);
+      const projected = isDebt
+        ? item.saved - monthly * months
+        : item.saved + monthly * months;
+      return isDebt ? projected <= 0 : projected >= item.goal;
+    };
+    const onTrack = longTerm.filter(isGoalOnTrack);
     return { total: longTerm.length, onTrack: onTrack.length };
   }, [longTerm, now]);
   const sortedEntries = useMemo(() => [...entries].sort((a, b) => new Date(b.date) - new Date(a.date)), [entries]);
@@ -1714,7 +1726,7 @@ export default function App() {
                   const topAmt = revByMember[top] || 0, secAmt = revByMember[second] || 0;
                   if (topAmt > 0 && secAmt > 0 && revTotal > 0) {
                     const splitPct = (topAmt - secAmt) / revTotal;
-                    if (splitPct < 0.05) sentences.push(`Spending was evenly split — ${top} at ${fmt(topAmt)}, ${second} at ${fmt(secAmt)}.`);
+                    if (splitPct < 0.05) sentences.push(`${top} and ${second} spent about the same — ${fmt(topAmt)} and ${fmt(secAmt)} respectively.`);
                     else if (splitPct < 0.15) sentences.push(`${top} drove slightly more of the spend at ${fmt(topAmt)} versus ${fmt(secAmt)} for ${second}.`);
                     else sentences.push(`There was a notable difference in spend — ${top} accounted for ${fmt(topAmt)} compared to ${fmt(secAmt)} for ${second}.`);
                   }
