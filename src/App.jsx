@@ -10,6 +10,7 @@ const DEFAULT_MEMBERS = [
 ];
 const MAX_MEMBERS = 6;
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const truncate = (str, len = 45) => str && str.length > len ? str.slice(0, len) + "…" : str;
 
 const C = {
   bg:        "#0d1117",
@@ -270,7 +271,7 @@ function NetWorthChart({ data, isDesktop }) {
 
 // ── Trends bar chart — pure SVG ──
 function TrendsChart({ monthData, totalBudget, isDesktop, onSelectMonth, selectedMonth }) {
-  const W = isDesktop ? 680 : 320;
+  const W = isDesktop ? 760 : 320;
   const H = 160;
   const PAD = { top: 16, right: 12, bottom: 28, left: 48 };
   const chartW = W - PAD.left - PAD.right;
@@ -348,6 +349,8 @@ export default function App() {
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [entriesOpen, setEntriesOpen] = useState(false);
   const [showAllEntries, setShowAllEntries] = useState(false);
+  const [expandedSummary, setExpandedSummary] = useState(false);
+  const [expandedGoalsOutlook, setExpandedGoalsOutlook] = useState(false);
   const [whatIfOpen, setWhatIfOpen] = useState({}); // { goalIndex: sliderValue }
   const [selectedTrendsMonth, setSelectedTrendsMonth] = useState(null);
   const now = new Date();
@@ -720,7 +723,7 @@ export default function App() {
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <span style={{ fontSize: 12, color: C.textMid, fontWeight: 500 }}>{c}</span>
+                        <span style={{ fontSize: 12, color: C.textMid, fontWeight: 500 }}>{truncate(c)}</span>
                         {status !== "ok" && (catTypes[c] || "expense") === "expense" && <span style={{ fontSize: 10, color: sc.color, fontWeight: 800 }}>{sc.icon}</span>}
                         {(catTypes[c] || "expense") === "investment" && <span style={{ fontSize: 9, color: "#388bfd", fontWeight: 700, background: "rgba(56,139,253,0.12)", padding: "1px 5px", borderRadius: 3 }}>↗</span>}
                         {(catTypes[c] || "expense") === "fixed" && <span style={{ fontSize: 9, color: C.textLo, fontWeight: 600, background: C.bgInset, padding: "1px 5px", borderRadius: 3, border: `1px solid ${C.border}` }}>fixed</span>}
@@ -792,7 +795,7 @@ export default function App() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ display: "flex", gap: 2, background: C.bgInset, borderRadius: 10, padding: 3 }}>
-                  {[["dashboard","Budget Dashboard"],["review","Review"],["trends","Trends"],["longterm","Long Term Goals"],["budgets","Budget Details"],["members","Members"]].map(([v, label]) => (
+                  {[["dashboard","Budget Dashboard"],["review","Review"],["trends","Trends"],["longterm","Long Term Goals"],["settings","Settings"]].map(([v, label]) => (
                     <button key={v} className={`npill ${view === v ? "active" : ""}`} onClick={() => setView(v)}>{label}</button>
                   ))}
                 </div>
@@ -813,7 +816,7 @@ export default function App() {
                 <button onClick={() => setView("add")} style={{ background: C.accent, border: "none", borderRadius: 9, color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 16px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Add</button>
               </div>
               <div style={{ display: "flex", borderTop: `1px solid ${C.border}`, marginLeft: -16, marginRight: -16, paddingLeft: 8, paddingRight: 8, paddingBottom: 6 }}>
-                {[["dashboard","Dashboard"],["review","Review"],["trends","Trends"],["longterm","Long Term"],["budgets","Details"],["members","Team"]].map(([v, label]) => (
+                {[["dashboard","Dashboard"],["review","Review"],["trends","Trends"],["longterm","Long Term"],["settings","Settings"]].map(([v, label]) => (
                   <button key={v} className={`npill ${view === v ? "active" : ""}`} onClick={() => setView(v)} style={{ flex: 1, textAlign: "center", fontSize: 12, padding: "7px 4px" }}>{label}</button>
                 ))}
               </div>
@@ -1085,7 +1088,7 @@ export default function App() {
                       </div>
 
                       {/* Legend 2-col grid */}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 8px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 8px", paddingTop: 14, paddingBottom: 14, borderTop: `1px solid ${C.borderMid}`, borderBottom: `1px solid ${C.borderMid}`, marginTop: 4, marginBottom: 4 }}>
                         {donutSegments.filter(s => s.value > 0).map((s, i) => (
                           <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                             <div style={{ width: 7, height: 7, borderRadius: 2, background: s.color, flexShrink: 0 }} />
@@ -1389,44 +1392,133 @@ export default function App() {
               </div>
             )}
 
-            {/* BUDGET DETAILS */}
-            {view === "budgets" && (
-              <div className="fu" style={{ maxWidth: 520, margin: "0 auto" }}>
-                <div className="card" style={{ padding: 24 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: C.textHi }}>Categories</div>
-                    <button onClick={openNewCat} style={{ background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 8, color: C.sand, fontSize: 12, fontWeight: 600, padding: "7px 14px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ New</button>
+            {/* SETTINGS — Budget Details + Members merged */}
+            {view === "settings" && (() => {
+              const [settingsBudgetOpen, setSettingsBudgetOpen] = React.useState(true);
+              const [settingsMembersOpen, setSettingsMembersOpen] = React.useState(true);
+              const Section = ({ title, open, onToggle, action, children }) => (
+                <div className="card" style={{ marginBottom: 14, overflow: "hidden" }}>
+                  <div onClick={onToggle} style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: C.textHi }}>{title}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      {action && <div onClick={e => e.stopPropagation()}>{action}</div>}
+                      <span style={{ fontSize: 10, color: C.textLo, transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
+                    </div>
                   </div>
-                  {categories.map(c => {
-                    const status = categoryStatuses[c];
-                    const sc = STATUS[status];
-                    const ctype = catTypes[c] || "expense";
-                    return (
-                      <div key={c} onClick={() => openEditCat(c)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 8px", borderBottom: `1px solid ${C.borderMid}`, cursor: "pointer", borderRadius: 8, transition: "background 0.12s" }} onMouseEnter={e => e.currentTarget.style.background = C.bgInset} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ width: 10, height: 10, borderRadius: 3, background: catColors[c] || C.textLo, flexShrink: 0 }} />
-                          <span style={{ fontSize: 14, color: C.textHi, fontWeight: 600 }}>{c}</span>
-                          {ctype === "investment" && <span style={{ fontSize: 9, color: "#388bfd", background: "rgba(56,139,253,0.12)", padding: "1px 6px", borderRadius: 4, fontWeight: 600, letterSpacing: 0.5 }}>invest</span>}
-                          {ctype === "fixed" && <span style={{ fontSize: 9, color: C.textLo, background: C.bgInset, padding: "1px 6px", borderRadius: 4, fontWeight: 600, letterSpacing: 0.5 }}>fixed</span>}
-                          {catTypes[c] === "investment" && <span style={{ fontSize: 9, color: "#388bfd", fontWeight: 700, background: "rgba(56,139,253,0.12)", padding: "1px 5px", borderRadius: 3 }}>↗ invest</span>}
-                          {catTypes[c] === "fixed" && <span style={{ fontSize: 9, color: C.textLo, fontWeight: 700, background: C.bgInset, padding: "1px 5px", borderRadius: 3, border: `1px solid ${C.border}` }}>fixed</span>}
-                          {status !== "ok" && catTypes[c] === "expense" && <span style={{ fontSize: 10, color: sc.color, fontWeight: 800 }}>{sc.icon}</span>}
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: ctype === "investment" ? "#388bfd" : sc.color, fontFamily: "'DM Mono',monospace" }}>{fmt(byCategory[c] || 0)}</span>
-                          <span style={{ fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budgets[c])}</span>
-                          <span style={{ color: C.textLo }}>›</span>
+                  {open && <div style={{ padding: "0 20px 20px", borderTop: `1px solid ${C.borderMid}` }}>{children}</div>}
+                </div>
+              );
+              return (
+                <div className="fu" style={{ maxWidth: isDesktop ? 900 : "100%" }}>
+                  <div style={{ fontSize: isDesktop ? 20 : 16, fontWeight: 800, color: C.textHi, letterSpacing: -0.5, marginBottom: 20 }}>Settings</div>
+                  <div style={{ display: isDesktop ? "grid" : "block", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+
+                    {/* Budget Details */}
+                    <Section title="Categories" open={settingsBudgetOpen} onToggle={() => setSettingsBudgetOpen(v => !v)}
+                      action={<button onClick={openNewCat} style={{ background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 8, color: C.sand, fontSize: 12, fontWeight: 600, padding: "6px 12px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ New</button>}>
+                      <div style={{ paddingTop: 12 }}>
+                        {categories.map(c => {
+                          const status = categoryStatuses[c];
+                          const sc = STATUS[status];
+                          const ctype = catTypes[c] || "expense";
+                          return (
+                            <div key={c} onClick={() => openEditCat(c)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 8px", borderBottom: `1px solid ${C.borderMid}`, cursor: "pointer", borderRadius: 8, transition: "background 0.12s" }} onMouseEnter={e => e.currentTarget.style.background = C.bgInset} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <div style={{ width: 10, height: 10, borderRadius: 3, background: catColors[c] || C.textLo, flexShrink: 0 }} />
+                                <span style={{ fontSize: 13, color: C.textHi, fontWeight: 600 }}>{truncate(c, 30)}</span>
+                                {ctype === "investment" && <span style={{ fontSize: 9, color: "#388bfd", background: "rgba(56,139,253,0.12)", padding: "1px 6px", borderRadius: 4, fontWeight: 600 }}>↗ invest</span>}
+                                {ctype === "fixed" && <span style={{ fontSize: 9, color: C.textLo, background: C.bgInset, padding: "1px 6px", borderRadius: 4, fontWeight: 600, border: `1px solid ${C.border}` }}>fixed</span>}
+                                {status !== "ok" && ctype === "expense" && <span style={{ fontSize: 10, color: sc.color, fontWeight: 800 }}>{sc.icon}</span>}
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: ctype === "investment" ? "#388bfd" : C.textMid, fontFamily: "'DM Mono',monospace" }}>{fmt(byCategory[c] || 0)}</span>
+                                <span style={{ fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budgets[c])}</span>
+                                <span style={{ color: C.textLo }}>›</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div style={{ marginTop: 14, padding: "12px 14px", background: C.bgInset, borderRadius: 10, border: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: 12, color: C.textLo, fontWeight: 600 }}>Total budget</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: C.sand, fontFamily: "'DM Mono',monospace" }}>{fmt(totalBudget)} / month</span>
                         </div>
                       </div>
-                    );
-                  })}
-                  <div style={{ marginTop: 16, padding: "12px 14px", background: C.bgInset, borderRadius: 10, border: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 12, color: C.textLo, fontWeight: 600 }}>Total budget</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: C.sand, fontFamily: "'DM Mono',monospace" }}>{fmt(totalBudget)} / month</span>
+                    </Section>
+
+                    {/* Members */}
+                    <Section title={`Members · ${members.length}/${MAX_MEMBERS}`} open={settingsMembersOpen} onToggle={() => setSettingsMembersOpen(v => !v)}
+                      action={<button onClick={openNewMember} style={{ background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 8, color: C.sand, fontSize: 12, fontWeight: 600, padding: "6px 12px", cursor: "pointer", fontFamily: "'Sora',sans-serif", opacity: members.length >= MAX_MEMBERS ? 0.4 : 1 }}>+ Add</button>}>
+                      <div style={{ paddingTop: 12 }}>
+                        <div style={{ background: C.borderMid, borderRadius: 999, height: 3, overflow: "hidden", marginBottom: 14 }}>
+                          <div style={{ width: `${(members.length / MAX_MEMBERS) * 100}%`, height: "100%", background: C.accent, borderRadius: 999, transition: "width 0.4s" }} />
+                        </div>
+                        {members.map(m => (
+                          <div key={m.name} onClick={() => openEditMember(m.name)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 8px", borderBottom: `1px solid ${C.borderMid}`, cursor: "pointer", borderRadius: 8, transition: "background 0.12s" }} onMouseEnter={e => e.currentTarget.style.background = C.bgInset} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                            <div style={{ width: 34, height: 34, borderRadius: 9, background: m.color + "25", border: `1.5px solid ${m.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: m.color, flexShrink: 0 }}>{m.name[0]}</div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: C.textHi }}>{m.name}</div>
+                              <div style={{ fontSize: 10, color: C.textLo, marginTop: 2, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5 }}>{m.role}</div>
+                            </div>
+                            <div style={{ fontSize: 11, color: C.textLo }}>edit →</div>
+                          </div>
+                        ))}
+                      </div>
+                    </Section>
+
                   </div>
+
+                  {/* Member edit modal stays here */}
+                  {editMember !== null && (
+                    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}>
+                      <div className="card" style={{ width: "100%", maxWidth: 380, padding: 24, display: "flex", flexDirection: "column", gap: 18 }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: C.textHi }}>{editMember === "new" ? "Add Member" : `Edit ${editMember}`}</div>
+                        <div><FL>Name</FL><input className="inp" value={memberForm.name} onChange={e => setMemberForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Jordan" /></div>
+                        <div><FL>Role</FL>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            {[
+                              { value: "owner", label: "Owner", desc: "Full access — edit budgets, members, all data" },
+                              { value: "contributor", label: "Contributor", desc: "Can log entries and view the dashboard" },
+                              { value: "viewer", label: "Viewer", desc: "Read-only access" },
+                            ].map(opt => (
+                              <div key={opt.value} onClick={() => setMemberForm(f => ({ ...f, role: opt.value }))} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, cursor: "pointer", background: memberForm.role === opt.value ? C.accentDim : C.bgInset, border: `1px solid ${memberForm.role === opt.value ? C.accent : C.border}`, transition: "all 0.15s" }}>
+                                <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${memberForm.role === opt.value ? C.accent : C.textLo}`, background: memberForm.role === opt.value ? C.accent : "transparent", flexShrink: 0, transition: "all 0.15s" }} />
+                                <div>
+                                  <div style={{ fontSize: 13, fontWeight: 600, color: memberForm.role === opt.value ? C.textHi : C.textMid }}>{opt.label}</div>
+                                  <div style={{ fontSize: 11, color: C.textLo, marginTop: 1 }}>{opt.desc}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div><FL>Color</FL>
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            {MEMBER_COLOR_PALETTE.map(col => (
+                              <div key={col} onClick={() => setMemberForm(f => ({ ...f, color: col }))} style={{ width: 32, height: 32, borderRadius: 8, background: col, cursor: "pointer", border: memberForm.color === col ? "3px solid #fff" : "3px solid transparent", boxShadow: memberForm.color === col ? `0 0 0 1px ${col}` : "none", transition: "all 0.15s" }} />
+                            ))}
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, background: C.bgInset, border: `1px solid ${C.border}` }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: memberForm.color + "25", border: `1.5px solid ${memberForm.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: memberForm.color }}>
+                            {memberForm.name ? memberForm.name[0].toUpperCase() : "?"}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: C.textHi }}>{memberForm.name || "Name"}</div>
+                            <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{memberForm.role}</div>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 10 }}>
+                          <button className="cta" onClick={saveMember} style={{ flex: 1 }}>Save</button>
+                          <button onClick={() => setEditMember(null)} style={{ flex: 1, background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 10, color: C.textMid, fontSize: 13, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>Cancel</button>
+                        </div>
+                        {editMember !== "new" && members.length > 1 && (
+                          <button onClick={() => { if (confirm(`Remove ${editMember}?`)) deleteMember(editMember); }} style={{ background: "none", border: "none", color: "#f85149", fontSize: 12, cursor: "pointer", textAlign: "center", fontFamily: "'Sora',sans-serif" }}>Remove member</button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* LONG TERM */}
             {view === "longterm" && (() => {
@@ -1541,32 +1633,42 @@ export default function App() {
 
               return (
                 <div className="fu">
-                  {/* Net worth chart */}
-                  <div className="card" style={{ padding: isDesktop ? "22px 28px" : "18px 18px", marginBottom: 16 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: netWorth.length > 0 ? 0 : 8 }}>
-                      <div>
-                        <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 4 }}>NET WORTH</div>
-                        {netWorth.length === 0 && (
-                          <>
-                            <div style={{ fontSize: 28, fontWeight: 800, color: C.textHi, fontFamily: "'DM Mono',monospace", letterSpacing: -1, marginBottom: 6 }}>
-                              ${Math.round(totalNetWorth).toLocaleString("en-US")}
-                            </div>
-                            <div style={{ fontSize: 11, color: C.textLo, marginTop: 4 }}>
-                              Snapshots will appear here once the weekly trigger runs. Current total reflects today's goal values.
-                            </div>
-                          </>
+                  {/* Net worth — click to reveal */}
+                  {(() => {
+                    const [nwOpen, setNwOpen] = React.useState(false);
+                    return (
+                      <div className="card" style={{ marginBottom: 16, overflow: "hidden" }}>
+                        <div onClick={() => setNwOpen(v => !v)} style={{ padding: isDesktop ? "18px 28px" : "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5 }}>NET WORTH</div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: C.textHi, fontFamily: "'DM Mono',monospace", letterSpacing: -0.5 }}>${Math.round(totalNetWorth).toLocaleString("en-US")}</div>
+                          </div>
+                          <span style={{ fontSize: 10, color: C.textLo, transform: nwOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
+                        </div>
+                        {nwOpen && (
+                          <div style={{ padding: isDesktop ? "0 28px 20px" : "0 18px 16px", borderTop: `1px solid ${C.borderMid}`, paddingTop: 16 }}>
+                            {netWorth.length === 0
+                              ? <div style={{ fontSize: 11, color: C.textLo }}>Snapshots will appear here once the weekly trigger runs. Current total reflects today's goal values.</div>
+                              : <NetWorthChart data={netWorth} isDesktop={isDesktop} />
+                            }
+                          </div>
                         )}
                       </div>
-                      <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>weekly snapshots</div>
-                    </div>
-                    {netWorth.length > 0 && <NetWorthChart data={netWorth} isDesktop={isDesktop} />}
-                  </div>
+                    );
+                  })()}
 
                   {/* Goals outlook summary */}
                   {goalsOutlook && (
                     <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 16, borderLeft: `3px solid ${C.accent}` }}>
                       <div style={{ fontSize: 10, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 10 }}>GOALS OUTLOOK</div>
-                      <div style={{ fontSize: isDesktop ? 14 : 13, color: C.textMid, lineHeight: 1.7 }}>{goalsOutlook}</div>
+                      <div style={{ fontSize: isDesktop ? 14 : 13, color: C.textMid, lineHeight: 1.7, overflow: "hidden", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: isDesktop || expandedGoalsOutlook ? 999 : 5 }}>
+                        {goalsOutlook}
+                      </div>
+                      {!isDesktop && goalsOutlook.length > 200 && (
+                        <button onClick={() => setExpandedGoalsOutlook(v => !v)} style={{ marginTop: 8, background: "none", border: "none", color: C.accent, fontSize: 12, cursor: "pointer", fontFamily: "'Sora',sans-serif", padding: 0 }}>
+                          {expandedGoalsOutlook ? "show less ↑" : "read full outlook ↓"}
+                        </button>
+                      )}
                     </div>
                   )}
                   {longTerm.length === 0
@@ -1796,7 +1898,7 @@ export default function App() {
               return (
                 <div className="fu">
                   {/* Summary stat tiles */}
-                  <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : "1fr 1fr", gap: 10, marginBottom: 16 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : "1fr", gap: 10, marginBottom: 16 }}>
                     {[
                       { label: "12-MONTH AVG", value: fmt(Math.round(avgSpend)), sub: "monthly spend" },
                       { label: "BEST MONTH",   value: bestMonth ? MONTH_NAMES[parseInt(bestMonth.key.slice(5,7))-1].slice(0,3) + " " + bestMonth.key.slice(0,4) : "—", sub: bestMonth ? fmt(bestMonth.spend) + " spent" : "no data", color: "#3fb950" },
@@ -2066,7 +2168,7 @@ export default function App() {
                     <div style={{ width: 6, height: 6, borderRadius: 2, background: color, flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                        <span style={{ fontSize: 12, color: C.textMid, fontWeight: 500 }}>{c}</span>
+                        <span style={{ fontSize: 12, color: C.textMid, fontWeight: 500 }}>{truncate(c)}</span>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           {delta !== null && <span style={{ fontSize: 10, color: delta > 0 ? "#f85149" : "#3fb950", fontFamily: "'DM Mono',monospace" }}>{delta > 0 ? "+" : ""}{fmt(delta)} vs last</span>}
                           <span style={{ fontSize: 12, fontWeight: 700, color: over ? "#f85149" : C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
@@ -2106,9 +2208,14 @@ export default function App() {
                       <div style={{ fontSize: 10, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 10 }}>
                         {isFinal ? "MONTHLY SUMMARY" : "IN PROGRESS"}
                       </div>
-                      <div style={{ fontSize: isDesktop ? 14 : 13, color: C.textMid, lineHeight: 1.7, fontStyle: "normal" }}>
+                      <div style={{ fontSize: isDesktop ? 14 : 13, color: C.textMid, lineHeight: 1.7, overflow: "hidden", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: isDesktop || expandedSummary ? 999 : 5 }}>
                         {summaryText}
                       </div>
+                      {!isDesktop && summaryText.length > 200 && (
+                        <button onClick={() => setExpandedSummary(v => !v)} style={{ marginTop: 8, background: "none", border: "none", color: C.accent, fontSize: 12, cursor: "pointer", fontFamily: "'Sora',sans-serif", padding: 0 }}>
+                          {expandedSummary ? "show less ↑" : "read full summary ↓"}
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -2134,24 +2241,7 @@ export default function App() {
                     ))}
                   </div>
 
-                  {/* Progress bar */}
-                  {!isFinal && (
-                    <div className="card" style={{ padding: "14px 18px", marginBottom: 16 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                        <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>MONTH PROGRESS</span>
-                        <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{Math.round(progress * 100)}% of days elapsed · {Math.round((revTotal / Math.max(revBudget, 1)) * 100)}% of budget used</span>
-                      </div>
-                      <div style={{ background: C.borderMid, borderRadius: 999, height: 4, overflow: "hidden", position: "relative" }}>
-                        <div style={{ width: `${Math.min((revTotal / Math.max(revBudget, 1)) * 100, 100)}%`, height: "100%", background: revTotal > revBudget + 2 ? "#f85149" : `linear-gradient(90deg, ${C.accent}, #3fb950)`, borderRadius: 999, transition: "width 0.5s" }} />
-                        <div style={{ position: "absolute", top: 0, bottom: 0, left: `${progress * 100}%`, width: 2, background: "rgba(255,255,255,0.4)", transform: "translateX(-50%)" }} />
-                      </div>
-                      <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", marginTop: 5 }}>
-                        {revTotal <= revBudget
-                          ? `On track — ${fmt(revBudget - revTotal)} remaining with ${revDays - revToday} days to go`
-                          : `${fmt(revTotal - revBudget)} over budget`}
-                      </div>
-                    </div>
-                  )}
+
 
                   <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: 14, marginBottom: 16 }}>
                     {/* Worst categories */}
@@ -2198,95 +2288,6 @@ export default function App() {
               );
             })()}
 
-            {/* MEMBERS */}
-            {view === "members" && (
-              <div className="fu" style={{ maxWidth: 520, margin: "0 auto" }}>
-                <div className="card" style={{ padding: 24 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                    <div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: C.textHi }}>Household Members</div>
-                      <div style={{ fontSize: 11, color: C.textLo, marginTop: 3 }}>{members.length} of {MAX_MEMBERS} max</div>
-                    </div>
-                    <button onClick={openNewMember} style={{ background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 8, color: C.sand, fontSize: 12, fontWeight: 600, padding: "7px 14px", cursor: "pointer", fontFamily: "'Sora',sans-serif", opacity: members.length >= MAX_MEMBERS ? 0.4 : 1 }}>+ Add</button>
-                  </div>
-
-                  {/* Member capacity bar */}
-                  <div style={{ marginBottom: 20 }}>
-                    <div style={{ background: C.borderMid, borderRadius: 999, height: 3, overflow: "hidden" }}>
-                      <div style={{ width: `${(members.length / MAX_MEMBERS) * 100}%`, height: "100%", background: C.accent, borderRadius: 999, transition: "width 0.4s" }} />
-                    </div>
-                  </div>
-
-                  {/* Member list */}
-                  {members.map(m => (
-                    <div key={m.name} onClick={() => openEditMember(m.name)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 8px", borderBottom: `1px solid ${C.borderMid}`, cursor: "pointer", borderRadius: 8, transition: "background 0.12s" }} onMouseEnter={e => e.currentTarget.style.background = C.bgInset} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: m.color + "25", border: `1.5px solid ${m.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: m.color, flexShrink: 0 }}>{m.name[0]}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: C.textHi }}>{m.name}</div>
-                        <div style={{ fontSize: 10, color: C.textLo, marginTop: 2, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5 }}>{m.role}</div>
-                      </div>
-                      <div style={{ fontSize: 11, color: C.textLo }}>edit →</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Edit / New member modal */}
-                {editMember !== null && (
-                  <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}>
-                    <div className="card" style={{ width: "100%", maxWidth: 380, padding: 24, display: "flex", flexDirection: "column", gap: 18 }}>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: C.textHi }}>{editMember === "new" ? "Add Member" : `Edit ${editMember}`}</div>
-
-                      <div><FL>Name</FL><input className="inp" value={memberForm.name} onChange={e => setMemberForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Jordan" /></div>
-
-                      <div><FL>Role</FL>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          {[
-                            { value: "owner",       label: "Owner",       desc: "Full access — edit budgets, members, all data" },
-                            { value: "contributor", label: "Contributor", desc: "Can log entries and view the dashboard" },
-                            { value: "viewer",      label: "Viewer",      desc: "Read-only access" },
-                          ].map(opt => (
-                            <div key={opt.value} onClick={() => setMemberForm(f => ({ ...f, role: opt.value }))} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, cursor: "pointer", background: memberForm.role === opt.value ? C.accentDim : C.bgInset, border: `1px solid ${memberForm.role === opt.value ? C.accent : C.border}`, transition: "all 0.15s" }}>
-                              <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${memberForm.role === opt.value ? C.accent : C.textLo}`, background: memberForm.role === opt.value ? C.accent : "transparent", flexShrink: 0, transition: "all 0.15s" }} />
-                              <div>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: memberForm.role === opt.value ? C.textHi : C.textMid }}>{opt.label}</div>
-                                <div style={{ fontSize: 11, color: C.textLo, marginTop: 1 }}>{opt.desc}</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div><FL>Color</FL>
-                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                          {MEMBER_COLOR_PALETTE.map(col => (
-                            <div key={col} onClick={() => setMemberForm(f => ({ ...f, color: col }))} style={{ width: 32, height: 32, borderRadius: 8, background: col, cursor: "pointer", border: memberForm.color === col ? `3px solid #fff` : `3px solid transparent`, boxShadow: memberForm.color === col ? `0 0 0 1px ${col}` : "none", transition: "all 0.15s" }} />
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Preview */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, background: C.bgInset, border: `1px solid ${C.border}` }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: memberForm.color + "25", border: `1.5px solid ${memberForm.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: memberForm.color }}>
-                          {memberForm.name ? memberForm.name[0].toUpperCase() : "?"}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: C.textHi }}>{memberForm.name || "Name"}</div>
-                          <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{memberForm.role}</div>
-                        </div>
-                      </div>
-
-                      <div style={{ display: "flex", gap: 10 }}>
-                        <button className="cta" onClick={saveMember} style={{ flex: 1 }}>Save</button>
-                        <button onClick={() => setEditMember(null)} style={{ flex: 1, background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 10, color: C.textMid, fontSize: 13, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>Cancel</button>
-                      </div>
-                      {editMember !== "new" && members.length > 1 && (
-                        <button onClick={() => { if (confirm(`Remove ${editMember}?`)) deleteMember(editMember); }} style={{ background: "none", border: "none", color: "#f85149", fontSize: 12, cursor: "pointer", textAlign: "center", fontFamily: "'Sora',sans-serif" }}>Remove member</button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </>
         )}
       </div>
