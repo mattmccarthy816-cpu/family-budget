@@ -267,6 +267,67 @@ function NetWorthChart({ data, isDesktop }) {
   );
 }
 
+
+// ── Trends bar chart — pure SVG ──
+function TrendsChart({ monthData, totalBudget, isDesktop, onSelectMonth, selectedMonth }) {
+  const W = isDesktop ? 680 : 320;
+  const H = 160;
+  const PAD = { top: 16, right: 12, bottom: 28, left: 48 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+  const n = monthData.length;
+  const barGap = 4;
+  const barW = Math.max((chartW / n) - barGap, 8);
+  const maxVal = Math.max(...monthData.map(m => m.spend), totalBudget) * 1.1 || 1;
+  const barX = i => PAD.left + i * (chartW / n) + (chartW / n - barW) / 2;
+  const barH = v => (v / maxVal) * chartH;
+  const barY = v => PAD.top + chartH - barH(v);
+  const budgetY = PAD.top + chartH - (totalBudget / maxVal) * chartH;
+  const fmtK = v => v >= 1000 ? `$${(v/1000).toFixed(0)}k` : `$${Math.round(v)}`;
+  // Y ticks
+  const ticks = [0, maxVal * 0.5, maxVal].map(v => Math.round(v));
+
+  return (
+    <svg width={W} height={H} style={{ display: "block", maxWidth: "100%", overflow: "visible" }}>
+      {/* Y grid + labels */}
+      {ticks.map((t, i) => (
+        <g key={i}>
+          <line x1={PAD.left} y1={barY(t)} x2={W - PAD.right} y2={barY(t)} stroke={C.borderMid} strokeWidth="1" strokeDasharray="3,3" />
+          <text x={PAD.left - 6} y={barY(t) + 4} textAnchor="end" fontSize="9" fill={C.textLo} fontFamily="'DM Mono',monospace">{fmtK(t)}</text>
+        </g>
+      ))}
+      {/* Budget reference line */}
+      {totalBudget > 0 && (
+        <g>
+          <line x1={PAD.left} y1={budgetY} x2={W - PAD.right} y2={budgetY} stroke={C.textLo} strokeWidth="1" strokeDasharray="5,3" opacity="0.5" />
+          <text x={W - PAD.right + 4} y={budgetY + 4} fontSize="8" fill={C.textLo} fontFamily="'DM Mono',monospace">budget</text>
+        </g>
+      )}
+      {/* Bars */}
+      {monthData.map((m, i) => {
+        const over = m.spend > totalBudget + 2;
+        const barColor = m.spend === 0 ? C.borderMid : over ? "#f85149" : "#3fb950";
+        const isSelected = selectedMonth === m.key;
+        return (
+          <g key={i} onClick={() => onSelectMonth(isSelected ? null : m.key)} style={{ cursor: "pointer" }}>
+            <rect
+              x={barX(i)} y={m.spend > 0 ? barY(m.spend) : PAD.top + chartH - 2}
+              width={barW} height={m.spend > 0 ? barH(m.spend) : 2}
+              rx="3" fill={barColor}
+              opacity={isSelected ? 1 : 0.75}
+              style={{ transition: "opacity 0.15s" }}
+            />
+            {isSelected && <rect x={barX(i) - 2} y={PAD.top} width={barW + 4} height={chartH} rx="3" fill={barColor} opacity="0.08" />}
+            <text x={barX(i) + barW / 2} y={H - 8} textAnchor="middle" fontSize="8" fill={isSelected ? C.textHi : C.textLo} fontFamily="'DM Mono',monospace">
+              {m.label}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 export default function App() {
   const isDesktop = useIsDesktop();
   const [allEntries, setAllEntries] = useState([]);
@@ -288,6 +349,7 @@ export default function App() {
   const [entriesOpen, setEntriesOpen] = useState(false);
   const [showAllEntries, setShowAllEntries] = useState(false);
   const [whatIfOpen, setWhatIfOpen] = useState({}); // { goalIndex: sliderValue }
+  const [selectedTrendsMonth, setSelectedTrendsMonth] = useState(null);
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -730,7 +792,7 @@ export default function App() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ display: "flex", gap: 2, background: C.bgInset, borderRadius: 10, padding: 3 }}>
-                  {[["dashboard","Budget Dashboard"],["review","Review"],["longterm","Long Term Goals"],["budgets","Budget Details"],["members","Members"]].map(([v, label]) => (
+                  {[["dashboard","Budget Dashboard"],["review","Review"],["trends","Trends"],["longterm","Long Term Goals"],["budgets","Budget Details"],["members","Members"]].map(([v, label]) => (
                     <button key={v} className={`npill ${view === v ? "active" : ""}`} onClick={() => setView(v)}>{label}</button>
                   ))}
                 </div>
@@ -751,7 +813,7 @@ export default function App() {
                 <button onClick={() => setView("add")} style={{ background: C.accent, border: "none", borderRadius: 9, color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 16px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Add</button>
               </div>
               <div style={{ display: "flex", borderTop: `1px solid ${C.border}`, marginLeft: -16, marginRight: -16, paddingLeft: 8, paddingRight: 8, paddingBottom: 6 }}>
-                {[["dashboard","Dashboard"],["review","Review"],["longterm","Long Term"],["budgets","Details"],["members","Team"]].map(([v, label]) => (
+                {[["dashboard","Dashboard"],["review","Review"],["trends","Trends"],["longterm","Long Term"],["budgets","Details"],["members","Team"]].map(([v, label]) => (
                   <button key={v} className={`npill ${view === v ? "active" : ""}`} onClick={() => setView(v)} style={{ flex: 1, textAlign: "center", fontSize: 12, padding: "7px 4px" }}>{label}</button>
                 ))}
               </div>
@@ -1683,6 +1745,172 @@ export default function App() {
                     <div style={{ fontSize: 13, color: C.textLo }}>Add a new goal to track</div>
                     <button onClick={openNewLT} style={{ background: C.accent, border: 'none', borderRadius: 9, color: '#fff', fontSize: 12, fontWeight: 700, padding: '9px 20px', cursor: 'pointer', fontFamily: "'Sora',sans-serif", whiteSpace: 'nowrap' }}>Add Goal</button>
                   </div>
+                </div>
+              );
+            })()}
+
+            {/* TRENDS */}
+            {view === "trends" && (() => {
+              // Build last 12 months of data from allEntries
+              const trendsMonths = (() => {
+                const months = [];
+                for (let i = 11; i >= 0; i--) {
+                  const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                  const y = d.getFullYear(), m = d.getMonth();
+                  const key = `${y}-${String(m+1).padStart(2,"0")}`;
+                  const label = MONTH_NAMES[m].slice(0,3) + (i === 0 || m === 0 ? ` '${String(y).slice(2)}` : "");
+                  const monthEntries = allEntries.filter(e => e.date.startsWith(key));
+                  const spend = monthEntries.reduce((s, e) => s + e.amount, 0);
+                  // Per-category spend
+                  const byCat = {};
+                  categories.forEach(c => byCat[c] = 0);
+                  monthEntries.forEach(e => { if (byCat[e.category] !== undefined) byCat[e.category] += e.amount; });
+                  // Per-member spend
+                  const byMem = {};
+                  memberNames.forEach(m => byMem[m] = 0);
+                  monthEntries.forEach(e => { if (byMem[e.member] !== undefined) byMem[e.member] += e.amount; });
+                  months.push({ key, label, spend, byCat, byMem, entries: monthEntries });
+                }
+                return months;
+              })();
+
+              const selectedData = selectedTrendsMonth ? trendsMonths.find(m => m.key === selectedTrendsMonth) : null;
+
+              // Category trends — compare avg of last 3 months vs prior 3 months
+              const catTrends = categories.filter(c => (catTypes[c] || "expense") !== "investment").map(c => {
+                const recent = trendsMonths.slice(-3).reduce((s, m) => s + m.byCat[c], 0) / 3;
+                const prior  = trendsMonths.slice(-6, -3).reduce((s, m) => s + m.byCat[c], 0) / 3;
+                const delta  = prior > 0 ? (recent - prior) / prior : 0;
+                return { cat: c, recent, prior, delta };
+              }).filter(c => c.recent > 0 || c.prior > 0).sort((a, b) => b.delta - a.delta);
+
+              const trending_up   = catTrends.filter(c => c.delta >  0.1).slice(0, 3);
+              const trending_down = catTrends.filter(c => c.delta < -0.1).slice(0, 3);
+
+              // 12-month summary stats
+              const monthsWithSpend = trendsMonths.filter(m => m.spend > 0);
+              const avgSpend = monthsWithSpend.length > 0 ? monthsWithSpend.reduce((s, m) => s + m.spend, 0) / monthsWithSpend.length : 0;
+              const bestMonth  = [...trendsMonths].filter(m => m.spend > 0).sort((a, b) => a.spend - b.spend)[0];
+              const worstMonth = [...trendsMonths].filter(m => m.spend > 0).sort((a, b) => b.spend - a.spend)[0];
+
+              return (
+                <div className="fu">
+                  {/* Summary stat tiles */}
+                  <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : "1fr 1fr", gap: 10, marginBottom: 16 }}>
+                    {[
+                      { label: "12-MONTH AVG", value: fmt(Math.round(avgSpend)), sub: "monthly spend" },
+                      { label: "BEST MONTH",   value: bestMonth ? MONTH_NAMES[parseInt(bestMonth.key.slice(5,7))-1].slice(0,3) + " " + bestMonth.key.slice(0,4) : "—", sub: bestMonth ? fmt(bestMonth.spend) + " spent" : "no data", color: "#3fb950" },
+                      { label: "HIGHEST MONTH",value: worstMonth ? MONTH_NAMES[parseInt(worstMonth.key.slice(5,7))-1].slice(0,3) + " " + worstMonth.key.slice(0,4) : "—", sub: worstMonth ? fmt(worstMonth.spend) + " spent" : "no data", color: "#f85149" },
+                    ].map(({ label, value, sub, color }) => (
+                      <div key={label} className="card" style={{ padding: "14px 16px" }}>
+                        <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 6 }}>{label}</div>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: color || C.textHi, fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1, marginBottom: 4 }}>{value}</div>
+                        <div style={{ fontSize: 11, color: C.textLo }}>{sub}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Bar chart */}
+                  <div className="card" style={{ padding: isDesktop ? "20px 24px" : "16px 14px", marginBottom: 16, overflowX: "auto" }}>
+                    <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 14 }}>
+                      MONTHLY SPEND — LAST 12 MONTHS
+                      <span style={{ marginLeft: 10, color: C.borderMid }}>· tap a bar to inspect</span>
+                    </div>
+                    <TrendsChart
+                      monthData={trendsMonths}
+                      totalBudget={totalBudget}
+                      isDesktop={isDesktop}
+                      onSelectMonth={setSelectedTrendsMonth}
+                      selectedMonth={selectedTrendsMonth}
+                    />
+                  </div>
+
+                  {/* Selected month detail */}
+                  {selectedData && (
+                    <div className="card" style={{ padding: isDesktop ? "20px 24px" : "16px 14px", marginBottom: 16, borderLeft: `3px solid ${C.accent}` }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                        <div style={{ fontSize: 10, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5 }}>
+                          {MONTH_NAMES[parseInt(selectedData.key.slice(5,7))-1].toUpperCase()} {selectedData.key.slice(0,4)}
+                        </div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: selectedData.spend > totalBudget + 2 ? "#f85149" : "#3fb950", fontFamily: "'DM Mono',monospace" }}>
+                          {fmt(selectedData.spend)}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {categories.filter(c => selectedData.byCat[c] > 0).sort((a, b) => selectedData.byCat[b] - selectedData.byCat[a]).map(c => {
+                          const spent = selectedData.byCat[c];
+                          const budget = budgets[c] || 0;
+                          const pct = budget > 0 ? Math.min(spent / budget, 1.5) : 0;
+                          const over = spent > budget + 2;
+                          return (
+                            <div key={c}>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                  <div style={{ width: 6, height: 6, borderRadius: 2, background: catColors[c] || C.textLo, flexShrink: 0 }} />
+                                  <span style={{ fontSize: 12, color: C.textMid }}>{c}</span>
+                                </div>
+                                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                  {budget > 0 && <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budget)}</span>}
+                                  <span style={{ fontSize: 12, fontWeight: 700, color: over ? "#f85149" : C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
+                                </div>
+                              </div>
+                              {budget > 0 && (
+                                <div style={{ background: C.borderMid, borderRadius: 999, height: 3, overflow: "hidden" }}>
+                                  <div style={{ width: `${Math.min(pct * 100, 100)}%`, height: "100%", background: over ? "#f85149" : catColors[c] || C.accent, borderRadius: 999 }} />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {/* Member split for selected month */}
+                        {memberNames.length > 1 && (
+                          <div style={{ display: "flex", gap: 16, marginTop: 8, paddingTop: 10, borderTop: `1px solid ${C.borderMid}` }}>
+                            {memberNames.map(m => (
+                              <div key={m} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <div style={{ width: 6, height: 6, borderRadius: "50%", background: memberColors[m], flexShrink: 0 }} />
+                                <span style={{ fontSize: 11, color: C.textMid }}>{m}</span>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: memberColors[m], fontFamily: "'DM Mono',monospace" }}>{fmt(selectedData.byMem[m] || 0)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Category trends */}
+                  {(trending_up.length > 0 || trending_down.length > 0) && (
+                    <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: 14 }}>
+                      {trending_up.length > 0 && (
+                        <div className="card" style={{ padding: "18px 20px" }}>
+                          <div style={{ fontSize: 10, color: "#f85149", fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 4 }}>TRENDING UP</div>
+                          <div style={{ fontSize: 11, color: C.textLo, marginBottom: 12 }}>Higher spend vs 3 months prior</div>
+                          {trending_up.map(({ cat, recent, prior, delta }) => (
+                            <div key={cat} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.borderMid}` }}>
+                              <div style={{ width: 6, height: 6, borderRadius: 2, background: catColors[cat] || C.textLo, flexShrink: 0 }} />
+                              <span style={{ flex: 1, fontSize: 12, color: C.textMid }}>{cat}</span>
+                              <span style={{ fontSize: 11, color: "#f85149", fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>+{Math.round(delta * 100)}%</span>
+                              <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{fmt(Math.round(recent))}/mo avg</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {trending_down.length > 0 && (
+                        <div className="card" style={{ padding: "18px 20px" }}>
+                          <div style={{ fontSize: 10, color: "#3fb950", fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 4 }}>TRENDING DOWN</div>
+                          <div style={{ fontSize: 11, color: C.textLo, marginBottom: 12 }}>Lower spend vs 3 months prior</div>
+                          {trending_down.map(({ cat, recent, prior, delta }) => (
+                            <div key={cat} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.borderMid}` }}>
+                              <div style={{ width: 6, height: 6, borderRadius: 2, background: catColors[cat] || C.textLo, flexShrink: 0 }} />
+                              <span style={{ flex: 1, fontSize: 12, color: C.textMid }}>{cat}</span>
+                              <span style={{ fontSize: 11, color: "#3fb950", fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{Math.round(delta * 100)}%</span>
+                              <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{fmt(Math.round(recent))}/mo avg</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })()}
