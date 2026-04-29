@@ -19,12 +19,13 @@ const C = {
   border:    "#30363d",
   borderMid: "#21262d",
   textHi:    "#e6edf3",
-  textMid:   "#8b949e",
-  textLo:    "#6e7681",
+  textMid:   "#adbac7",  // was #8b949e — better contrast on dark bg
+  textLo:    "#8b949e",  // was #6e7681 — improved readability
+  textDim:   "#6e7681",  // for truly decorative/subdued elements only
   accent:    "#388bfd",
   accentDim: "#1f3a6e",
-  sand:      "#8b949e",
-  sandDim:   "#6e7681",
+  sand:      "#adbac7",
+  sandDim:   "#8b949e",
 };
 
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
@@ -66,7 +67,7 @@ function useIsDesktop() {
   return v;
 }
 
-function HeroDonut({ segments, totalSpend, totalBudget, size = 180 }) {
+function HeroDonut({ segments, totalSpend, totalBudget, size = 180, hoveredLabel, onHover }) {
   const r = 68, cx = 90, cy = 90, sw = 16;
   const circ = 2 * Math.PI * r;
   const total = Math.max(totalBudget, totalSpend, 1);
@@ -79,36 +80,59 @@ function HeroDonut({ segments, totalSpend, totalBudget, size = 180 }) {
     offset += pct;
     return arc;
   });
+  const hovered = arcs.find(a => a.label === hoveredLabel);
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
       <svg viewBox="0 0 180 180" style={{ width: size, height: size, transform: "rotate(-90deg)" }}>
         <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.borderMid} strokeWidth={sw} />
         <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.border} strokeWidth={sw}
           strokeDasharray={`${Math.min(totalBudget / total, 1) * circ} ${circ}`} strokeLinecap="butt" />
-        {arcs.map((arc, i) => (
-          <circle key={i} cx={cx} cy={cy} r={r} fill="none"
-            stroke={arc.color} strokeWidth={sw}
-            strokeDasharray={`${arc.pct * circ - 1.5} ${circ}`}
-            strokeDashoffset={-arc.offset * circ}
-            strokeLinecap="butt"
-            style={{ transition: "stroke-dasharray 0.7s cubic-bezier(.4,0,.2,1)" }} />
-        ))}
+        {arcs.map((arc, i) => {
+          const isHov = hoveredLabel === arc.label;
+          const isMuted = hoveredLabel && !isHov;
+          return (
+            <circle key={i} cx={cx} cy={cy} r={r} fill="none"
+              stroke={arc.color}
+              strokeWidth={isHov ? sw + 4 : sw}
+              strokeDasharray={`${arc.pct * circ - 1.5} ${circ}`}
+              strokeDashoffset={-arc.offset * circ}
+              strokeLinecap="butt"
+              opacity={isMuted ? 0.2 : 1}
+              style={{ transition: "opacity 0.2s, stroke-width 0.2s, stroke-dasharray 0.7s cubic-bezier(.4,0,.2,1)", cursor: onHover ? "pointer" : "default" }}
+              onMouseEnter={() => onHover && onHover(arc.label)}
+              onMouseLeave={() => onHover && onHover(null)}
+            />
+          );
+        })}
       </svg>
-      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2 }}>
-        <div style={{ fontSize: 20, fontWeight: 800, color: overBudget ? "#ef4444" : C.textHi, fontFamily: "'DM Mono', monospace", lineHeight: 1 }}>{fmt(totalSpend)}</div>
-        <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono', monospace", letterSpacing: 1.5 }}>SPENT</div>
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, pointerEvents: "none" }}>
+        {hovered ? (
+          <>
+            <div style={{ fontSize: 17, fontWeight: 800, color: hovered.color, fontFamily: "'DM Mono', monospace", lineHeight: 1 }}>{fmt(hovered.value)}</div>
+            <div style={{ fontSize: 9, color: hovered.color, fontFamily: "'DM Mono', monospace", letterSpacing: 1, opacity: 0.8, maxWidth: 60, textAlign: "center", lineHeight: 1.2 }}>{hovered.label}</div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 20, fontWeight: 800, color: overBudget ? "#f85149" : C.textHi, fontFamily: "'DM Mono', monospace", lineHeight: 1 }}>{fmt(totalSpend)}</div>
+            <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono', monospace", letterSpacing: 1 }}>spent</div>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-function LegendItem({ color, label, value, fmt }) {
+function LegendItem({ color, label, value, fmt, isHovered, isMuted, onMouseEnter, onMouseLeave }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-      <div style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0 }} />
+    <div
+      style={{ display: "flex", alignItems: "center", gap: 7, opacity: isMuted ? 0.3 : 1, transition: "opacity 0.2s", cursor: onMouseEnter ? "default" : "default" }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      <div style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0, transform: isHovered ? "scale(1.3)" : "scale(1)", transition: "transform 0.2s" }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 11, color: C.textMid, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</div>
-        <div style={{ fontSize: 11, color, fontFamily: "'DM Mono', monospace", fontWeight: 700 }}>{fmt(value)}</div>
+        <div style={{ fontSize: 12, color: isHovered ? C.textHi : C.textMid, fontWeight: isHovered ? 600 : 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", transition: "color 0.2s" }}>{label}</div>
+        <div style={{ fontSize: 11, color: isHovered ? color : C.textLo, fontFamily: "'DM Mono', monospace", fontWeight: 700, transition: "color 0.2s" }}>{fmt(value)}</div>
       </div>
     </div>
   );
@@ -167,7 +191,7 @@ function Spinner() {
 }
 
 const FL = ({ children }) => (
-  <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>{children}</div>
+  <div style={{ fontSize: 11, color: C.textMid, fontFamily: "'Sora',sans-serif", fontWeight: 500, marginBottom: 8 }}>{children}</div>
 );
 
 
@@ -349,6 +373,7 @@ export default function App() {
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [entriesOpen, setEntriesOpen] = useState(false);
   const [showAllEntries, setShowAllEntries] = useState(false);
+  const [hoveredSegment, setHoveredSegment] = useState(null);
   const [expandedSummary, setExpandedSummary] = useState(false);
   const [expandedGoalsOutlook, setExpandedGoalsOutlook] = useState(false);
   const [settingsBudgetOpen, setSettingsBudgetOpen] = useState(true);
@@ -753,7 +778,7 @@ export default function App() {
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 3px; }
-        .npill { background: none; border: none; cursor: pointer; font-family: 'Sora',sans-serif; font-size: 13px; font-weight: 500; padding: 8px 15px; border-radius: 8px; transition: all 0.18s; color: ${C.textLo}; }
+        .npill { background: none; border: none; cursor: pointer; font-family: 'Sora',sans-serif; font-size: 13px; font-weight: 500; padding: 8px 15px; border-radius: 8px; transition: all 0.18s; color: ${C.textMid}; }
         .npill.active { background: ${C.accentDim}; color: ${C.accent}; font-weight: 600; }
         .npill:hover:not(.active) { color: ${C.textMid}; }
         .inp { width: 100%; background: ${C.bgInset}; border: 1px solid ${C.border}; border-radius: 10px; padding: 12px 14px; color: ${C.textHi}; font-family: 'Sora',sans-serif; font-size: 14px; outline: none; transition: border 0.18s; appearance: none; }
@@ -990,10 +1015,15 @@ export default function App() {
                     <div style={{ display: "flex", gap: 32, alignItems: "stretch" }}>
                       {/* Left: donut + legend — fixed width, generous spacing */}
                       <div style={{ display: "flex", gap: 28, alignItems: "center", flexShrink: 0, minWidth: 320 }}>
-                        <HeroDonut segments={donutSegments} totalSpend={totalSpend} totalBudget={totalBudget} size={160} />
+                        <HeroDonut segments={donutSegments} totalSpend={totalSpend} totalBudget={totalBudget} size={160} hoveredLabel={hoveredSegment} onHover={setHoveredSegment} />
                         <div style={{ display: "flex", flexDirection: "column", gap: 11, justifyContent: "center" }}>
                           {donutSegments.filter(s => s.value > 0).map((s, i) => (
-                            <LegendItem key={i} color={s.color} label={s.label} value={s.value} fmt={fmt} />
+                            <LegendItem key={i} color={s.color} label={s.label} value={s.value} fmt={fmt}
+                              isHovered={hoveredSegment === s.label}
+                              isMuted={hoveredSegment !== null && hoveredSegment !== s.label}
+                              onMouseEnter={() => setHoveredSegment(s.label)}
+                              onMouseLeave={() => setHoveredSegment(null)}
+                            />
                           ))}
                         </div>
                       </div>
@@ -1241,7 +1271,7 @@ export default function App() {
                   <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                     <div className="card" style={{ padding: "20px 24px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                        <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>SPENDING</div>
+                        <div style={{ fontSize: 11, color: C.textMid, fontFamily: "'Sora',sans-serif", fontWeight: 600 }}>Spending</div>
                         {isCurrentMonth && <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 1.5, height: 8, background: "rgba(255,255,255,0.25)", borderRadius: 1 }} /> TODAY</div>}
                       </div>
                       <SectionBlock />
@@ -1270,7 +1300,7 @@ export default function App() {
                   <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                     <div className="card" style={{ padding: "18px 16px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                        <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>SPENDING</div>
+                        <div style={{ fontSize: 11, color: C.textMid, fontFamily: "'Sora',sans-serif", fontWeight: 600 }}>Spending</div>
                         {isCurrentMonth && <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>| TODAY</div>}
                       </div>
                       <SectionBlock mobile />
