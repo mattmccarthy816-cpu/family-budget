@@ -1091,7 +1091,7 @@ export default function App() {
                       </div>
 
                       {/* Legend 2-col grid */}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 8px", paddingTop: 14, paddingBottom: 14, borderTop: `1px solid ${C.borderMid}`, borderBottom: `1px solid ${C.borderMid}`, marginTop: 4, marginBottom: 4 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 8px", paddingTop: 18, paddingBottom: 18, borderTop: `1px solid ${C.borderMid}`, borderBottom: `1px solid ${C.borderMid}`, marginTop: 8, marginBottom: 8 }}>
                         {donutSegments.filter(s => s.value > 0).map((s, i) => (
                           <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                             <div style={{ width: 7, height: 7, borderRadius: 2, background: s.color, flexShrink: 0 }} />
@@ -1238,7 +1238,7 @@ export default function App() {
 
                 {/* Sections + Breakdown */}
                 {isDesktop ? (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 16 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                     <div className="card" style={{ padding: "20px 24px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                         <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>SPENDING</div>
@@ -1246,17 +1246,24 @@ export default function App() {
                       </div>
                       <SectionBlock />
                     </div>
-                    <div className="card" style={{ padding: "20px 20px" }}>
-                      <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 14 }}>BREAKDOWN</div>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                        <thead><tr><th style={{ textAlign: "left", color: C.textLo, padding: "0 0 10px", fontWeight: 500, fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>Category</th>{memberNames.map(m => (<th key={m} style={{ textAlign: "right", color: memberColors[m], padding: "0 0 10px 10px", fontWeight: 600, fontSize: 11 }}>{m}</th>))}</tr></thead>
-                        <tbody>{categories.filter(c => (byCategory[c] || 0) > 0).map(c => (
-                          <tr key={c} style={{ borderTop: `1px solid ${C.borderMid}` }}>
-                            <td style={{ padding: "8px 0", color: C.textMid, display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: 1, background: catColors[c] || C.textLo, display: "inline-block", flexShrink: 0 }} />{c}</td>
-                            {memberNames.map(m => (<td key={m} style={{ textAlign: "right", padding: "8px 0 8px 10px", color: (byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? C.textHi : C.borderMid, fontFamily: "'DM Mono',monospace", fontSize: 11 }}>{(byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? fmt(byMemberCategory[m][c]) : "—"}</td>))}
-                          </tr>
-                        ))}</tbody>
-                      </table>
+                    <div className="card" style={{ padding: "0", overflow: "hidden" }}>
+                      <div onClick={() => setBreakdownOpen(o => !o)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none", padding: "16px 20px" }}>
+                        <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>MEMBER BREAKDOWN</div>
+                        <span style={{ fontSize: 10, color: C.textLo, transform: breakdownOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
+                      </div>
+                      {breakdownOpen && (
+                        <div style={{ padding: "0 20px 20px", borderTop: `1px solid ${C.borderMid}` }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, marginTop: 14 }}>
+                            <thead><tr><th style={{ textAlign: "left", color: C.textLo, padding: "0 0 10px", fontWeight: 500, fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>Category</th>{memberNames.map(m => (<th key={m} style={{ textAlign: "right", color: memberColors[m], padding: "0 0 10px 10px", fontWeight: 600, fontSize: 11 }}>{m}</th>))}</tr></thead>
+                            <tbody>{categories.filter(c => (byCategory[c] || 0) > 0).map(c => (
+                              <tr key={c} style={{ borderTop: `1px solid ${C.borderMid}` }}>
+                                <td style={{ padding: "8px 0", color: C.textMid, display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: 1, background: catColors[c] || C.textLo, display: "inline-block", flexShrink: 0 }} />{truncate(c, 30)}</td>
+                                {memberNames.map(m => (<td key={m} style={{ textAlign: "right", padding: "8px 0 8px 10px", color: (byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? C.textHi : C.borderMid, fontFamily: "'DM Mono',monospace", fontSize: 11 }}>{(byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? fmt(byMemberCategory[m][c]) : "—"}</td>))}
+                              </tr>
+                            ))}</tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -1790,8 +1797,10 @@ export default function App() {
                                       const remaining = isDebt ? item.saved : Math.max(item.goal - item.saved, 0);
                                       const wiMonthsNeeded = wiMonthly > 0 ? Math.ceil(remaining / wiMonthly) : null;
                                       const onTrack = wiMonthsNeeded !== null && wiMonthsNeeded <= monthsLeft;
+                                      const goalVerb = isDebt ? 'paid off' : 'goal reached';
+                                      const spareLabel = isDebt ? 'to spare' : 'ahead of target';
                                       wiResult = wiMonthsNeeded
-                                        ? { label: `paid off in ${wiMonthsNeeded} month${wiMonthsNeeded !== 1 ? 's' : ''}`, ok: onTrack, sub: onTrack ? `${monthsLeft - wiMonthsNeeded} month${monthsLeft - wiMonthsNeeded !== 1 ? 's' : ''} to spare` : `${wiMonthsNeeded - monthsLeft} month${wiMonthsNeeded - monthsLeft !== 1 ? 's' : ''} past target` }
+                                        ? { label: `${goalVerb} in ${wiMonthsNeeded} month${wiMonthsNeeded !== 1 ? 's' : ''}`, ok: onTrack, sub: onTrack ? `${monthsLeft - wiMonthsNeeded} month${monthsLeft - wiMonthsNeeded !== 1 ? 's' : ''} ${spareLabel}` : `${wiMonthsNeeded - monthsLeft} month${wiMonthsNeeded - monthsLeft !== 1 ? 's' : ''} past target` }
                                         : { label: 'set a contribution to project', ok: null, sub: '' };
                                     }
 
@@ -2145,7 +2154,7 @@ export default function App() {
               const StatTile = ({ label, value, sub, color }) => (
                 <div style={{ background: C.bgInset, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: "14px 16px", flex: 1, minWidth: 100 }}>
                   <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 6 }}>{label}</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: color || C.textHi, fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1 }}>{value}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: color || C.textHi, fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
                   {sub && <div style={{ fontSize: 10, color: C.textLo, marginTop: 5 }}>{sub}</div>}
                 </div>
               );
