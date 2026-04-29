@@ -287,6 +287,7 @@ export default function App() {
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [entriesOpen, setEntriesOpen] = useState(false);
   const [showAllEntries, setShowAllEntries] = useState(false);
+  const [whatIfOpen, setWhatIfOpen] = useState({}); // { goalIndex: sliderValue }
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -1552,7 +1553,7 @@ export default function App() {
                           const typeBadge = { fixed: { label: 'savings', color: '#3fb950' }, investment: { label: '↗ invest', color: '#388bfd' }, debt: { label: 'debt ↓', color: '#f97316' } }[type];
 
                           return (
-                            <div key={i} className="lt-card" onClick={() => openEditLT(i)}>
+                            <div key={i} className="lt-card" onClick={e => { if (!e.defaultPrevented) openEditLT(i); }}>
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                                 <div>
                                   <div style={{ fontSize: 13, fontWeight: 700, color: C.textHi, marginBottom: 4 }}>{item.name}</div>
@@ -1602,6 +1603,75 @@ export default function App() {
                                       {insight.text}
                                     </div>
                                   )}
+
+                                  {/* What If toggle button */}
+                                  {monthsLeft > 0 && (
+                                    <button
+                                      onClick={e => { e.preventDefault(); e.stopPropagation(); setWhatIfOpen(prev => ({ ...prev, [i]: prev[i] !== undefined ? undefined : (item.monthlyContribution || 0) })); }}
+                                      style={{ marginTop: 10, background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, color: whatIfOpen[i] !== undefined ? C.accent : C.textLo, fontSize: 10, fontFamily: "'DM Mono',monospace", padding: '4px 10px', cursor: 'pointer', letterSpacing: 0.5, transition: 'color 0.15s, border-color 0.15s', borderColor: whatIfOpen[i] !== undefined ? C.accent : C.border }}
+                                    >
+                                      {whatIfOpen[i] !== undefined ? 'close what if ↑' : 'what if? →'}
+                                    </button>
+                                  )}
+
+                                  {/* What If panel */}
+                                  {whatIfOpen[i] !== undefined && monthsLeft > 0 && (() => {
+                                    const wiMonthly = whatIfOpen[i];
+                                    const maxSlider = Math.max((item.monthlyContribution || 0) * 3, 500, Math.ceil((isInv ? requiredMonthlyInvestment(item.saved, item.goal, monthsLeft) : requiredMonthlyFixed(isDebt ? item.saved : Math.max(item.goal - item.saved, 0), monthsLeft)) * 2));
+
+                                    // What-if projection
+                                    let wiResult = null;
+                                    if (isInv) {
+                                      const wiProj = investmentProjection(item.saved, wiMonthly, monthsLeft);
+                                      const onTrack = wiProj >= item.goal;
+                                      const diff = wiProj - item.goal;
+                                      wiResult = { label: `projected ${fmt(Math.round(wiProj))} by target`, ok: onTrack, sub: onTrack ? `${fmt(Math.round(diff))} above goal` : `${fmt(Math.round(Math.abs(diff)))} short of goal` };
+                                    } else {
+                                      const remaining = isDebt ? item.saved : Math.max(item.goal - item.saved, 0);
+                                      const wiMonthsNeeded = wiMonthly > 0 ? Math.ceil(remaining / wiMonthly) : null;
+                                      const onTrack = wiMonthsNeeded !== null && wiMonthsNeeded <= monthsLeft;
+                                      wiResult = wiMonthsNeeded
+                                        ? { label: `paid off in ${wiMonthsNeeded} month${wiMonthsNeeded !== 1 ? 's' : ''}`, ok: onTrack, sub: onTrack ? `${monthsLeft - wiMonthsNeeded} month${monthsLeft - wiMonthsNeeded !== 1 ? 's' : ''} to spare` : `${wiMonthsNeeded - monthsLeft} month${wiMonthsNeeded - monthsLeft !== 1 ? 's' : ''} past target` }
+                                        : { label: 'set a contribution to project', ok: null, sub: '' };
+                                    }
+
+                                    return (
+                                      <div onClick={e => e.stopPropagation()} style={{ marginTop: 12, padding: '12px 14px', background: C.bgInset, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                                        <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 10 }}>WHAT IF I CONTRIBUTED...</div>
+
+                                        {/* Slider */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                                          <input
+                                            type="range" min={0} max={maxSlider} step={10}
+                                            value={wiMonthly}
+                                            onChange={e => setWhatIfOpen(prev => ({ ...prev, [i]: Number(e.target.value) }))}
+                                            style={{ flex: 1, accentColor: C.accent, cursor: 'pointer' }}
+                                          />
+                                          <div style={{ fontSize: 14, fontWeight: 800, color: C.textHi, fontFamily: "'DM Mono',monospace", minWidth: 60, textAlign: 'right' }}>{fmt(wiMonthly)}<span style={{ fontSize: 9, color: C.textLo }}>/mo</span></div>
+                                        </div>
+
+                                        {/* What-if result */}
+                                        {wiResult && (
+                                          <div style={{ background: wiResult.ok === true ? 'rgba(63,185,80,0.08)' : wiResult.ok === false ? 'rgba(248,81,73,0.08)' : C.bgInset, borderRadius: 7, padding: '8px 10px' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 600, color: wiResult.ok === true ? '#3fb950' : wiResult.ok === false ? '#f85149' : C.textLo, fontFamily: "'DM Mono',monospace", marginBottom: 2 }}>
+                                              {wiResult.label}
+                                            </div>
+                                            {wiResult.sub && <div style={{ fontSize: 10, color: C.textLo }}>{wiResult.sub}</div>}
+                                          </div>
+                                        )}
+
+                                        {/* Quick presets */}
+                                        <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+                                          {[0, Math.round(maxSlider * 0.25), Math.round(maxSlider * 0.5), Math.round(maxSlider * 0.75), maxSlider].map(v => (
+                                            <button key={v} onClick={() => setWhatIfOpen(prev => ({ ...prev, [i]: v }))}
+                                              style={{ background: wiMonthly === v ? C.accentDim : 'none', border: `1px solid ${wiMonthly === v ? C.accent : C.border}`, borderRadius: 5, color: wiMonthly === v ? C.textHi : C.textLo, fontSize: 9, fontFamily: "'DM Mono',monospace", padding: '3px 8px', cursor: 'pointer' }}>
+                                              {fmt(v)}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
                                 </>
                               )}
                             </div>
