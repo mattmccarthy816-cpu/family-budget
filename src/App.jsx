@@ -351,6 +351,9 @@ export default function App() {
   const [showAllEntries, setShowAllEntries] = useState(false);
   const [expandedSummary, setExpandedSummary] = useState(false);
   const [expandedGoalsOutlook, setExpandedGoalsOutlook] = useState(false);
+  const [settingsBudgetOpen, setSettingsBudgetOpen] = useState(true);
+  const [settingsMembersOpen, setSettingsMembersOpen] = useState(true);
+  const [nwOpen, setNwOpen] = useState(false);
   const [whatIfOpen, setWhatIfOpen] = useState({}); // { goalIndex: sliderValue }
   const [selectedTrendsMonth, setSelectedTrendsMonth] = useState(null);
   const now = new Date();
@@ -1394,8 +1397,6 @@ export default function App() {
 
             {/* SETTINGS — Budget Details + Members merged */}
             {view === "settings" && (() => {
-              const [settingsBudgetOpen, setSettingsBudgetOpen] = React.useState(true);
-              const [settingsMembersOpen, setSettingsMembersOpen] = React.useState(true);
               const Section = ({ title, open, onToggle, action, children }) => (
                 <div className="card" style={{ marginBottom: 14, overflow: "hidden" }}>
                   <div onClick={onToggle} style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}>
@@ -1634,10 +1635,7 @@ export default function App() {
               return (
                 <div className="fu">
                   {/* Net worth — click to reveal */}
-                  {(() => {
-                    const [nwOpen, setNwOpen] = React.useState(false);
-                    return (
-                      <div className="card" style={{ marginBottom: 16, overflow: "hidden" }}>
+                  <div className="card" style={{ marginBottom: 16, overflow: "hidden" }}>
                         <div onClick={() => setNwOpen(v => !v)} style={{ padding: isDesktop ? "18px 28px" : "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                             <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5 }}>NET WORTH</div>
@@ -1653,9 +1651,7 @@ export default function App() {
                             }
                           </div>
                         )}
-                      </div>
-                    );
-                  })()}
+                    </div>
 
                   {/* Goals outlook summary */}
                   {goalsOutlook && (
