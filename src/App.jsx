@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 
+
 const API_URL = "https://script.google.com/macros/s/AKfycbxbNc2pXZT8AsSgXNS9mjtaGda24l3kTl3Etvex1xmMV58_SX9DynXqXItYFwBYwaqryA/exec";
 
 const PALETTE = ["#60a5fa","#f97316","#4ade80","#a78bfa","#f472b6","#34d399","#fbbf24","#94a3b8","#fb7185","#38bdf8","#c084fc","#fdba74","#86efac","#67e8f9","#fde68a","#d8b4fe"];
