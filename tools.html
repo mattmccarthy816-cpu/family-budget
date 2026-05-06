@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Financial Tools · family·budget</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:        #fafaf8;
+  --bg-card:   #ffffff;
+  --bg-inset:  #f4f3f0;
+  --border:    #e5e3de;
+  --border-mid:#eeede9;
+  --text-hi:   #1a1916;
+  --text-mid:  #4a4843;
+  --text-lo:   #8c8a85;
+  --accent:    #388bfd;
+  --accent-dim:#dbeafe;
+  --green:     #16a34a;
+  --green-dim: #dcfce7;
+  --red:       #dc2626;
+  --red-dim:   #fee2e2;
+  --amber:     #d97706;
+  --amber-dim: #fef3c7;
+}
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Sora', sans-serif;
+  background: var(--bg);
+  color: var(--text-hi);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(250,250,248,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+}
+.nav-inner {
+  max-width: 900px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+}
+.nav-brand { font-size: 16px; font-weight: 800; letter-spacing: -0.5px; text-decoration: none; }
+.nav-brand .fam { color: var(--accent); }
+.nav-brand .dot { color: var(--text-lo); font-weight: 300; margin: 0 3px; }
+.nav-brand .bud { color: var(--text-hi); }
+.nav-links { display: flex; gap: 6px; }
+.nav-pill {
+  font-size: 12px; font-weight: 500; color: var(--text-mid);
+  background: none; border: none; cursor: pointer;
+  padding: 6px 12px; border-radius: 6px;
+  font-family: 'Sora', sans-serif;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+.nav-pill:hover { background: var(--bg-inset); color: var(--text-hi); }
+.nav-cta {
+  font-size: 12px; font-weight: 700; color: #fff;
+  background: var(--accent); border: none; cursor: pointer;
+  padding: 7px 14px; border-radius: 7px;
+  font-family: 'Sora', sans-serif;
+  transition: opacity 0.15s;
+  text-decoration: none;
+}
+.nav-cta:hover { opacity: 0.85; }
+
+/* ── HERO ── */
+.hero {
+  max-width: 900px; margin: 0 auto;
+  padding: 64px 24px 48px;
+  text-align: center;
+}
+.hero-tag {
+  display: inline-block;
+  font-size: 11px; font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-dim);
+  padding: 4px 12px; border-radius: 999px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.5px;
+  margin-bottom: 20px;
+}
+.hero h1 {
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 800; letter-spacing: -1.5px;
+  color: var(--text-hi); line-height: 1.1;
+  margin-bottom: 16px;
+}
+.hero h1 span { color: var(--accent); }
+.hero p {
+  font-size: 16px; color: var(--text-mid);
+  max-width: 480px; margin: 0 auto 0;
+  line-height: 1.6; font-weight: 400;
+}
+
+/* ── TOOL GRID ── */
+.tool-grid {
+  max-width: 900px; margin: 0 auto;
+  padding: 0 24px 80px;
+  display: flex; flex-direction: column; gap: 32px;
+}
+
+/* ── CARD ── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.card-header {
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid var(--border-mid);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+}
+.card-header-left {}
+.card-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; margin-bottom: 10px;
+}
+.card-title { font-size: 17px; font-weight: 700; color: var(--text-hi); margin-bottom: 4px; }
+.card-desc { font-size: 13px; color: var(--text-mid); line-height: 1.5; }
+.card-body { padding: 24px 28px; }
+
+/* ── INPUTS ── */
+.input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+.input-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 11px; font-weight: 600; color: var(--text-mid); letter-spacing: 0.3px; }
+.input-wrap { position: relative; }
+.input-prefix {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 13px; color: var(--text-lo); font-family: 'DM Mono', monospace;
+  pointer-events: none;
+}
+.input-suffix {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 13px; color: var(--text-lo); font-family: 'DM Mono', monospace;
+  pointer-events: none;
+}
+input[type="number"], input[type="text"] {
+  width: 100%; padding: 10px 12px;
+  background: var(--bg-inset); border: 1px solid var(--border);
+  border-radius: 9px; font-size: 14px; font-weight: 600;
+  color: var(--text-hi); font-family: 'DM Mono', monospace;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+  -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+input[type="number"]:focus, input[type="text"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(56,139,253,0.12);
+}
+.has-prefix input { padding-left: 28px; }
+.has-suffix input { padding-right: 36px; }
+input[type="range"] {
+  width: 100%; height: 4px; border-radius: 999px;
+  background: var(--border); accent-color: var(--accent);
+  cursor: pointer; outline: none; border: none;
+}
+
+/* ── RATE PRESETS ── */
+.rate-presets { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+.preset-btn {
+  font-size: 12px; font-weight: 600; font-family: 'Sora', sans-serif;
+  padding: 6px 12px; border-radius: 7px; border: 1px solid var(--border);
+  background: var(--bg-inset); color: var(--text-mid);
+  cursor: pointer; transition: all 0.15s;
+}
+.preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+.preset-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.preset-custom { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.preset-custom input { width: 70px; padding: 6px 10px; font-size: 12px; }
+.preset-custom span { font-size: 12px; color: var(--text-lo); }
+
+/* ── RESULTS ── */
+.results { margin-top: 20px; }
+.result-tiles { display: grid; gap: 10px; margin-bottom: 20px; }
+.result-tiles-2 { grid-template-columns: 1fr 1fr; }
+.result-tiles-3 { grid-template-columns: 1fr 1fr 1fr; }
+.result-tile {
+  background: var(--bg-inset); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px;
+}
+.result-tile.accent { background: var(--accent-dim); border-color: rgba(56,139,253,0.2); }
+.result-tile.green  { background: var(--green-dim);  border-color: rgba(22,163,74,0.2); }
+.result-tile.red    { background: var(--red-dim);    border-color: rgba(220,38,38,0.2); }
+.result-tile.amber  { background: var(--amber-dim);  border-color: rgba(217,119,6,0.2); }
+.tile-label { font-size: 10px; font-weight: 600; color: var(--text-lo); letter-spacing: 0.8px; margin-bottom: 6px; font-family: 'DM Mono', monospace; text-transform: uppercase; }
+.tile-value { font-size: 22px; font-weight: 800; font-family: 'DM Mono', monospace; letter-spacing: -0.5px; line-height: 1; margin-bottom: 4px; }
+.tile-sub   { font-size: 11px; color: var(--text-lo); }
+.tile-value.accent { color: var(--accent); }
+.tile-value.green  { color: var(--green); }
+.tile-value.red    { color: var(--red); }
+.tile-value.amber  { color: var(--amber); }
+
+/* ── CHART ── */
+.chart-wrap {
+  background: var(--bg-inset); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px; margin-bottom: 16px;
+}
+.chart-title { font-size: 11px; font-weight: 600; color: var(--text-lo); font-family: 'DM Mono', monospace; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 16px; }
+.bar-chart { display: flex; align-items: flex-end; gap: 2px; height: 120px; }
+.bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; height: 100%; }
+.bar-stack { flex: 1; width: 100%; display: flex; flex-direction: column; justify-content: flex-end; border-radius: 4px 4px 0 0; overflow: hidden; position: relative; }
+.bar-segment { width: 100%; transition: height 0.4s cubic-bezier(.4,0,.2,1); }
+.bar-contrib { background: var(--accent); }
+.bar-growth  { background: #60a5fa; opacity: 0.6; }
+.bar-label   { font-size: 8px; color: var(--text-lo); font-family: 'DM Mono', monospace; white-space: nowrap; }
+.chart-legend { display: flex; gap: 14px; margin-top: 10px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-mid); }
+.legend-dot  { width: 8px; height: 8px; border-radius: 2px; }
+
+/* ── BREAKDOWN TABLE ── */
+.breakdown-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.breakdown-table th { text-align: left; font-size: 10px; font-weight: 600; color: var(--text-lo); font-family: 'DM Mono', monospace; letter-spacing: 0.8px; text-transform: uppercase; padding: 0 0 10px; }
+.breakdown-table th:not(:first-child) { text-align: right; }
+.breakdown-table td { padding: 8px 0; border-top: 1px solid var(--border-mid); color: var(--text-mid); font-family: 'DM Mono', monospace; }
+.breakdown-table td:not(:first-child) { text-align: right; }
+.breakdown-table td.hi { color: var(--text-hi); font-weight: 700; }
+.breakdown-table td.acc { color: var(--accent); font-weight: 700; }
+
+/* ── CTA STRIP ── */
+.cta-strip {
+  margin-top: 20px; padding: 14px 18px;
+  background: linear-gradient(135deg, var(--accent-dim), rgba(56,139,253,0.05));
+  border: 1px solid rgba(56,139,253,0.2);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.cta-strip-text { font-size: 13px; color: var(--text-mid); }
+.cta-strip-text strong { color: var(--text-hi); }
+.cta-strip-btn {
+  font-size: 12px; font-weight: 700; color: #fff;
+  background: var(--accent); border: none; cursor: pointer;
+  padding: 8px 16px; border-radius: 7px;
+  font-family: 'Sora', sans-serif; white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.cta-strip-btn:hover { opacity: 0.85; }
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
+.section-label { font-size: 11px; font-weight: 600; color: var(--text-lo); font-family: 'DM Mono', monospace; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 14px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .input-grid, .input-grid-3 { grid-template-columns: 1fr; }
+  .result-tiles-3 { grid-template-columns: 1fr 1fr; }
+  .card-body { padding: 18px; }
+  .card-header { padding: 18px 18px 16px; }
+  .hero { padding: 40px 20px 32px; }
+  .tool-grid { padding: 0 16px 60px; }
+  .cta-strip { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">
+      <span class="fam">family</span><span class="dot">·</span><span class="bud">budget</span>
+    </a>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="nav-links">
+        <a href="#investment" class="nav-pill">Investment</a>
+        <a href="#mortgage" class="nav-pill">Mortgage</a>
+        <a href="#emergency" class="nav-pill">Emergency Fund</a>
+      </div>
+      <a href="/" class="nav-cta">Sign in →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">free tools</div>
+  <h1>Financial calculators<br>that <span>actually help</span></h1>
+  <p>No account needed. Run the numbers on your goals, mortgage, or emergency fund in seconds.</p>
+</div>
+
+<!-- TOOLS -->
+<div class="tool-grid">
+
+  <!-- ── INVESTMENT GROWTH ── -->
+  <div class="card" id="investment">
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="card-icon" style="background:#dbeafe;">📈</div>
+        <div class="card-title">Investment Growth Projector</div>
+        <div class="card-desc">See how your money grows over time with compound returns. Adjust the rate to model different market scenarios.</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="input-grid">
+        <div class="field">
+          <label>Starting amount</label>
+          <div class="input-wrap has-prefix">
+            <span class="input-prefix">$</span>
+            <input type="number" id="inv-start" value="10000" min="0" oninput="calcInvestment()"/>
+          </div>
+        </div>
+        <div class="field">
+          <label>Monthly contribution</label>
+          <div class="input-wrap has-prefix">
+            <span class="input-prefix">$</span>
+            <input type="number" id="inv-monthly" value="500" min="0" oninput="calcInvestment()"/>
+          </div>
+        </div>
+        <div class="field">
+          <label>Time horizon (years)</label>
+          <div class="input-wrap">
+            <input type="number" id="inv-years" value="20" min="1" max="50" oninput="calcInvestment()"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label">Annual return rate</div>
+      <div class="rate-presets">
+        <button class="preset-btn" onclick="setRate(4, this)">4% — Conservative</button>
+        <button class="preset-btn active" onclick="setRate(7, this)">7% — Moderate</button>
+        <button class="preset-btn" onclick="setRate(10, this)">10% — Aggressive</button>
+        <div class="preset-custom">
+          <input type="number" id="inv-rate" value="7" min="0" max="30" step="0.1" oninput="setCustomRate(this.value)"/>
+          <span>%</span>
+        </div>
+      </div>
+
+      <div class="results" id="inv-results">
+        <div class="result-tiles result-tiles-3">
+          <div class="result-tile accent">
+            <div class="tile-label">Projected value</div>
+            <div class="tile-value accent" id="inv-total">—</div>
+            <div class="tile-sub" id="inv-years-label">after 20 years</div>
+          </div>
+          <div class="result-tile green">
+            <div class="tile-label">Total growth</div>
+            <div class="tile-value green" id="inv-growth">—</div>
+            <div class="tile-sub" id="inv-growth-pct">from returns</div>
+          </div>
+          <div class="result-tile">
+            <div class="tile-label">Total contributed</div>
+            <div class="tile-value" id="inv-contributed">—</div>
+            <div class="tile-sub">your money in</div>
+          </div>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-title">Year by year growth</div>
+          <div class="bar-chart" id="inv-chart"></div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Contributions</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#60a5fa;opacity:0.6"></div>Market growth</div>
+          </div>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-title">Year by year breakdown</div>
+          <div style="max-height:220px;overflow-y:auto;">
+            <table class="breakdown-table">
+              <thead><tr><th>Year</th><th>Contributed</th><th>Growth</th><th>Total value</th></tr></thead>
+              <tbody id="inv-table"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="cta-strip">
+          <div class="cta-strip-text"><strong>Tracking an investment goal?</strong> Set a target and monitor your progress monthly.</div>
+          <button class="cta-strip-btn">Track with family·budget →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MORTGAGE PAYOFF ── -->
+  <div class="card" id="mortgage">
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="card-icon" style="background:#dcfce7;">🏠</div>
+        <div class="card-title">Mortgage Payoff Accelerator</div>
+        <div class="card-desc">See how extra payments can dramatically reduce your loan term and total interest paid.</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="input-grid">
+        <div class="field">
+          <label>Remaining balance</label>
+          <div class="input-wrap has-prefix">
+            <span class="input-prefix">$</span>
+            <input type="number" id="mtg-balance" value="320000" min="0" oninput="calcMortgage()"/>
+          </div>
+        </div>
+        <div class="field">
+          <label>Interest rate</label>
+          <div class="input-wrap has-suffix">
+            <input type="number" id="mtg-rate" value="6.5" min="0" max="20" step="0.1" oninput="calcMortgage()"/>
+            <span class="input-suffix">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Monthly payment</label>
+          <div class="input-wrap has-prefix">
+            <span class="input-prefix">$</span>
+            <input type="number" id="mtg-payment" value="2200" min="0" oninput="calcMortgage()"/>
+          </div>
+        </div>
+        <div class="field">
+          <label>Extra monthly payment</label>
+          <div class="input-wrap has-prefix">
+            <span class="input-prefix">$</span>
+            <input type="number" id="mtg-extra" value="200" min="0" oninput="calcMortgage()"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="results">
+        <div class="result-tiles result-tiles-2" id="mtg-tiles">
+          <div class="result-tile">
+            <div class="tile-label">Standard payoff</div>
+            <div class="tile-value" id="mtg-std-months">—</div>
+            <div class="tile-sub" id="mtg-std-interest">total interest</div>
+          </div>
+          <div class="result-tile green">
+            <div class="tile-label">With extra payments</div>
+            <div class="tile-value green" id="mtg-acc-months">—</div>
+            <div class="tile-sub" id="mtg-acc-interest">total interest</div>
+          </div>
+          <div class="result-tile accent">
+            <div class="tile-label">Time saved</div>
+            <div class="tile-value accent" id="mtg-months-saved">—</div>
+            <div class="tile-sub">off your term</div>
+          </div>
+          <div class="result-tile green">
+            <div class="tile-label">Interest saved</div>
+            <div class="tile-value green" id="mtg-interest-saved">—</div>
+            <div class="tile-sub">stays in your pocket</div>
+          </div>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-title">Balance over time</div>
+          <div style="position:relative;height:120px;" id="mtg-chart-wrap">
+            <svg id="mtg-chart" width="100%" height="120" style="display:block;overflow:visible;"></svg>
+          </div>
+          <div class="chart-legend" style="margin-top:8px;">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--text-lo)"></div>Standard</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>With extra payments</div>
+          </div>
+        </div>
+
+        <div class="cta-strip">
+          <div class="cta-strip-text"><strong>Paying down a mortgage?</strong> Track your progress alongside your other financial goals.</div>
+          <button class="cta-strip-btn">Track with family·budget →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── EMERGENCY FUND ── -->
+  <div class="card" id="emergency">
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="card-icon" style="background:#fef3c7;">🛡️</div>
+        <div class="card-title">Emergency Fund Calculator</div>
+        <div class="card-desc">Find out how much you need and how long it'll take to get there.</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="input-grid">
+        <div class="field">
+          <label>Monthly expenses</label>
+          <div class="input-wrap has-prefix">
+            <span class="input-prefix">$</span>
+            <input type="number" id="ef-expenses" value="4500" min="0" oninput="calcEmergency()"/>
+          </div>
+        </div>
+        <div class="field">
+          <label>Months of coverage</label>
+          <div class="input-wrap">
+            <input type="number" id="ef-months" value="6" min="1" max="24" oninput="calcEmergency()"/>
+          </div>
+        </div>
+        <div class="field">
+          <label>Current savings</label>
+          <div class="input-wrap has-prefix">
+            <span class="input-prefix">$</span>
+            <input type="number" id="ef-saved" value="5000" min="0" oninput="calcEmergency()"/>
+          </div>
+        </div>
+        <div class="field">
+          <label>Monthly contribution</label>
+          <div class="input-wrap has-prefix">
+            <span class="input-prefix">$</span>
+            <input type="number" id="ef-contribution" value="300" min="0" oninput="calcEmergency()"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label">Coverage recommendation</div>
+      <div class="rate-presets" style="margin-bottom:20px;">
+        <button class="preset-btn" onclick="setEFMonths(3, this)">3 months — Minimum</button>
+        <button class="preset-btn active" onclick="setEFMonths(6, this)">6 months — Standard</button>
+        <button class="preset-btn" onclick="setEFMonths(12, this)">12 months — Conservative</button>
+      </div>
+
+      <div class="results">
+        <div class="result-tiles result-tiles-3">
+          <div class="result-tile accent">
+            <div class="tile-label">Target amount</div>
+            <div class="tile-value accent" id="ef-target">—</div>
+            <div class="tile-sub" id="ef-coverage">6 months coverage</div>
+          </div>
+          <div class="result-tile" id="ef-progress-tile">
+            <div class="tile-label">Progress</div>
+            <div class="tile-value" id="ef-pct">—</div>
+            <div class="tile-sub" id="ef-remaining">remaining</div>
+          </div>
+          <div class="result-tile" id="ef-time-tile">
+            <div class="tile-label">Time to goal</div>
+            <div class="tile-value" id="ef-time">—</div>
+            <div class="tile-sub" id="ef-date">at current pace</div>
+          </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="chart-wrap">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="chart-title" style="margin:0;">Fund progress</div>
+            <div style="font-size:11px;color:var(--text-lo);font-family:'DM Mono',monospace;" id="ef-bar-label">$0 / $0</div>
+          </div>
+          <div style="background:var(--border);border-radius:999px;height:8px;overflow:hidden;">
+            <div id="ef-bar" style="height:100%;border-radius:999px;background:var(--accent);transition:width 0.4s;width:0%;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:8px;">
+            <span style="font-size:10px;color:var(--text-lo);font-family:'DM Mono',monospace;">$0</span>
+            <span style="font-size:10px;color:var(--text-lo);font-family:'DM Mono',monospace;" id="ef-bar-max">$0</span>
+          </div>
+        </div>
+
+        <div class="cta-strip">
+          <div class="cta-strip-text"><strong>Building your emergency fund?</strong> Track contributions and stay on pace every month.</div>
+          <button class="cta-strip-btn">Track with family·budget →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── UTILS ──
+const fmt = n => '$' + Math.round(n).toLocaleString('en-US');
+const fmtExact = n => '$' + n.toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0});
+
+// ── INVESTMENT ──
+let invRate = 7;
+
+function setRate(rate, btn) {
+  invRate = rate;
+  document.getElementById('inv-rate').value = rate;
+  document.querySelectorAll('.preset-btn').forEach(b => {
+    if (b.closest('#investment')) b.classList.remove('active');
+  });
+  btn.classList.add('active');
+  calcInvestment();
+}
+
+function setCustomRate(val) {
+  invRate = parseFloat(val) || 0;
+  document.querySelectorAll('#investment .preset-btn').forEach(b => b.classList.remove('active'));
+  calcInvestment();
+}
+
+function calcInvestment() {
+  const start   = parseFloat(document.getElementById('inv-start').value)   || 0;
+  const monthly = parseFloat(document.getElementById('inv-monthly').value) || 0;
+  const years   = parseInt(document.getElementById('inv-years').value)     || 1;
+  const rate    = invRate / 100 / 12;
+  const months  = years * 12;
+
+  // Build year-by-year data
+  const rows = [];
+  let balance = start;
+  for (let y = 1; y <= years; y++) {
+    const startBal = balance;
+    const contrib = monthly * 12;
+    for (let m = 0; m < 12; m++) {
+      balance = balance * (1 + rate) + monthly;
+    }
+    const growth = balance - startBal - contrib;
+    const totalContrib = start + monthly * y * 12;
+    rows.push({ year: y, balance, contrib: start + monthly * 12 * y, growth: balance - (start + monthly * 12 * y) });
+  }
+
+  const final = rows[rows.length - 1];
+  const totalContrib = start + monthly * years * 12;
+  const totalGrowth  = final.balance - totalContrib;
+
+  document.getElementById('inv-total').textContent       = fmt(final.balance);
+  document.getElementById('inv-growth').textContent      = fmt(totalGrowth);
+  document.getElementById('inv-growth-pct').textContent  = Math.round((totalGrowth / totalContrib) * 100) + '% return on contributions';
+  document.getElementById('inv-contributed').textContent = fmt(totalContrib);
+  document.getElementById('inv-years-label').textContent = `after ${years} year${years !== 1 ? 's' : ''}`;
+
+  // Chart — show every year up to 20, then every 5
+  const chartRows = rows.filter((r, i) => years <= 20 || r.year % 5 === 0 || r.year === years);
+  const maxVal = Math.max(...chartRows.map(r => r.balance));
+  const chart = document.getElementById('inv-chart');
+  chart.innerHTML = chartRows.map(r => {
+    const contribPct = Math.min((r.contrib / maxVal) * 100, 100);
+    const growthPct  = Math.min((r.balance / maxVal) * 100, 100) - contribPct;
+    return `<div class="bar-group">
+      <div class="bar-stack">
+        <div style="flex:1;"></div>
+        <div class="bar-segment bar-growth" style="height:${Math.max(growthPct,0)}%;"></div>
+        <div class="bar-segment bar-contrib" style="height:${contribPct}%;"></div>
+      </div>
+      <div class="bar-label">Y${r.year}</div>
+    </div>`;
+  }).join('');
+
+  // Table — show every 5 years
+  const tableRows = rows.filter(r => r.year % 5 === 0 || r.year === years || r.year === 1);
+  document.getElementById('inv-table').innerHTML = tableRows.map(r =>
+    `<tr>
+      <td>Year ${r.year}</td>
+      <td>${fmt(r.contrib)}</td>
+      <td class="acc">+${fmt(r.growth)}</td>
+      <td class="hi">${fmt(r.balance)}</td>
+    </tr>`
+  ).join('');
+}
+
+// ── MORTGAGE ──
+function calcMortgage() {
+  const balance  = parseFloat(document.getElementById('mtg-balance').value)  || 0;
+  const rate     = (parseFloat(document.getElementById('mtg-rate').value)    || 0) / 100 / 12;
+  const payment  = parseFloat(document.getElementById('mtg-payment').value)  || 0;
+  const extra    = parseFloat(document.getElementById('mtg-extra').value)    || 0;
+
+  if (!balance || !rate || payment <= balance * rate) {
+    // Payment too low — can't pay off
+    ['mtg-std-months','mtg-acc-months','mtg-months-saved','mtg-interest-saved'].forEach(id => {
+      document.getElementById(id).textContent = '—';
+    });
+    return;
+  }
+
+  const amortize = (bal, pmt) => {
+    let b = bal, totalInt = 0, months = 0;
+    while (b > 0 && months < 600) {
+      const int = b * rate;
+      totalInt += int;
+      const prin = Math.min(pmt - int, b);
+      b -= prin;
+      months++;
+    }
+    return { months, totalInt };
+  };
+
+  const std = amortize(balance, payment);
+  const acc = amortize(balance, payment + extra);
+
+  const fmtMos = m => {
+    const y = Math.floor(m / 12), mo = m % 12;
+    return y > 0 ? `${y}y ${mo}m` : `${mo} mo`;
+  };
+
+  document.getElementById('mtg-std-months').textContent    = fmtMos(std.months);
+  document.getElementById('mtg-std-interest').textContent  = fmt(std.totalInt) + ' total interest';
+  document.getElementById('mtg-acc-months').textContent    = fmtMos(acc.months);
+  document.getElementById('mtg-acc-interest').textContent  = fmt(acc.totalInt) + ' total interest';
+
+  const savedMonths = std.months - acc.months;
+  const savedInt    = std.totalInt - acc.totalInt;
+  document.getElementById('mtg-months-saved').textContent    = fmtMos(savedMonths);
+  document.getElementById('mtg-interest-saved').textContent  = fmt(savedInt);
+
+  // SVG line chart
+  const wrap = document.getElementById('mtg-chart-wrap');
+  const W = wrap.offsetWidth || 600, H = 120;
+  const PAD = { t: 8, r: 8, b: 20, l: 50 };
+  const cW = W - PAD.l - PAD.r, cH = H - PAD.t - PAD.b;
+
+  // Build balance curves — sample every 3 months
+  const buildCurve = (pmt) => {
+    let b = balance, pts = [b], m = 0;
+    while (b > 0.01 && m < 600) {
+      const int = b * rate;
+      b = Math.max(b - (pmt - int), 0);
+      m++;
+      if (m % 3 === 0 || b <= 0) pts.push(b);
+    }
+    return pts;
+  };
+  const stdPts = buildCurve(payment);
+  const accPts = buildCurve(payment + extra);
+  const maxPts = Math.max(stdPts.length, accPts.length);
+
+  const px = (i, total) => PAD.l + (i / (total - 1)) * cW;
+  const py = v => PAD.t + cH - (v / balance) * cH;
+
+  const toPath = (pts) => pts.map((v, i) => `${i === 0 ? 'M' : 'L'} ${px(i, pts.length).toFixed(1)} ${py(v).toFixed(1)}`).join(' ');
+
+  // Y labels
+  const yTicks = [0, balance * 0.5, balance].map(v =>
+    `<text x="${PAD.l - 6}" y="${py(v) + 4}" text-anchor="end" font-size="9" font-family="DM Mono" fill="var(--text-lo)">${v === 0 ? '$0' : fmt(v)}</text>
+     <line x1="${PAD.l}" y1="${py(v)}" x2="${W - PAD.r}" y2="${py(v)}" stroke="var(--border-mid)" stroke-dasharray="3,3"/>`
+  ).join('');
+
+  document.getElementById('mtg-chart').innerHTML = `
+    ${yTicks}
+    <path d="${toPath(stdPts)}" fill="none" stroke="var(--text-lo)" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.5"/>
+    <path d="${toPath(accPts)}" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"/>
+  `;
+}
+
+// ── EMERGENCY FUND ──
+let efMonths = 6;
+
+function setEFMonths(months, btn) {
+  efMonths = months;
+  document.getElementById('ef-months').value = months;
+  document.querySelectorAll('#emergency .preset-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  calcEmergency();
+}
+
+function calcEmergency() {
+  const expenses     = parseFloat(document.getElementById('ef-expenses').value)     || 0;
+  const months       = parseInt(document.getElementById('ef-months').value)         || 6;
+  const saved        = parseFloat(document.getElementById('ef-saved').value)        || 0;
+  const contribution = parseFloat(document.getElementById('ef-contribution').value) || 0;
+
+  efMonths = months;
+  const target    = expenses * months;
+  const remaining = Math.max(target - saved, 0);
+  const pct       = target > 0 ? Math.min((saved / target) * 100, 100) : 0;
+  const done      = saved >= target;
+
+  document.getElementById('ef-target').textContent   = fmt(target);
+  document.getElementById('ef-coverage').textContent = `${months} month${months !== 1 ? 's' : ''} coverage`;
+  document.getElementById('ef-pct').textContent      = Math.round(pct) + '%';
+  document.getElementById('ef-remaining').textContent = done ? 'goal reached! 🎉' : fmt(remaining) + ' to go';
+  document.getElementById('ef-bar').style.width      = pct + '%';
+  document.getElementById('ef-bar-label').textContent = `${fmt(saved)} / ${fmt(target)}`;
+  document.getElementById('ef-bar-max').textContent  = fmt(target);
+  document.getElementById('ef-bar').style.background = done ? 'var(--green)' : pct >= 66 ? 'var(--accent)' : pct >= 33 ? 'var(--amber)' : 'var(--red)';
+
+  // Time to goal
+  if (done) {
+    document.getElementById('ef-time').textContent = '✓ Done';
+    document.getElementById('ef-date').textContent = 'goal reached';
+    document.getElementById('ef-time-tile').className = 'result-tile green';
+  } else if (contribution <= 0) {
+    document.getElementById('ef-time').textContent = '—';
+    document.getElementById('ef-date').textContent = 'add a contribution';
+    document.getElementById('ef-time-tile').className = 'result-tile';
+  } else {
+    const moNeeded = Math.ceil(remaining / contribution);
+    const date = new Date();
+    date.setMonth(date.getMonth() + moNeeded);
+    const dateStr = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const y = Math.floor(moNeeded / 12), m = moNeeded % 12;
+    document.getElementById('ef-time').textContent = y > 0 ? `${y}y ${m}m` : `${moNeeded} mo`;
+    document.getElementById('ef-date').textContent = `by ${dateStr}`;
+    document.getElementById('ef-time-tile').className = 'result-tile ' + (moNeeded <= 12 ? 'green' : moNeeded <= 24 ? 'accent' : '');
+  }
+}
+
+// ── INIT ──
+calcInvestment();
+calcMortgage();
+calcEmergency();
+</script>
+</body>
+</html>
