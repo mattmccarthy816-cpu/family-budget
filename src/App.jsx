@@ -816,7 +816,7 @@ export default function App() {
         .del-btn { background: none; border: 1px solid #7f1d1d; color: #f87171; border-radius: 8px; padding: 8px 16px; font-family: 'Sora',sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
         .swatch { width: 20px; height: 20px; border-radius: 5px; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
         .swatch:hover { transform: scale(1.2); }
-        .card { background: linear-gradient(180deg, #161412 0%, #0e0d0b 100%); border: 1px solid ${C.border}; border-radius: 16px; box-shadow: inset 0 1px 0 rgba(193,127,62,0.20); }
+        .card { background: linear-gradient(160deg, #1a1108 0%, #0f0d0a 55%, #090808 100%); border: 1px solid ${C.border}; border-radius: 16px; box-shadow: inset 0 1px 0 rgba(193,127,62,0.10); }
         .month-btn { background: none; border: 1px solid ${C.border}; color: ${C.textLo}; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-family: 'DM Mono',monospace; font-size: 12px; transition: all 0.15s; letter-spacing: 0.5px; }
         .month-btn:hover { border-color: ${C.accent}; color: ${C.accent}; }
         .lt-card { background: ${C.bgCard}; border: 1px solid ${C.border}; border-radius: 16px; padding: 20px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
