@@ -182,10 +182,35 @@ function Modal({ onClose, children }) {
 
 function Spinner() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 80, gap: 14 }}>
-      <div style={{ width: 28, height: 28, border: `2px solid ${C.border}`, borderTop: `2px solid ${C.sand}`, borderRadius: "50%", animation: "spin 0.9s linear infinite" }} />
-      <div style={{ color: C.textLo, fontSize: 11, fontFamily: "'DM Mono', monospace", letterSpacing: 2 }}>LOADING</div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div style={{ position: "fixed", inset: 0, background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 32, zIndex: 999 }}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes barPulse { 0%, 100% { transform: scaleY(0.4); opacity: 0.3; } 50% { transform: scaleY(1); opacity: 1; } }
+        .load-bar { border-radius: 999px; animation: barPulse 1.2s ease-in-out infinite; transform-origin: bottom; }
+      `}</style>
+
+      {/* Brand wordmark */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, animation: "fadeUp 0.5s ease both" }}>
+        <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -1, fontFamily: "'Sora',sans-serif" }}>
+          <span style={{ color: C.textHi }}>family</span>
+          <span style={{ color: C.textDim, fontWeight: 300, margin: "0 4px" }}>·</span>
+          <span style={{ color: C.accent }}>budget</span>
+        </div>
+        <div style={{ fontSize: 11, color: C.textLo, fontFamily: "'Sora',sans-serif", fontWeight: 400, letterSpacing: 0.5 }}>your household, in focus</div>
+      </div>
+
+      {/* Animated bar loader */}
+      <div style={{ display: "flex", gap: 5, alignItems: "flex-end", height: 20, animation: "fadeUp 0.5s 0.15s ease both", opacity: 0 }}>
+        {[14, 22, 30, 22, 14, 20, 26].map((h, i) => (
+          <div key={i} className="load-bar" style={{ width: 3, height: h, background: i === 2 || i === 6 ? C.accent : i === 1 || i === 3 ? C.textLo : C.border, animationDelay: `${i * 0.1}s` }} />
+        ))}
+      </div>
+
+      {/* Status text */}
+      <div style={{ fontSize: 11, color: C.textLo, fontFamily: "'Sora',sans-serif", letterSpacing: 0.3, animation: "fadeUp 0.5s 0.25s ease both", opacity: 0 }}>
+        Pulling in your numbers...
+      </div>
     </div>
   );
 }
@@ -779,7 +804,7 @@ export default function App() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 3px; }
         .npill { background: none; border: none; cursor: pointer; font-family: 'Sora',sans-serif; font-size: 13px; font-weight: 500; padding: 8px 15px; border-radius: 8px; transition: all 0.18s; color: ${C.textMid}; }
-        .npill.active { background: ${C.accentDim}; color: ${C.accent}; font-weight: 600; }
+        .npill.active { background: ${C.accentDim}; color: ${C.accent}; font-weight: 700; }
         .npill:hover:not(.active) { color: ${C.textMid}; }
         .inp { width: 100%; background: ${C.bgInset}; border: 1px solid ${C.border}; border-radius: 10px; padding: 12px 14px; color: ${C.textHi}; font-family: 'Sora',sans-serif; font-size: 14px; outline: none; transition: border 0.18s; appearance: none; }
         .inp:focus { border-color: ${C.accent}; }
@@ -843,9 +868,9 @@ export default function App() {
                 </div>
                 <button onClick={() => setView("add")} style={{ background: C.accent, border: "none", borderRadius: 9, color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 16px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Add</button>
               </div>
-              <div style={{ display: "flex", borderTop: `1px solid ${C.border}`, marginLeft: -16, marginRight: -16, paddingLeft: 8, paddingRight: 8, paddingBottom: 6 }}>
+              <div style={{ borderTop: `1px solid ${C.border}`, marginLeft: -16, marginRight: -16, padding: "4px 6px", display: "flex", background: C.bgCard, gap: 2 }}>
                 {[["dashboard","Dashboard"],["review","Review"],["trends","Trends"],["longterm","Long Term"],["settings","Settings"]].map(([v, label]) => (
-                  <button key={v} className={`npill ${view === v ? "active" : ""}`} onClick={() => setView(v)} style={{ flex: 1, textAlign: "center", fontSize: 12, padding: "7px 4px" }}>{label}</button>
+                  <button key={v} onClick={() => setView(v)} style={{ flex: 1, textAlign: "center", fontSize: 11, padding: "8px 2px", borderRadius: 7, border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontWeight: view === v ? 600 : 500, background: view === v ? C.accentDim : "transparent", color: view === v ? C.accent : C.textMid, transition: "all 0.15s" }}>{label}</button>
                 ))}
               </div>
             </div>
