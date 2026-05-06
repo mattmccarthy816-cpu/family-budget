@@ -13,14 +13,14 @@ const MONTH_NAMES = ["January","February","March","April","May","June","July","A
 const truncate = (str, len = 45) => str && str.length > len ? str.slice(0, len) + "…" : str;
 
 const C = {
-  bg:        "#0f0e0c",
-  bgCard:    "#1a1814",
-  bgInset:   "#0f0e0c",
-  border:    "#2a2620",
-  borderMid: "#242118",
-  textHi:    "#f0ece6",  // near-white with just a whisper of warmth
-  textMid:   "#c4b8aa",  // warm mid — readable, not grey
-  textLo:    "#6b6560",  // keep — this one works as a dim/label color
+  bg:        "#121110",  // dark charcoal, barely warm
+  bgCard:    "#1c1b19",  // one step lighter, still charcoal
+  bgInset:   "#121110",
+  border:    "#2c2a27",
+  borderMid: "#222120",
+  textHi:    "#f0ece6",
+  textMid:   "#c4b8aa",
+  textLo:    "#6b6560",
   textDim:   "#4a4540",
   accent:    "#c17f3e",
   accentDim: "#3d2510",
