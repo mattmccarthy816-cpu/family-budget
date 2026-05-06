@@ -15,7 +15,7 @@ const truncate = (str, len = 45) => str && str.length > len ? str.slice(0, len) 
 
 const C = {
   bg:        "#121110",  // dark charcoal, barely warm
-  bgCard:    "#1c1b19",  // one step lighter, still charcoal
+  bgCard:    "#1da14",  // one step lighter, still charcoal
   bgInset:   "#121110",
   border:    "#2c2a27",
   borderMid: "#222120",
