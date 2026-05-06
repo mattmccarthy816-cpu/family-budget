@@ -26,6 +26,8 @@ const C = {
   accentDim: "#3d2510",
   sand:      "#c4b8aa",
   sandDim:   "#6b6560",
+  background: linear-gradient(160deg, #26200f 0%, #1d1a14 45%, #131109 100%) !important;
+box-shadow: inset 0 1px 0 rgba(193,127,62,0.08);
 };
 
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
