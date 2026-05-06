@@ -13,19 +13,19 @@ const MONTH_NAMES = ["January","February","March","April","May","June","July","A
 const truncate = (str, len = 45) => str && str.length > len ? str.slice(0, len) + "…" : str;
 
 const C = {
-  bg:        "#0d1117",
-  bgCard:    "#161b22",
-  bgInset:   "#0d1117",
-  border:    "#30363d",
-  borderMid: "#21262d",
-  textHi:    "#e6edf3",
-  textMid:   "#adbac7",  // was #8b949e — better contrast on dark bg
-  textLo:    "#8b949e",  // was #6e7681 — improved readability
-  textDim:   "#6e7681",  // for truly decorative/subdued elements only
+  bg:        "#0f0e0c",
+  bgCard:    "#1a1814",
+  bgInset:   "#0f0e0c",
+  border:    "#2a2620",
+  borderMid: "#242118",
+  textHi:    "#f0ece6",  // near-white with just a whisper of warmth
+  textMid:   "#c4b8aa",  // warm mid — readable, not grey
+  textLo:    "#6b6560",  // keep — this one works as a dim/label color
+  textDim:   "#4a4540",
   accent:    "#c17f3e",
   accentDim: "#3d2510",
-  sand:      "#adbac7",
-  sandDim:   "#8b949e",
+  sand:      "#c4b8aa",
+  sandDim:   "#6b6560",
 };
 
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
