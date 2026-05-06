@@ -12,21 +12,21 @@ const MAX_MEMBERS = 6;
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const truncate = (str, len = 45) => str && str.length > len ? str.slice(0, len) + "…" : str;
 
-const C = {"{"}
+const C = {
   bg:        "#121110",
   bgCard:    "#1d1a14",
   bgInset:   "#121110",
   border:    "#2c2a27",
   borderMid: "#222120",
   textHi:    "#f0ece6",
-  textMid:   "#c4b8aa",  // was #8b949e — better contrast on dark bg
-  textLo:    "#6b6560",  // was #6e7681 — improved readability
-  textDim:   "#4a4540",  // for truly decorative/subdued elements only
+  textMid:   "#c4b8aa",
+  textLo:    "#6b6560",
+  textDim:   "#4a4540",
   accent:    "#c17f3e",
   accentDim: "#3d2510",
   sand:      "#c4b8aa",
   sandDim:   "#6b6560",
-{"}"};
+};
 
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
 
