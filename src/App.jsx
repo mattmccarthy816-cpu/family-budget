@@ -27,7 +27,6 @@ const C = {
   accentDim: "#3d2510",
   sand:      "#c4b8aa",
   sandDim:   "#6b6560",
-  );
 };
 
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
