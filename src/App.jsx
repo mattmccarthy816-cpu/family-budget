@@ -14,7 +14,7 @@ const MONTH_NAMES = ["January","February","March","April","May","June","July","A
 const truncate = (str, len = 45) => str && str.length > len ? str.slice(0, len) + "…" : str;
 
 const C = {
-  bg:        "#121110",  // dark charcoal, barely warm
+  bg:        "#222427",  // dark charcoal, barely warm
   bgCard:    "#1d1a14",  // one step lighter, still charcoal
   bgInset:   "#121110",
   border:    "#2c2a27",
