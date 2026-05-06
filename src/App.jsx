@@ -23,7 +23,7 @@ const C = {
   textLo:    "#8b949e",  // was #6e7681 — improved readability
   textDim:   "#6e7681",  // for truly decorative/subdued elements only
   accent:    "#a86a32",
-  accentDim: "#3d2510",
+  accentDim: "#3a2210",
   sand:      "#adbac7",
   sandDim:   "#8b949e",
 };
