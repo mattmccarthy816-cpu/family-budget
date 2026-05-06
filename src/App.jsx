@@ -12,7 +12,7 @@ const MAX_MEMBERS = 6;
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const truncate = (str, len = 45) => str && str.length > len ? str.slice(0, len) + "…" : str;
 
-const C = {
+const C = {"{"}
   bg:        "#121110",
   bgCard:    "#1d1a14",
   bgInset:   "#121110",
@@ -26,7 +26,7 @@ const C = {
   accentDim: "#3d2510",
   sand:      "#c4b8aa",
   sandDim:   "#6b6560",
-};
+{"}"};
 
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
 
