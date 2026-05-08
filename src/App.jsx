@@ -432,9 +432,11 @@ export default function App() {
   const [memberForm, setMemberForm] = useState({ name: "", color: MEMBER_COLOR_PALETTE[0], role: "contributor" });
   const [ltForm, setLtForm] = useState({ name: "", saved: "", goal: "", color: PALETTE[0], targetDate: "", startDate: "", type: "fixed", monthlyContribution: "" });
   const [theme, setTheme] = useState(() => {
+    C = theme === 'dark' ? DARK : LIGHT;
     return localStorage.getItem('fb-theme') || 'dark';
   });
-  const C = theme === 'dark' ? DARK : LIGHT;
+  c// Mutable theme reference accessible to all components
+  let C = DARK;
 
   function toggleTheme() {
     const next = theme === 'dark' ? 'light' : 'dark';
