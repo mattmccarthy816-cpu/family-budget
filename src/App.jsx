@@ -821,7 +821,15 @@ function toggleTheme() {
   return (
     <div style={{ minHeight: "100vh", background: theme === 'dark'
   ? "#0d0d0f"
-  : "linear-gradient(135deg, #eef0f3 0%, #e8eaed 100%)", fontFamily: "'Sora', sans-serif", color: C.textHi, paddingBottom: 60 }}>
+    <div style={{
+    position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
+    background: theme === 'dark'
+    ? `radial-gradient(ellipse at 10% 10%, rgba(193,127,62,0.14) 0%, transparent 50%),
+       radial-gradient(ellipse at 90% 90%, rgba(193,127,62,0.09) 0%, transparent 50%)`
+    : `radial-gradient(ellipse at 10% 15%, rgba(193,127,62,0.13) 0%, transparent 45%),
+       radial-gradient(ellipse at 90% 85%, rgba(193,127,62,0.09) 0%, transparent 45%)`,
+}} />
+<div style={{ position: "relative", zIndex: 1 }}>: "linear-gradient(135deg, #eef0f3 0%, #e8eaed 100%)", fontFamily: "'Sora', sans-serif", color: C.textHi, paddingBottom: 60 }}>
       <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
