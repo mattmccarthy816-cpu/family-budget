@@ -1439,6 +1439,7 @@ function toggleTheme() {
                           </div>
                           <div style={{ padding: "10px", display: "flex", alignItems: "center", justifyContent: "flex-end", fontFamily: "'DM Mono',monospace", fontWeight: 700, color: catColors[e.category] || C.textMid, fontSize: 12 }}>{fmtD(e.amount)}</div>
                         </div>
+                      </div>
                       ))}
 
                     </>
