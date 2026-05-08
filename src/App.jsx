@@ -821,7 +821,7 @@ function toggleTheme() {
   return (
     <div style={{ minHeight: "100vh", background: theme === 'dark'
   ? "#0d0d0f"
-}} />
+, />
 <div style={{ position: "relative", zIndex: 1 }}>: "linear-gradient(135deg, #eef0f3 0%, #e8eaed 100%)", fontFamily: "'Sora', sans-serif", color: C.textHi, paddingBottom: 60 }}>
         <div style={{
     position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
@@ -1555,6 +1555,29 @@ function toggleTheme() {
                             <div style={{ fontSize: 11, color: C.textLo }}>edit →</div>
                           </div>
                         ))}
+                        <div className="card" style={{ marginBottom: 14 }}>
+  <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: C.textHi }}>Appearance</div>
+      <div style={{ fontSize: 11, color: C.textLo, marginTop: 3 }}>
+        {theme === "dark" ? "Dark mode" : "Light mode"}
+      </div>
+    </div>
+    <button onClick={toggleTheme} style={{
+      background: C.accentDim,
+      border: `1px solid ${C.accent}`,
+      borderRadius: 999,
+      padding: "7px 16px",
+      color: C.accent,
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: "pointer",
+      fontFamily: "'Sora',sans-serif",
+    }}>
+      {theme === "dark" ? "☀️ Light mode" : "🌙 Dark mode"}
+    </button>
+  </div>
+</div>
                       </div>
                     </Section>
 
