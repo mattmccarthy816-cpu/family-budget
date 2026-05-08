@@ -40,6 +40,7 @@ const DARK = { bg: "#0d0d0f",
                  sand: "#555555", 
                  sandDim: "#999999", 
                 };
+  let C = DARK;
 
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
 
@@ -432,7 +433,7 @@ export default function App() {
   const [memberForm, setMemberForm] = useState({ name: "", color: MEMBER_COLOR_PALETTE[0], role: "contributor" });
   const [ltForm, setLtForm] = useState({ name: "", saved: "", goal: "", color: PALETTE[0], targetDate: "", startDate: "", type: "fixed", monthlyContribution: "" });
   const [theme, setTheme] = useState(() => localStorage.getItem('fb-theme') || 'dark');
-const C = theme === 'dark' ? DARK : LIGHT;
+C = theme === 'dark' ? DARK : LIGHT;
 
 function toggleTheme() {
   const next = theme === 'dark' ? 'light' : 'dark';
