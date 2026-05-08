@@ -95,16 +95,7 @@ function HeroDonut({ segments, totalSpend, totalBudget, size = 180, hoveredLabel
   });
   const hovered = arcs.find(a => a.label === hoveredLabel);
   return (
-      <div style={{
-  position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
-  background: theme === 'dark'
-    ? `radial-gradient(ellipse at 10% 10%, rgba(193,127,62,0.14) 0%, transparent 50%),
-       radial-gradient(ellipse at 90% 90%, rgba(193,127,62,0.09) 0%, transparent 50%)`
-    : `radial-gradient(ellipse at 10% 15%, rgba(193,127,62,0.13) 0%, transparent 45%),
-       radial-gradient(ellipse at 90% 85%, rgba(193,127,62,0.09) 0%, transparent 45%)`,
-}}>
-<div style={{ position: "relative", zIndex: 1 }}>
-      <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
       <svg viewBox="0 0 180 180" style={{ width: size, height: size, transform: "rotate(-90deg)" }}>
         <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.borderMid} strokeWidth={sw} />
         <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.border} strokeWidth={sw}
