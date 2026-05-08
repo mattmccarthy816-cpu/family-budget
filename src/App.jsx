@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 
-const [theme, setTheme] = useState(() => const C = theme === 'dark' ? DARK : LIGHT;{ // Read from localStorage so preference persists across sessions return localStorage.getItem('fb-theme') || 'dark'; });
 const API_URL = "https://script.google.com/macros/s/AKfycbxbNc2pXZT8AsSgXNS9mjtaGda24l3kTl3Etvex1xmMV58_SX9DynXqXItYFwBYwaqryA/exec";
 
 const PALETTE = ["#60a5fa","#f97316","#4ade80","#a78bfa","#f472b6","#34d399","#fbbf24","#94a3b8","#fb7185","#38bdf8","#c084fc","#fdba74","#86efac","#67e8f9","#fde68a","#d8b4fe"];
@@ -43,8 +42,6 @@ const DARK = { bg: "#0d0d0f",
                 };
 
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
-
-function toggleTheme() { const next = theme === 'dark' ? 'light' : 'dark'; setTheme(next); localStorage.setItem('fb-theme', next); }
 
 function getCategoryStatus(spent, budget, dayOfMonth, daysInMonth, type = "expense") {
   // Investment: counts against budget but never flags — intentional spending
@@ -98,9 +95,6 @@ function HeroDonut({ segments, totalSpend, totalBudget, size = 180, hoveredLabel
   });
   const hovered = arcs.find(a => a.label === hoveredLabel);
   return (
-    <div style={{ minHeight: "100vh", background: theme === 'dark' ? "#0d0d0f" : "linear-gradient(135deg, #eef0f3 0%, #e8eaed 100%)", fontFamily: "'Sora', sans-serif", color: C.textHi, paddingBottom: 60, position: "relative", }}>
-    <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", background: theme === 'dark' ? `radial-gradient(ellipse at 10% 10%, rgba(193,127,62,0.14) 0%, transparent 50%), radial-gradient(ellipse at 90% 90%, rgba(193,127,62,0.09) 0%, transparent 50%)` : `radial-gradient(ellipse at 10% 15%, rgba(193,127,62,0.13) 0%, transparent 45%), radial-gradient(ellipse at 90% 85%, rgba(193,127,62,0.09) 0%, transparent 45%)`, }} />
-      <div style={{ position: "relative", zIndex: 1 }}> // ... your existing header + content </div>
       <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
       <svg viewBox="0 0 180 180" style={{ width: size, height: size, transform: "rotate(-90deg)" }}>
         <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.borderMid} strokeWidth={sw} />
@@ -437,7 +431,16 @@ export default function App() {
   const [editMember, setEditMember] = useState(null);
   const [memberForm, setMemberForm] = useState({ name: "", color: MEMBER_COLOR_PALETTE[0], role: "contributor" });
   const [ltForm, setLtForm] = useState({ name: "", saved: "", goal: "", color: PALETTE[0], targetDate: "", startDate: "", type: "fixed", monthlyContribution: "" });
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('fb-theme') || 'dark';
+  });
+  const C = theme === 'dark' ? DARK : LIGHT;
 
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark';
+  setTheme(next);
+  localStorage.setItem('fb-theme', next);
+}
   const categories = useMemo(() => Object.keys(budgets), [budgets]);
   const memberNames  = useMemo(() => members.map(m => m.name), [members]);
   const memberColors = useMemo(() => Object.fromEntries(members.map(m => [m.name, m.color])), [members]);
