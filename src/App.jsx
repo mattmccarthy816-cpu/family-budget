@@ -14,7 +14,7 @@ const truncate = (str, len = 45) => str && str.length > len ? str.slice(0, len) 
 
 const DARK = {
   bg: "#0d0d0f",
-  bgCard: "rgba(255,255,255,0.02)",
+  bgCard: "rgba(0,0,0,0.8)",
   bgInset: "rgba(193,127,62,0.04)",
   border: "rgba(193,127,62,0.12)",
   borderMid: "rgba(193,127,62,0.08)",
@@ -749,7 +749,7 @@ export default function App() {
           .del-btn { background: none; border: 1px solid #7f1d1d; color: #f87171; border-radius: 8px; padding: 8px 16px; font-family: 'Sora',sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
           .swatch { width: 20px; height: 20px; border-radius: 5px; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
           .swatch:hover { transform: scale(1.2); }
-          .card { background: ${theme === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.75)'}; border: 1px solid ${C.border}; border-radius: 16px; backdrop-filter: blur(20px); box-shadow: ${theme === 'dark' ? '0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(193,127,62,0.10)' : '0 4px 20px rgba(193,127,62,0.06), inset 0 1px 0 rgba(255,255,255,0.95)'}; }
+          .card { background: ${theme === 'dark' ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.75)'}; border: 1px solid ${C.border}; border-radius: 16px; backdrop-filter: blur(20px); box-shadow: ${theme === 'dark' ? '0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(193,127,62,0.10)' : '0 4px 20px rgba(193,127,62,0.06), inset 0 1px 0 rgba(255,255,255,0.95)'}; }
           .month-btn { background: none; border: 1px solid ${C.border}; color: ${C.textLo}; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-family: 'DM Mono',monospace; font-size: 12px; transition: all 0.15s; letter-spacing: 0.5px; }
           .month-btn:hover { border-color: ${C.accent}; color: ${C.accent}; }
           .lt-card { background: ${C.bgCard}; border: 1px solid ${C.border}; border-radius: 16px; padding: 20px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
