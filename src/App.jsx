@@ -755,7 +755,7 @@ export default function App() {
       <div style={{
         position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
         background: theme === 'dark'
-          ? `radial-gradient(ellipse at 10% 10%, rgba(193,127,62,0.14) 0%, transparent 50%), radial-gradient(ellipse at 90% 90%, rgba(193,127,62,0.09) 0%, transparent 50%)`
+          ? `radial-gradient(ellipse at 10% 10%, rgba(193,127,62,0.08) 0%, transparent 50%), radial-gradient(ellipse at 90% 90%, rgba(193,127,62,0.05) 0%, transparent 50%)`
           : `radial-gradient(ellipse at 10% 15%, rgba(193,127,62,0.13) 0%, transparent 45%), radial-gradient(ellipse at 90% 85%, rgba(193,127,62,0.09) 0%, transparent 45%)`,
       }} />
 
