@@ -14,7 +14,7 @@ const truncate = (str, len = 45) => str && str.length > len ? str.slice(0, len) 
 
 const DARK = {
   bg: "#0d0d0f",
-  bgCard: "rgba(0,0,0,0.2)",
+  bgCard: "rgba(255,255,255,0.05)",
   bgInset: "rgba(193,127,62,0.04)",
   border: "rgba(193,127,62,0.12)",
   borderMid: "rgba(193,127,62,0.08)",
@@ -189,10 +189,12 @@ function CategoryBar({ spent, budget, color, dayOfMonth, daysInMonth, type = "ex
   );
 }
 
-function Modal({ onClose, children }) {
+function Modal({ onClose, children, theme: _theme }) {
+  // Flat opaque background so content behind doesn't bleed through
+  const modalBg = (C === LIGHT) ? "#f0ece6" : "#1c1c1f";
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={onClose}>
-      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 20, padding: 28, width: "100%", maxWidth: 420, maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>{children}</div>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={onClose}>
+      <div style={{ background: modalBg, border: `1px solid ${C.border}`, borderRadius: 20, padding: 28, width: "100%", maxWidth: 420, maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>{children}</div>
     </div>
   );
 }
@@ -378,6 +380,9 @@ export default function App() {
   const [memberForm, setMemberForm] = useState({ name: "", color: MEMBER_COLOR_PALETTE[0], role: "contributor" });
   const [ltForm, setLtForm] = useState({ name: "", saved: "", goal: "", color: PALETTE[0], targetDate: "", startDate: "", type: "fixed", monthlyContribution: "" });
   const [theme, setTheme] = useState(() => localStorage.getItem('fb-theme') || 'dark');
+  const [profileOpen, setProfileOpen] = useState(false);
+  // Recurring nudge dismissals — stored as set of category names dismissed this session
+  const [dismissedNudges, setDismissedNudges] = useState(new Set());
 
   // Update the module-level C reference on every render
   C = theme === 'dark' ? DARK : LIGHT;
@@ -386,6 +391,7 @@ export default function App() {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     localStorage.setItem('fb-theme', next);
+    setProfileOpen(false);
   }
 
   const categories = useMemo(() => Object.keys(budgets), [budgets]);
@@ -550,6 +556,29 @@ export default function App() {
   }, [longTerm, now]);
 
   const sortedEntries = useMemo(() => [...entries].sort((a, b) => new Date(b.date) - new Date(a.date)), [entries]);
+
+  // ── Recurring nudges — detect fixed categories not yet logged this month ──
+  // Looks at last 2 months of entries per category to determine typical log day
+  const recurringNudges = useMemo(() => {
+    if (!isCurrentMonth) return [];
+    const nudges = [];
+    const fixedCats = categories.filter(c => (catTypes[c] || "expense") === "fixed");
+    fixedCats.forEach(cat => {
+      // Already logged this month — no nudge needed
+      if ((byCategory[cat] || 0) > 0) return;
+      // Find last 2 months of entries for this category
+      const past = allEntries.filter(e => e.category === cat && !e.date.startsWith(`${viewYear}-${String(viewMonth + 1).padStart(2, "0")}`));
+      if (past.length < 1) return; // never logged, no pattern to detect
+      // Get the days of month they were logged
+      const logDays = past.slice(0, 6).map(e => parseInt(e.date.slice(8, 10)));
+      const avgDay = Math.round(logDays.reduce((s, d) => s + d, 0) / logDays.length);
+      // Only nudge if we're at or past the typical day
+      if (dayOfMonth >= avgDay) {
+        nudges.push({ cat, avgDay, lastAmount: past[0].amount, count: Math.min(past.length, 3) });
+      }
+    });
+    return nudges;
+  }, [categories, catTypes, byCategory, allEntries, isCurrentMonth, viewYear, viewMonth, dayOfMonth]);
 
   function prevMonth() { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); } else setViewMonth(m => m - 1); }
   function nextMonth() { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); } else setViewMonth(m => m + 1); }
@@ -726,7 +755,7 @@ export default function App() {
       <div style={{
         position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
         background: theme === 'dark'
-          ? `radial-gradient(ellipse at 10% 10%, rgba(193,127,62,0.08) 0%, transparent 50%), radial-gradient(ellipse at 90% 90%, rgba(193,127,62,0.05) 0%, transparent 50%)`
+          ? `radial-gradient(ellipse at 10% 10%, rgba(193,127,62,0.14) 0%, transparent 50%), radial-gradient(ellipse at 90% 90%, rgba(193,127,62,0.09) 0%, transparent 50%)`
           : `radial-gradient(ellipse at 10% 15%, rgba(193,127,62,0.13) 0%, transparent 45%), radial-gradient(ellipse at 90% 85%, rgba(193,127,62,0.09) 0%, transparent 45%)`,
       }} />
 
@@ -749,7 +778,7 @@ export default function App() {
           .del-btn { background: none; border: 1px solid #7f1d1d; color: #f87171; border-radius: 8px; padding: 8px 16px; font-family: 'Sora',sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
           .swatch { width: 20px; height: 20px; border-radius: 5px; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
           .swatch:hover { transform: scale(1.2); }
-          .card { background: ${theme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.75)'}; border: 1px solid ${C.border}; border-radius: 16px; backdrop-filter: blur(20px); box-shadow: ${theme === 'dark' ? '0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(193,127,62,0.10)' : '0 4px 20px rgba(193,127,62,0.06), inset 0 1px 0 rgba(255,255,255,0.95)'}; }
+          .card { background: ${theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.75)'}; border: 1px solid ${C.border}; border-radius: 16px; backdrop-filter: blur(20px); box-shadow: ${theme === 'dark' ? '0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(193,127,62,0.10)' : '0 4px 20px rgba(193,127,62,0.06), inset 0 1px 0 rgba(255,255,255,0.95)'}; }
           .month-btn { background: none; border: 1px solid ${C.border}; color: ${C.textLo}; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-family: 'DM Mono',monospace; font-size: 12px; transition: all 0.15s; letter-spacing: 0.5px; }
           .month-btn:hover { border-color: ${C.accent}; color: ${C.accent}; }
           .lt-card { background: ${C.bgCard}; border: 1px solid ${C.border}; border-radius: 16px; padding: 20px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
@@ -794,6 +823,32 @@ export default function App() {
                     ))}
                   </div>
                   <button onClick={() => setView("add")} style={{ background: view === "add" ? C.accentDim : C.accent, border: `1px solid ${view === "add" ? C.accent : "transparent"}`, borderRadius: 9, color: "#fff", fontSize: 13, fontWeight: 700, padding: "9px 18px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Add</button>
+                  {/* Profile avatar */}
+                  <div style={{ position: "relative" }}>
+                    <button onClick={() => setProfileOpen(o => !o)} style={{ width: 36, height: 36, borderRadius: "50%", background: members[0]?.color + "25" || C.accentDim, border: `2px solid ${members[0]?.color || C.accent}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 14, fontWeight: 700, color: members[0]?.color || C.accent }}>
+                      {members[0]?.name?.[0] || "?"}
+                    </button>
+                    {profileOpen && (
+                      <div style={{ position: "absolute", top: 44, right: 0, background: theme === 'dark' ? "#1c1c1f" : "#f0ece6", border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 0", minWidth: 200, boxShadow: "0 8px 32px rgba(0,0,0,0.3)", zIndex: 200 }}>
+                        <div style={{ padding: "10px 16px 12px", borderBottom: `1px solid ${C.borderMid}` }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: C.textHi }}>{members[0]?.name || "Account"}</div>
+                          <div style={{ fontSize: 11, color: C.textLo, marginTop: 2 }}>family·budget</div>
+                        </div>
+                        <button onClick={toggleTheme} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
+                          <span>{theme === "dark" ? "☀️" : "🌙"}</span>
+                          {theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                        </button>
+                        <button onClick={() => { setView("settings"); setProfileOpen(false); }} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
+                          <span>⚙️</span> Settings
+                        </button>
+                        <div style={{ borderTop: `1px solid ${C.borderMid}`, marginTop: 4, paddingTop: 4 }}>
+                          <button onClick={() => setProfileOpen(false)} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textLo, display: "flex", alignItems: "center", gap: 10 }}>
+                            <span>🔓</span> Sign out <span style={{ fontSize: 10, color: C.textLo, marginLeft: 4 }}>(coming soon)</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -807,7 +862,35 @@ export default function App() {
                     </div>
                     <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", marginTop: 1, letterSpacing: 1 }}>{MONTH_NAMES[viewMonth].toUpperCase()} {viewYear}</div>
                   </div>
-                  <button onClick={() => setView("add")} style={{ background: C.accent, border: "none", borderRadius: 9, color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 16px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Add</button>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button onClick={() => setView("add")} style={{ background: C.accent, border: "none", borderRadius: 9, color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 16px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Add</button>
+                    {/* Profile avatar mobile */}
+                    <div style={{ position: "relative" }}>
+                      <button onClick={() => setProfileOpen(o => !o)} style={{ width: 32, height: 32, borderRadius: "50%", background: members[0]?.color + "25" || C.accentDim, border: `2px solid ${members[0]?.color || C.accent}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 12, fontWeight: 700, color: members[0]?.color || C.accent }}>
+                        {members[0]?.name?.[0] || "?"}
+                      </button>
+                      {profileOpen && (
+                        <div style={{ position: "fixed", top: 60, right: 12, background: theme === 'dark' ? "#1c1c1f" : "#f0ece6", border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 0", minWidth: 190, boxShadow: "0 8px 32px rgba(0,0,0,0.4)", zIndex: 200 }}>
+                          <div style={{ padding: "10px 16px 12px", borderBottom: `1px solid ${C.borderMid}` }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.textHi }}>{members[0]?.name || "Account"}</div>
+                            <div style={{ fontSize: 11, color: C.textLo, marginTop: 2 }}>family·budget</div>
+                          </div>
+                          <button onClick={toggleTheme} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
+                            <span>{theme === "dark" ? "☀️" : "🌙"}</span>
+                            {theme === "dark" ? "Light mode" : "Dark mode"}
+                          </button>
+                          <button onClick={() => { setView("settings"); setProfileOpen(false); }} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
+                            <span>⚙️</span> Settings
+                          </button>
+                          <div style={{ borderTop: `1px solid ${C.borderMid}`, marginTop: 4, paddingTop: 4 }}>
+                            <button onClick={() => setProfileOpen(false)} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textLo, display: "flex", alignItems: "center", gap: 10 }}>
+                              <span>🔓</span> Sign out <span style={{ fontSize: 10, color: C.textLo }}>(soon)</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <div style={{ borderTop: `1px solid ${C.border}`, marginLeft: -16, marginRight: -16, padding: "4px 6px", display: "flex", background: theme === 'dark' ? "rgba(13,13,15,0.88)" : "rgba(238,240,243,0.88)", gap: 2 }}>
                   {[["dashboard","Dashboard"],["review","Review"],["trends","Trends"],["longterm","Long Term"],["settings","Settings"]].map(([v, label]) => (
@@ -1124,6 +1207,38 @@ export default function App() {
                     </div>
                   )}
 
+                  {/* Recurring nudges */}
+                  {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && (
+                    <div style={{ marginBottom: 16 }}>
+                      {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).map(nudge => (
+                        <div key={nudge.cat} className="card" style={{ padding: "14px 18px", marginBottom: 8, display: "flex", alignItems: "center", gap: 14, borderLeft: `3px solid ${C.accent}` }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: C.textHi, marginBottom: 2 }}>
+                              Log {nudge.cat}?
+                            </div>
+                            <div style={{ fontSize: 11, color: C.textLo }}>
+                              You've logged this {nudge.count > 1 ? `${nudge.count} months in a row` : "last month"} — usually around the {nudge.avgDay}{nudge.avgDay === 1 ? "st" : nudge.avgDay === 2 ? "nd" : nudge.avgDay === 3 ? "rd" : "th"}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setForm({ member: memberNames[0] || "", category: nudge.cat, amount: String(nudge.lastAmount), notes: "" });
+                              setView("add");
+                              setDismissedNudges(prev => new Set([...prev, nudge.cat]));
+                            }}
+                            style={{ background: C.accent, border: "none", borderRadius: 8, color: "#fff", fontSize: 12, fontWeight: 700, padding: "8px 14px", cursor: "pointer", fontFamily: "'Sora',sans-serif", whiteSpace: "nowrap" }}>
+                            Log it →
+                          </button>
+                          <button
+                            onClick={() => setDismissedNudges(prev => new Set([...prev, nudge.cat]))}
+                            style={{ background: "none", border: "none", color: C.textLo, fontSize: 16, cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Sections + Breakdown */}
                   {isDesktop ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1361,8 +1476,8 @@ export default function App() {
 
                     {/* Member edit modal */}
                     {editMember !== null && (
-                      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}>
-                        <div className="card" style={{ width: "100%", maxWidth: 380, padding: 24, display: "flex", flexDirection: "column", gap: 18 }}>
+                      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}>
+                        <div style={{ background: C === LIGHT ? "#f0ece6" : "#1c1c1f", border: `1px solid ${C.border}`, borderRadius: 20, width: "100%", maxWidth: 380, padding: 24, display: "flex", flexDirection: "column", gap: 18 }}>
                           <div style={{ fontSize: 15, fontWeight: 700, color: C.textHi }}>{editMember === "new" ? "Add Member" : `Edit ${editMember}`}</div>
                           <div><FL>Name</FL><input className="inp" value={memberForm.name} onChange={e => setMemberForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Jordan" /></div>
                           <div><FL>Role</FL>
@@ -1795,7 +1910,7 @@ export default function App() {
                 categories.forEach(c => { revByCat[c] = 0; prevByCat[c] = 0; });
                 revEntries.forEach(e => { if (revByCat[e.category] !== undefined) revByCat[e.category] += e.amount; });
                 prevEntries.forEach(e => { if (prevByCat[e.category] !== undefined) prevByCat[e.category] += e.amount; });
-                const alertableCats = categories.filter(c => (catTypes[c] || "expense") !== "investment");
+                const alertableCats = categories.filter(c => (catTypes[c] || "expense") === "expense");
                 const catsWithSpend = alertableCats.filter(c => revByCat[c] > 0 || budgets[c] > 0);
                 const catPct = c => budgets[c] > 0 ? revByCat[c] / budgets[c] : 0;
                 const sorted = [...catsWithSpend].sort((a, b) => catPct(b) - catPct(a));
@@ -1857,7 +1972,7 @@ export default function App() {
                 const summaryText = buildSummary();
 
                 const StatTile = ({ label, value, sub, color }) => (
-                  <div style={{ background: C.bgInset, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: "14px 16px", flex: 1, minWidth: 100 }}>
+                  <div className="card" style={{ padding: "14px 16px", flex: 1, minWidth: 100 }}>
                     <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 6 }}>{label}</div>
                     <div style={{ fontSize: 22, fontWeight: 800, color: color || C.textHi, fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
                     {sub && <div style={{ fontSize: 10, color: C.textLo, marginTop: 5 }}>{sub}</div>}
