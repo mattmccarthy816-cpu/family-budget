@@ -14,7 +14,7 @@ const truncate = (str, len = 45) => str && str.length > len ? str.slice(0, len) 
 
 const DARK = {
   bg: "#0d0d0f",
-  bgCard: "rgba(0,0,0,0.2)",
+  bgCard: "rgba(255,255,255,0.05)",
   bgInset: "rgba(193,127,62,0.04)",
   border: "rgba(193,127,62,0.12)",
   borderMid: "rgba(193,127,62,0.08)",
@@ -381,8 +381,16 @@ export default function App() {
   const [ltForm, setLtForm] = useState({ name: "", saved: "", goal: "", color: PALETTE[0], targetDate: "", startDate: "", type: "fixed", monthlyContribution: "" });
   const [theme, setTheme] = useState(() => localStorage.getItem('fb-theme') || 'dark');
   const [profileOpen, setProfileOpen] = useState(false);
-  // Recurring nudge dismissals — stored as set of category names dismissed this session
-  const [dismissedNudges, setDismissedNudges] = useState(new Set());
+  // Nudge dismissals persisted to localStorage per month
+  const nudgeKey = `copper-dismissed-${now.getFullYear()}-${now.getMonth()}`;
+  const [dismissedNudges, setDismissedNudges] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(nudgeKey) || '[]')); } catch { return new Set(); }
+  });
+  function dismissNudge(cat) {
+    const next = new Set([...dismissedNudges, cat]);
+    setDismissedNudges(next);
+    localStorage.setItem(nudgeKey, JSON.stringify([...next]));
+  }
 
   // Update the module-level C reference on every render
   C = theme === 'dark' ? DARK : LIGHT;
@@ -755,14 +763,14 @@ export default function App() {
       <div style={{
         position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
         background: theme === 'dark'
-          ? `radial-gradient(ellipse at 10% 10%, rgba(193,127,62,0.08) 0%, transparent 50%), radial-gradient(ellipse at 90% 90%, rgba(193,127,62,0.05) 0%, transparent 50%)`
+          ? `radial-gradient(ellipse at 10% 10%, rgba(193,127,62,0.14) 0%, transparent 50%), radial-gradient(ellipse at 90% 90%, rgba(193,127,62,0.09) 0%, transparent 50%)`
           : `radial-gradient(ellipse at 10% 15%, rgba(193,127,62,0.13) 0%, transparent 45%), radial-gradient(ellipse at 90% 85%, rgba(193,127,62,0.09) 0%, transparent 45%)`,
       }} />
 
       {/* All content sits above the glow */}
       <div style={{ position: "relative", zIndex: 1 }}>
 
-        <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&family=Montserrat:wght@500&display=swap" rel="stylesheet" />
         <style>{`
           * { box-sizing: border-box; margin: 0; padding: 0; }
           ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 3px; }
@@ -778,7 +786,7 @@ export default function App() {
           .del-btn { background: none; border: 1px solid #7f1d1d; color: #f87171; border-radius: 8px; padding: 8px 16px; font-family: 'Sora',sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
           .swatch { width: 20px; height: 20px; border-radius: 5px; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
           .swatch:hover { transform: scale(1.2); }
-          .card { background: ${theme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.75)'}; border: 1px solid ${C.border}; border-radius: 16px; backdrop-filter: blur(20px); box-shadow: ${theme === 'dark' ? '0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(193,127,62,0.10)' : '0 4px 20px rgba(193,127,62,0.06), inset 0 1px 0 rgba(255,255,255,0.95)'}; }
+          .card { background: ${theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.75)'}; border: 1px solid ${C.border}; border-radius: 16px; backdrop-filter: blur(20px); box-shadow: ${theme === 'dark' ? '0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(193,127,62,0.10)' : '0 4px 20px rgba(193,127,62,0.06), inset 0 1px 0 rgba(255,255,255,0.95)'}; }
           .month-btn { background: none; border: 1px solid ${C.border}; color: ${C.textLo}; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-family: 'DM Mono',monospace; font-size: 12px; transition: all 0.15s; letter-spacing: 0.5px; }
           .month-btn:hover { border-color: ${C.accent}; color: ${C.accent}; }
           .lt-card { background: ${C.bgCard}; border: 1px solid ${C.border}; border-radius: 16px; padding: 20px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
@@ -810,24 +818,34 @@ export default function App() {
             {isDesktop ? (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 60 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: -0.5 }}>
-                    <span style={{ color: C.accent }}>family</span><span style={{ color: C.textLo, fontWeight: 300 }}>·</span><span style={{ color: C.sand }}>budget</span>
+                  {/* COPPER wordmark */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 18, letterSpacing: "0.035em", color: "#ffffff" }}>COPPER</span>
+                    <div style={{ width: 2, height: 28, background: C.accent, borderRadius: 1 }} />
+                    <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
+                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 7.5, letterSpacing: "0.16em", color: "#ffffff" }}>PERSONAL</span>
+                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 7.5, letterSpacing: "0.16em", color: "#ffffff" }}>FINANCE</span>
+                    </div>
                   </div>
-                  {alertCount > 0 && <span style={{ background: overCount > 0 ? "#ef444418" : "#f9731618", color: overCount > 0 ? "#ef4444" : "#f97316", border: `1px solid ${overCount > 0 ? "#7f1d1d" : "#7c2d12"}`, fontSize: 10, fontWeight: 700, borderRadius: 999, padding: "2px 9px", fontFamily: "'DM Mono',monospace" }}>{alertCount} alert{alertCount > 1 ? "s" : ""}</span>}
                   {syncing && <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>SYNCING</span>}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ display: "flex", gap: 2, background: C.bgInset, borderRadius: 10, padding: 3 }}>
-                    {[["dashboard","Budget Dashboard"],["review","Review"],["trends","Trends"],["longterm","Long Term Goals"],["settings","Settings"]].map(([v, label]) => (
+                    {[["dashboard","Dashboard"],["review","Review"],["trends","Trends"],["longterm","Goals"]].map(([v, label]) => (
                       <button key={v} className={`npill ${view === v ? "active" : ""}`} onClick={() => setView(v)}>{label}</button>
                     ))}
                   </div>
                   <button onClick={() => setView("add")} style={{ background: view === "add" ? C.accentDim : C.accent, border: `1px solid ${view === "add" ? C.accent : "transparent"}`, borderRadius: 9, color: "#fff", fontSize: 13, fontWeight: 700, padding: "9px 18px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Add</button>
-                  {/* Profile avatar */}
+                  {/* Profile avatar with alert badge */}
                   <div style={{ position: "relative" }}>
                     <button onClick={() => setProfileOpen(o => !o)} style={{ width: 36, height: 36, borderRadius: "50%", background: members[0]?.color + "25" || C.accentDim, border: `2px solid ${members[0]?.color || C.accent}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 14, fontWeight: 700, color: members[0]?.color || C.accent }}>
                       {members[0]?.name?.[0] || "?"}
                     </button>
+                    {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && (
+                      <div style={{ position: "absolute", bottom: -2, right: -2, background: "#f85149", color: "#fff", fontSize: 9, fontWeight: 800, borderRadius: "50%", width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace", border: `1.5px solid ${theme === 'dark' ? '#0d0d0f' : '#eef0f3'}` }}>
+                        {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 9 ? "9+" : recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length}
+                      </div>
+                    )}
                     {profileOpen && (
                       <div style={{ position: "absolute", top: 44, right: 0, background: theme === 'dark' ? "#1c1c1f" : "#f0ece6", border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 0", minWidth: 200, boxShadow: "0 8px 32px rgba(0,0,0,0.3)", zIndex: 200 }}>
                         <div style={{ padding: "10px 16px 12px", borderBottom: `1px solid ${C.borderMid}` }}>
@@ -837,6 +855,10 @@ export default function App() {
                         <button onClick={toggleTheme} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
                           <span>{theme === "dark" ? "☀️" : "🌙"}</span>
                           {theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                        </button>
+                        <button onClick={() => { setView("alerts"); setProfileOpen(false); }} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span>🔔</span> Alerts & Reminders</div>
+                          {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && <span style={{ background: "#f85149", color: "#fff", fontSize: 9, fontWeight: 800, borderRadius: 999, padding: "1px 6px", fontFamily: "'DM Mono',monospace" }}>{recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length}</span>}
                         </button>
                         <button onClick={() => { setView("settings"); setProfileOpen(false); }} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
                           <span>⚙️</span> Settings
@@ -855,12 +877,16 @@ export default function App() {
               <div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 52 }}>
                   <div>
-                    <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.5, display: "flex", alignItems: "center", gap: 7 }}>
-                      <span style={{ color: C.accent }}>family</span><span style={{ color: C.textLo, fontWeight: 300 }}>·</span><span style={{ color: C.sand }}>budget</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 16, letterSpacing: "0.035em", color: "#ffffff" }}>COPPER</span>
+                      <div style={{ width: 1.5, height: 22, background: C.accent, borderRadius: 1 }} />
+                      <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
+                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 6.5, letterSpacing: "0.16em", color: "#ffffff" }}>PERSONAL</span>
+                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 6.5, letterSpacing: "0.16em", color: "#ffffff" }}>FINANCE</span>
+                      </div>
                       {alertCount > 0 && <span style={{ background: overCount > 0 ? "#ef444418" : "#f9731618", color: overCount > 0 ? "#ef4444" : "#f97316", border: `1px solid ${overCount > 0 ? "#7f1d1d" : "#7c2d12"}`, fontSize: 9, fontWeight: 700, borderRadius: 999, padding: "2px 7px", fontFamily: "'DM Mono',monospace" }}>{alertCount}</span>}
                       {syncing && <span style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>SYNC</span>}
                     </div>
-                    <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", marginTop: 1, letterSpacing: 1 }}>{MONTH_NAMES[viewMonth].toUpperCase()} {viewYear}</div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <button onClick={() => setView("add")} style={{ background: C.accent, border: "none", borderRadius: 9, color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 16px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Add</button>
@@ -869,6 +895,11 @@ export default function App() {
                       <button onClick={() => setProfileOpen(o => !o)} style={{ width: 32, height: 32, borderRadius: "50%", background: members[0]?.color + "25" || C.accentDim, border: `2px solid ${members[0]?.color || C.accent}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 12, fontWeight: 700, color: members[0]?.color || C.accent }}>
                         {members[0]?.name?.[0] || "?"}
                       </button>
+                      {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && (
+                        <div style={{ position: "absolute", bottom: -2, right: -2, background: "#f85149", color: "#fff", fontSize: 9, fontWeight: 800, borderRadius: "50%", width: 15, height: 15, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace", border: `1.5px solid ${theme === 'dark' ? '#0d0d0f' : '#eef0f3'}` }}>
+                          {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 9 ? "9+" : recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length}
+                        </div>
+                      )}
                       {profileOpen && (
                         <div style={{ position: "fixed", top: 60, right: 12, background: theme === 'dark' ? "#1c1c1f" : "#f0ece6", border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 0", minWidth: 190, boxShadow: "0 8px 32px rgba(0,0,0,0.4)", zIndex: 200 }}>
                           <div style={{ padding: "10px 16px 12px", borderBottom: `1px solid ${C.borderMid}` }}>
@@ -878,6 +909,10 @@ export default function App() {
                           <button onClick={toggleTheme} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
                             <span>{theme === "dark" ? "☀️" : "🌙"}</span>
                             {theme === "dark" ? "Light mode" : "Dark mode"}
+                          </button>
+                          <button onClick={() => { setView("alerts"); setProfileOpen(false); }} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span>🔔</span> Alerts</div>
+                            {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && <span style={{ background: "#f85149", color: "#fff", fontSize: 9, fontWeight: 800, borderRadius: 999, padding: "1px 6px", fontFamily: "'DM Mono',monospace" }}>{recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length}</span>}
                           </button>
                           <button onClick={() => { setView("settings"); setProfileOpen(false); }} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
                             <span>⚙️</span> Settings
@@ -893,7 +928,7 @@ export default function App() {
                   </div>
                 </div>
                 <div style={{ borderTop: `1px solid ${C.border}`, marginLeft: -16, marginRight: -16, padding: "4px 6px", display: "flex", background: theme === 'dark' ? "rgba(13,13,15,0.88)" : "rgba(238,240,243,0.88)", gap: 2 }}>
-                  {[["dashboard","Dashboard"],["review","Review"],["trends","Trends"],["longterm","Long Term"],["settings","Settings"]].map(([v, label]) => (
+                  {[["dashboard","Dashboard"],["review","Review"],["trends","Trends"],["longterm","Goals"]].map(([v, label]) => (
                     <button key={v} onClick={() => setView(v)} style={{ flex: 1, textAlign: "center", fontSize: 11, padding: "8px 2px", borderRadius: 7, border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontWeight: view === v ? 600 : 500, background: view === v ? C.accentDim : "transparent", color: view === v ? C.accent : C.textMid, transition: "all 0.15s" }}>{label}</button>
                   ))}
                 </div>
