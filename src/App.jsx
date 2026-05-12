@@ -805,7 +805,35 @@ export default function App() {
           @keyframes spin { to { transform: rotate(360deg); } }
         `}</style>
 
-{/* ─── HEADER ─────────────────────────────────────────────────────────────── */}
+{/*
+  ─── REQUIRED: Add these to your global CSS ───────────────────────────────
+  Prevents overscroll bounce from making the fixed nav appear to jump,
+  and kills the blue tap flash globally on all interactive elements.
+
+  html, body {
+    overscroll-behavior: none;       // stops rubber-band scroll on iOS/Android
+    -webkit-overflow-scrolling: touch;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;  // global tap highlight kill
+  }
+
+  button, a {
+    outline: none;
+    user-select: none;
+  }
+
+  Also ensure your main content wrapper has bottom padding so content
+  doesn't hide under the nav:
+
+  .main-content {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+  ─────────────────────────────────────────────────────────────────────────
+*/}
+
+
 <header style={{
   background: theme === 'dark' ? "rgba(13,13,15,0.88)" : "rgba(238,240,243,0.88)",
   backdropFilter: "blur(20px)",
@@ -933,6 +961,128 @@ export default function App() {
   </div>
 </header>
 
+
+{/* ─── MOBILE BOTTOM NAV (mobile only) ────────────────────────────────────── */}
+{!isDesktop && (
+  <nav style={{
+    position: "fixed",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    // Extra height to give FAB room to breathe above the bar
+    height: "calc(72px + env(safe-area-inset-bottom))",
+  }}>
+    {/* SVG notch background — taller to accommodate FAB fully */}
+    <svg
+      viewBox="0 0 390 72"
+      preserveAspectRatio="none"
+      style={{ display: "block", width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }}
+    >
+      <path
+        d={`
+          M0,0
+          L148,0
+          C160,0 165,4 170,14
+          Q180,38 195,38
+          Q210,38 220,14
+          C225,4 230,0 242,0
+          L390,0
+          L390,72
+          L0,72
+          Z
+        `}
+        fill={theme === 'dark' ? "#141008" : "#f0ece6"}
+      />
+      {/* Top border line split around notch */}
+      <path
+        d={`M0,0.5 L148,0.5 C160,0.5 165,4.5 170,14.5 Q180,38.5 195,38.5 Q210,38.5 220,14.5 C225,4.5 230,0.5 242,0.5 L390,0.5`}
+        fill="none"
+        stroke={theme === 'dark' ? "#2A2218" : "#d8d0c8"}
+        strokeWidth="1"
+      />
+    </svg>
+
+    {/* Tab items */}
+    <div style={{
+      position: "relative",
+      display: "flex",
+      alignItems: "flex-end",
+      justifyContent: "space-around",
+      height: "100%",
+      paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
+    }}>
+      {/* Dashboard */}
+      <button onClick={() => setView("dashboard")} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "none", border: "none", cursor: "pointer", paddingBottom: 4, WebkitTapHighlightColor: "transparent", outline: "none", userSelect: "none" }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill={view === "dashboard" ? "none" : "none"} stroke={view === "dashboard" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83")} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          {view === "dashboard"
+            ? <><rect x="3" y="3" width="8" height="8" rx="2" fill={C.accent} stroke="none"/><rect x="13" y="3" width="8" height="8" rx="2" fill={C.accent} stroke="none" opacity="0.5"/><rect x="3" y="13" width="8" height="8" rx="2" fill={C.accent} stroke="none" opacity="0.5"/><rect x="13" y="13" width="8" height="8" rx="2" fill={C.accent} stroke="none" opacity="0.5"/></>
+            : <><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></>
+          }
+        </svg>
+        <span style={{ fontSize: 10, fontFamily: "'Sora',sans-serif", fontWeight: view === "dashboard" ? 700 : 400, color: view === "dashboard" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83") }}>Dashboard</span>
+      </button>
+
+      {/* Review */}
+      <button onClick={() => setView("review")} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "none", border: "none", cursor: "pointer", paddingBottom: 4, WebkitTapHighlightColor: "transparent", outline: "none", userSelect: "none" }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={view === "review" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83")} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          {view === "review"
+            ? <><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill={C.accent} stroke="none"/><polyline points="14 2 14 8 20 8" stroke={theme === 'dark' ? "#141008" : "#f0ece6"} strokeWidth="1.5"/><line x1="16" y1="13" x2="8" y2="13" stroke={theme === 'dark' ? "#141008" : "#f0ece6"} strokeWidth="1.5"/><line x1="16" y1="17" x2="8" y2="17" stroke={theme === 'dark' ? "#141008" : "#f0ece6"} strokeWidth="1.5"/></>
+            : <><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>
+          }
+        </svg>
+        <span style={{ fontSize: 10, fontFamily: "'Sora',sans-serif", fontWeight: view === "review" ? 700 : 400, color: view === "review" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83") }}>Review</span>
+      </button>
+
+      {/* ── Center FAB ── */}
+      <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "flex-start", position: "relative" }}>
+        <button
+          onClick={() => setView("add")}
+          style={{
+            width: 56, height: 56,
+            borderRadius: "50%",
+            background: C.accent,
+            border: `3px solid ${theme === 'dark' ? "#141008" : "#f0ece6"}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
+            position: "absolute",
+            top: -44,
+            // Kill tap highlight and selection
+            WebkitTapHighlightColor: "transparent",
+            outline: "none",
+            userSelect: "none",
+          }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={theme === 'dark' ? "#1A1008" : "#fff"} strokeWidth="2.5" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* Trends */}
+      <button onClick={() => setView("trends")} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "none", border: "none", cursor: "pointer", paddingBottom: 4, WebkitTapHighlightColor: "transparent", outline: "none", userSelect: "none" }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={view === "trends" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83")} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          {view === "trends"
+            ? <><polyline points="3 17 8 12 13 14 21 7" stroke={C.accent} strokeWidth="2.2"/><line x1="3" y1="21" x2="21" y2="21"/></>
+            : <><polyline points="3 17 8 12 13 14 21 7"/><line x1="3" y1="21" x2="21" y2="21"/></>
+          }
+        </svg>
+        <span style={{ fontSize: 10, fontFamily: "'Sora',sans-serif", fontWeight: view === "trends" ? 700 : 400, color: view === "trends" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83") }}>Trends</span>
+      </button>
+
+      {/* Goals */}
+      <button onClick={() => setView("longterm")} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "none", border: "none", cursor: "pointer", paddingBottom: 4, WebkitTapHighlightColor: "transparent", outline: "none", userSelect: "none" }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={view === "longterm" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83")} strokeWidth="1.8" strokeLinecap="round">
+          <circle cx="12" cy="12" r="9"/>
+          <circle cx="12" cy="12" r="5"/>
+          <circle cx="12" cy="12" r="1" fill={view === "longterm" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83")} stroke="none"/>
+        </svg>
+        <span style={{ fontSize: 10, fontFamily: "'Sora',sans-serif", fontWeight: view === "longterm" ? 700 : 400, color: view === "longterm" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83") }}>Goals</span>
+      </button>
+    </div>
+  </nav>
+)}
 
 {/* ─── MOBILE BOTTOM NAV (mobile only) ────────────────────────────────────── */}
 {!isDesktop && (
