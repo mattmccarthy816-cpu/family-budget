@@ -757,7 +757,7 @@ export default function App() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: theme === 'dark' ? "#0d0d0f" : "linear-gradient(135deg, #eef0f3 0%, #e8eaed 100%)", fontFamily: "'Sora', sans-serif", color: C.textHi, paddingBottom: 60 }}>
+    <div style={{ minHeight: "100vh", background: theme === 'dark' ? "#0d0d0f" : "linear-gradient(135deg, #eef0f3 0%, #e8eaed 100%)", fontFamily: "'Sora', sans-serif", color: C.textHi, paddingBottom: 0 }}>
 
       {/* Ambient copper glow overlay */}
       <div style={{
@@ -772,38 +772,43 @@ export default function App() {
 
         <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&family=Montserrat:wght@500&display=swap" rel="stylesheet" />
         <style>{`
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 3px; }
-          .npill { background: none; border: none; cursor: pointer; font-family: 'Sora',sans-serif; font-size: 13px; font-weight: 500; padding: 8px 15px; border-radius: 8px; transition: all 0.18s; color: ${C.textMid}; }
-          .npill.active { background: ${C.accentDim}; color: ${C.accent}; font-weight: 700; }
-          .npill:hover:not(.active) { color: ${C.textMid}; }
-          .inp { width: 100%; background: ${C.bgInset}; border: 1px solid ${C.border}; border-radius: 10px; padding: 12px 14px; color: ${C.textHi}; font-family: 'Sora',sans-serif; font-size: 14px; outline: none; transition: border 0.18s; appearance: none; }
-          .inp:focus { border-color: ${C.accent}; }
-          .chip { display: inline-flex; align-items: center; gap: 5px; padding: 6px 13px; border-radius: 999px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; font-family: 'Sora',sans-serif; transition: all 0.15s; }
-          .cta { width: 100%; padding: 13px; border-radius: 11px; border: none; background: ${C.accent}; color: #fff; font-size: 14px; font-weight: 700; font-family: 'Sora',sans-serif; cursor: pointer; transition: opacity 0.2s; }
-          .cta:hover { opacity: 0.85; }
-          .cta:disabled { opacity: 0.35; cursor: not-allowed; }
-          .del-btn { background: none; border: 1px solid #7f1d1d; color: #f87171; border-radius: 8px; padding: 8px 16px; font-family: 'Sora',sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
-          .swatch { width: 20px; height: 20px; border-radius: 5px; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
-          .swatch:hover { transform: scale(1.2); }
-          .card { background: ${theme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.75)'}; border: 1px solid ${C.border}; border-radius: 16px; backdrop-filter: blur(20px); box-shadow: ${theme === 'dark' ? '0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(193,127,62,0.10)' : '0 4px 20px rgba(193,127,62,0.06), inset 0 1px 0 rgba(255,255,255,0.95)'}; }
-          .month-btn { background: none; border: 1px solid ${C.border}; color: ${C.textLo}; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-family: 'DM Mono',monospace; font-size: 12px; transition: all 0.15s; letter-spacing: 0.5px; }
-          .month-btn:hover { border-color: ${C.accent}; color: ${C.accent}; }
-          .lt-card { background: ${C.bgCard}; border: 1px solid ${C.border}; border-radius: 16px; padding: 20px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
-          .lt-card:hover { background: ${C.bgInset}; border-color: ${C.sandDim}; }
-          .tr-hdr { display: grid; grid-template-columns: 90px 52px 1fr 90px 1fr; border-bottom: 1px solid ${C.border}; padding-bottom: 8px; }
-          .tr-row { display: grid; grid-template-columns: 90px 52px 1fr 90px 1fr; border-bottom: 1px solid ${C.borderMid}; cursor: pointer; transition: background 0.12s; }
-          .tr-row:hover { background: ${C.bgInset}; }
-          .tr-row:last-child { border-bottom: none; }
-          .tr-hdr-m { display: grid; grid-template-columns: 64px 1fr 72px; border-bottom: 1px solid ${C.border}; padding-bottom: 8px; }
-          .tr-row-m { display: grid; grid-template-columns: 64px 1fr 72px; border-bottom: 1px solid ${C.borderMid}; cursor: pointer; transition: background 0.12s; }
-          .tr-row-m:hover { background: ${C.bgInset}; }
-          .tr-row-m:last-child { border-bottom: none; }
-          .tc { padding: 10px 10px; font-size: 12px; color: ${C.textMid}; display: flex; align-items: center; }
-          @keyframes fu { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-          .fu { animation: fu 0.3s cubic-bezier(.4,0,.2,1) both; }
-          @keyframes spin { to { transform: rotate(360deg); } }
-        `}</style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { overscroll-behavior: none; -webkit-overflow-scrolling: touch; }
+  button, a { outline: none; user-select: none; }
+  ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 3px; }
+  .npill { background: none; border: none; cursor: pointer; font-family: 'Sora',sans-serif; font-size: 13px; font-weight: 500; padding: 8px 15px; border-radius: 8px; transition: all 0.18s; color: ${C.textMid}; }
+  .npill.active { background: ${C.accentDim}; color: ${C.accent}; font-weight: 700; }
+  .npill:hover:not(.active) { color: ${C.textMid}; }
+  .inp { width: 100%; background: ${C.bgInset}; border: 1px solid ${C.border}; border-radius: 10px; padding: 12px 14px; color: ${C.textHi}; font-family: 'Sora',sans-serif; font-size: 14px; outline: none; transition: border 0.18s; appearance: none; }
+  .inp:focus { border-color: ${C.accent}; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; padding: 6px 13px; border-radius: 999px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; font-family: 'Sora',sans-serif; transition: all 0.15s; }
+  .cta { width: 100%; padding: 13px; border-radius: 11px; border: none; background: ${C.accent}; color: #fff; font-size: 14px; font-weight: 700; font-family: 'Sora',sans-serif; cursor: pointer; transition: opacity 0.2s; }
+  .cta:hover { opacity: 0.85; }
+  .cta:disabled { opacity: 0.35; cursor: not-allowed; }
+  .del-btn { background: none; border: 1px solid #7f1d1d; color: #f87171; border-radius: 8px; padding: 8px 16px; font-family: 'Sora',sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .swatch { width: 20px; height: 20px; border-radius: 5px; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
+  .swatch:hover { transform: scale(1.2); }
+  .card { background: ${theme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.75)'}; border: 1px solid ${C.border}; border-radius: 16px; backdrop-filter: blur(20px); box-shadow: ${theme === 'dark' ? '0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(193,127,62,0.10)' : '0 4px 20px rgba(193,127,62,0.06), inset 0 1px 0 rgba(255,255,255,0.95)'}; }
+  .month-btn { background: none; border: 1px solid ${C.border}; color: ${C.textLo}; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-family: 'DM Mono',monospace; font-size: 12px; transition: all 0.15s; letter-spacing: 0.5px; }
+  .month-btn:hover { border-color: ${C.accent}; color: ${C.accent}; }
+  .lt-card { background: ${C.bgCard}; border: 1px solid ${C.border}; border-radius: 16px; padding: 20px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .lt-card:hover { background: ${C.bgInset}; border-color: ${C.sandDim}; }
+  .tr-hdr { display: grid; grid-template-columns: 90px 52px 1fr 90px 1fr; border-bottom: 1px solid ${C.border}; padding-bottom: 8px; }
+  .tr-row { display: grid; grid-template-columns: 90px 52px 1fr 90px 1fr; border-bottom: 1px solid ${C.borderMid}; cursor: pointer; transition: background 0.12s; }
+  .tr-row:hover { background: ${C.bgInset}; }
+  .tr-row:last-child { border-bottom: none; }
+  .tr-hdr-m { display: grid; grid-template-columns: 64px 1fr 72px; border-bottom: 1px solid ${C.border}; padding-bottom: 8px; }
+  .tr-row-m { display: grid; grid-template-columns: 64px 1fr 72px; border-bottom: 1px solid ${C.borderMid}; cursor: pointer; transition: background 0.12s; }
+  .tr-row-m:hover { background: ${C.bgInset}; }
+  .tr-row-m:last-child { border-bottom: none; }
+  .tc { padding: 10px 10px; font-size: 12px; color: ${C.textMid}; display: flex; align-items: center; }
+  @keyframes fu { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .fu { animation: fu 0.3s cubic-bezier(.4,0,.2,1) both; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes barPulse { 0%, 100% { transform: scaleY(0.4); opacity: 0.3; } 50% { transform: scaleY(1); opacity: 1; } }
+  .load-bar { border-radius: 999px; animation: barPulse 1.2s ease-in-out infinite; transform-origin: bottom; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+`}</style>
 
 {/*
   ─── REQUIRED: Add these to your global CSS ───────────────────────────────
@@ -1046,7 +1051,7 @@ export default function App() {
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer",
             position: "absolute",
-            top: -44,
+            top: -38,
             // Kill tap highlight and selection
             WebkitTapHighlightColor: "transparent",
             outline: "none",
@@ -1180,7 +1185,7 @@ export default function App() {
           </Modal>
         )}
 
-        <div style={{ maxWidth: mw, margin: "0 auto", padding: isDesktop ? "28px 24px" : "20px 16px" }}>
+        <div style={{ maxWidth: mw, margin: "0 auto", padding: isDesktop ? "28px 24px" : "20px 16px", paddingBottom: isDesktop ? "28px" : "calc(88px + env(safe-area-inset-bottom))" }}>
           {loading ? <Spinner /> : error ? (
             <div style={{ textAlign: "center", padding: 48 }}>
               <div style={{ fontSize: 12, color: "#ef4444", marginBottom: 12, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>CONNECTION ERROR</div>
