@@ -805,137 +805,252 @@ export default function App() {
           @keyframes spin { to { transform: rotate(360deg); } }
         `}</style>
 
-        {/* HEADER */}
-        <header style={{
-          background: theme === 'dark' ? "rgba(13,13,15,0.88)" : "rgba(238,240,243,0.88)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          borderBottom: `1px solid ${C.border}`,
-          padding: isDesktop ? "0 24px" : "0 16px",
-          position: "sticky", top: 0, zIndex: 100
-        }}>
-          <div style={{ maxWidth: mw, margin: "0 auto" }}>
-            {isDesktop ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 60 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  {/* COPPER wordmark */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 18, letterSpacing: "0.035em", color: "#ffffff" }}>BRAND</span>
-                    <div style={{ width: 2, height: 28, background: C.accent, borderRadius: 1 }} />
-                    <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
-                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, fontSize: 7.5, letterSpacing: "0.16em", color: "#ffffff" }}>PERSONAL</span>
-                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, fontSize: 7.5, letterSpacing: "0.16em", color: "#ffffff" }}>FINANCE</span>
-                    </div>
-                  </div>
-                  {syncing && <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>SYNCING</span>}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ display: "flex", gap: 2, background: C.bgInset, borderRadius: 10, padding: 3 }}>
-                    {[["dashboard","Dashboard"],["review","Review"],["trends","Trends"],["longterm","Goals"]].map(([v, label]) => (
-                      <button key={v} className={`npill ${view === v ? "active" : ""}`} onClick={() => setView(v)}>{label}</button>
-                    ))}
-                  </div>
-                  <button onClick={() => setView("add")} style={{ background: view === "add" ? C.accentDim : C.accent, border: `1px solid ${view === "add" ? C.accent : "transparent"}`, borderRadius: 9, color: "#fff", fontSize: 13, fontWeight: 700, padding: "9px 18px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Add</button>
-                  {/* Profile avatar with alert badge */}
-                  <div style={{ position: "relative" }}>
-                    <button onClick={() => setProfileOpen(o => !o)} style={{ width: 36, height: 36, borderRadius: "50%", background: members[0]?.color + "25" || C.accentDim, border: `2px solid ${members[0]?.color || C.accent}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 14, fontWeight: 700, color: members[0]?.color || C.accent }}>
-                      {members[0]?.name?.[0] || "?"}
-                    </button>
-                    {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && (
-                      <div style={{ position: "absolute", bottom: -2, right: -2, background: "#f85149", color: "#fff", fontSize: 9, fontWeight: 800, borderRadius: "50%", width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace", border: `1.5px solid ${theme === 'dark' ? '#0d0d0f' : '#eef0f3'}` }}>
-                        {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 9 ? "9+" : recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length}
-                      </div>
-                    )}
-                    {profileOpen && (
-                      <div style={{ position: "absolute", top: 44, right: 0, background: theme === 'dark' ? "#1c1c1f" : "#f0ece6", border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 0", minWidth: 200, boxShadow: "0 8px 32px rgba(0,0,0,0.3)", zIndex: 200 }}>
-                        <div style={{ padding: "10px 16px 12px", borderBottom: `1px solid ${C.borderMid}` }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: C.textHi }}>{members[0]?.name || "Account"}</div>
-                          <div style={{ fontSize: 11, color: C.textLo, marginTop: 2 }}>family·budget</div>
-                        </div>
-                        <button onClick={toggleTheme} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
-                          <span>{theme === "dark" ? "☀️" : "🌙"}</span>
-                          {theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                        </button>
-                        <button onClick={() => { setView("alerts"); setProfileOpen(false); }} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span>🔔</span> Alerts & Reminders</div>
-                          {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && <span style={{ background: "#f85149", color: "#fff", fontSize: 9, fontWeight: 800, borderRadius: 999, padding: "1px 6px", fontFamily: "'DM Mono',monospace" }}>{recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length}</span>}
-                        </button>
-                        <button onClick={() => { setView("settings"); setProfileOpen(false); }} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
-                          <span>⚙️</span> Settings
-                        </button>
-                        <div style={{ borderTop: `1px solid ${C.borderMid}`, marginTop: 4, paddingTop: 4 }}>
-                          <button onClick={() => setProfileOpen(false)} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textLo, display: "flex", alignItems: "center", gap: 10 }}>
-                            <span>🔓</span> Sign out <span style={{ fontSize: 10, color: C.textLo, marginLeft: 4 }}>(coming soon)</span>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+{/* ─── HEADER ─────────────────────────────────────────────────────────────── */}
+<header style={{
+  background: theme === 'dark' ? "rgba(13,13,15,0.88)" : "rgba(238,240,243,0.88)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+  borderBottom: `1px solid ${C.border}`,
+  padding: isDesktop ? "0 24px" : "0 16px",
+  position: "sticky", top: 0, zIndex: 100
+}}>
+  <div style={{ maxWidth: mw, margin: "0 auto" }}>
+    {isDesktop ? (
+      /* ── Desktop header: logo + nav pills + Add + avatar ── */
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 60 }}>
+        {/* Wordmark */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 18, letterSpacing: "0.035em", color: "#ffffff" }}>BRAND</span>
+          <div style={{ width: 2, height: 28, background: C.accent, borderRadius: 1 }} />
+          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
+            <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, fontSize: 7.5, letterSpacing: "0.16em", color: "#ffffff" }}>PERSONAL</span>
+            <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, fontSize: 7.5, letterSpacing: "0.16em", color: "#ffffff" }}>FINANCE</span>
+          </div>
+          {syncing && <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>SYNCING</span>}
+        </div>
+
+        {/* Desktop right: nav pills + Add + avatar */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", gap: 2, background: C.bgInset, borderRadius: 10, padding: 3 }}>
+            {[["dashboard","Dashboard"],["review","Review"],["trends","Trends"],["longterm","Goals"]].map(([v, label]) => (
+              <button key={v} className={`npill ${view === v ? "active" : ""}`} onClick={() => setView(v)}>{label}</button>
+            ))}
+          </div>
+          <button onClick={() => setView("add")} style={{ background: view === "add" ? C.accentDim : C.accent, border: `1px solid ${view === "add" ? C.accent : "transparent"}`, borderRadius: 9, color: "#fff", fontSize: 13, fontWeight: 700, padding: "9px 18px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Add</button>
+          {/* Avatar */}
+          <div style={{ position: "relative" }}>
+            <button onClick={() => setProfileOpen(o => !o)} style={{ width: 36, height: 36, borderRadius: "50%", background: members[0]?.color + "25" || C.accentDim, border: `2px solid ${members[0]?.color || C.accent}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 14, fontWeight: 700, color: members[0]?.color || C.accent }}>
+              {members[0]?.name?.[0] || "?"}
+            </button>
+            {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && (
+              <div style={{ position: "absolute", bottom: -2, right: -2, background: "#f85149", color: "#fff", fontSize: 9, fontWeight: 800, borderRadius: "50%", width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace", border: `1.5px solid ${theme === 'dark' ? '#0d0d0f' : '#eef0f3'}` }}>
+                {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 9 ? "9+" : recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length}
               </div>
-            ) : (
-              <div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 52 }}>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 16, letterSpacing: "0.035em", color: "#ffffff" }}>BRAND</span>
-                      <div style={{ width: 1.5, height: 22, background: C.accent, borderRadius: 1 }} />
-                      <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
-                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 6.5, letterSpacing: "0.16em", color: "#ffffff" }}>PERSONAL</span>
-                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 6.5, letterSpacing: "0.16em", color: "#ffffff" }}>FINANCE</span>
-                      </div>
-                      {alertCount > 0 && <span style={{ background: overCount > 0 ? "#ef444418" : "#f9731618", color: overCount > 0 ? "#ef4444" : "#f97316", border: `1px solid ${overCount > 0 ? "#7f1d1d" : "#7c2d12"}`, fontSize: 9, fontWeight: 700, borderRadius: 999, padding: "2px 7px", fontFamily: "'DM Mono',monospace" }}>{alertCount}</span>}
-                      {syncing && <span style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>SYNC</span>}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <button onClick={() => setView("add")} style={{ background: C.accent, border: "none", borderRadius: 9, color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 16px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Add</button>
-                    {/* Profile avatar mobile */}
-                    <div style={{ position: "relative" }}>
-                      <button onClick={() => setProfileOpen(o => !o)} style={{ width: 32, height: 32, borderRadius: "50%", background: members[0]?.color + "25" || C.accentDim, border: `2px solid ${members[0]?.color || C.accent}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 12, fontWeight: 700, color: members[0]?.color || C.accent }}>
-                        {members[0]?.name?.[0] || "?"}
-                      </button>
-                      {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && (
-                        <div style={{ position: "absolute", bottom: -2, right: -2, background: "#f85149", color: "#fff", fontSize: 9, fontWeight: 800, borderRadius: "50%", width: 15, height: 15, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace", border: `1.5px solid ${theme === 'dark' ? '#0d0d0f' : '#eef0f3'}` }}>
-                          {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 9 ? "9+" : recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length}
-                        </div>
-                      )}
-                      {profileOpen && (
-                        <div style={{ position: "fixed", top: 60, right: 12, background: theme === 'dark' ? "#1c1c1f" : "#f0ece6", border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 0", minWidth: 190, boxShadow: "0 8px 32px rgba(0,0,0,0.4)", zIndex: 200 }}>
-                          <div style={{ padding: "10px 16px 12px", borderBottom: `1px solid ${C.borderMid}` }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: C.textHi }}>{members[0]?.name || "Account"}</div>
-                            <div style={{ fontSize: 11, color: C.textLo, marginTop: 2 }}>family·budget</div>
-                          </div>
-                          <button onClick={toggleTheme} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
-                            <span>{theme === "dark" ? "☀️" : "🌙"}</span>
-                            {theme === "dark" ? "Light mode" : "Dark mode"}
-                          </button>
-                          <button onClick={() => { setView("alerts"); setProfileOpen(false); }} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span>🔔</span> Alerts</div>
-                            {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && <span style={{ background: "#f85149", color: "#fff", fontSize: 9, fontWeight: 800, borderRadius: 999, padding: "1px 6px", fontFamily: "'DM Mono',monospace" }}>{recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length}</span>}
-                          </button>
-                          <button onClick={() => { setView("settings"); setProfileOpen(false); }} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
-                            <span>⚙️</span> Settings
-                          </button>
-                          <div style={{ borderTop: `1px solid ${C.borderMid}`, marginTop: 4, paddingTop: 4 }}>
-                            <button onClick={() => setProfileOpen(false)} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textLo, display: "flex", alignItems: "center", gap: 10 }}>
-                              <span>🔓</span> Sign out <span style={{ fontSize: 10, color: C.textLo }}>(soon)</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+            )}
+            {profileOpen && (
+              <div style={{ position: "absolute", top: 44, right: 0, background: theme === 'dark' ? "#1c1c1f" : "#f0ece6", border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 0", minWidth: 200, boxShadow: "0 8px 32px rgba(0,0,0,0.3)", zIndex: 200 }}>
+                <div style={{ padding: "10px 16px 12px", borderBottom: `1px solid ${C.borderMid}` }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.textHi }}>{members[0]?.name || "Account"}</div>
+                  <div style={{ fontSize: 11, color: C.textLo, marginTop: 2 }}>family·budget</div>
                 </div>
-                <div style={{ borderTop: `1px solid ${C.border}`, marginLeft: -16, marginRight: -16, padding: "4px 6px", display: "flex", background: theme === 'dark' ? "rgba(13,13,15,0.88)" : "rgba(238,240,243,0.88)", gap: 2 }}>
-                  {[["dashboard","Dashboard"],["review","Review"],["trends","Trends"],["longterm","Goals"]].map(([v, label]) => (
-                    <button key={v} onClick={() => setView(v)} style={{ flex: 1, textAlign: "center", fontSize: 11, padding: "8px 2px", borderRadius: 7, border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontWeight: view === v ? 600 : 500, background: view === v ? C.accentDim : "transparent", color: view === v ? C.accent : C.textMid, transition: "all 0.15s" }}>{label}</button>
-                  ))}
+                <button onClick={toggleTheme} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
+                  <span>{theme === "dark" ? "☀️" : "🌙"}</span>
+                  {theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                </button>
+                <button onClick={() => { setView("alerts"); setProfileOpen(false); }} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span>🔔</span> Alerts & Reminders</div>
+                  {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && <span style={{ background: "#f85149", color: "#fff", fontSize: 9, fontWeight: 800, borderRadius: 999, padding: "1px 6px", fontFamily: "'DM Mono',monospace" }}>{recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length}</span>}
+                </button>
+                <button onClick={() => { setView("settings"); setProfileOpen(false); }} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
+                  <span>⚙️</span> Settings
+                </button>
+                <div style={{ borderTop: `1px solid ${C.borderMid}`, marginTop: 4, paddingTop: 4 }}>
+                  <button onClick={() => setProfileOpen(false)} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textLo, display: "flex", alignItems: "center", gap: 10 }}>
+                    <span>🔓</span> Sign out <span style={{ fontSize: 10, color: C.textLo, marginLeft: 4 }}>(coming soon)</span>
+                  </button>
                 </div>
               </div>
             )}
           </div>
-        </header>
+        </div>
+      </div>
+    ) : (
+      /* ── Mobile header: logo + alert badge + avatar only ── */
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 52 }}>
+        {/* Wordmark */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 16, letterSpacing: "0.035em", color: "#ffffff" }}>BRAND</span>
+          <div style={{ width: 1.5, height: 22, background: C.accent, borderRadius: 1 }} />
+          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
+            <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 6.5, letterSpacing: "0.16em", color: "#ffffff" }}>PERSONAL</span>
+            <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 6.5, letterSpacing: "0.16em", color: "#ffffff" }}>FINANCE</span>
+          </div>
+          {alertCount > 0 && (
+            <span style={{ background: overCount > 0 ? "#ef444418" : "#f9731618", color: overCount > 0 ? "#ef4444" : "#f97316", border: `1px solid ${overCount > 0 ? "#7f1d1d" : "#7c2d12"}`, fontSize: 9, fontWeight: 700, borderRadius: 999, padding: "2px 7px", fontFamily: "'DM Mono',monospace" }}>
+              {alertCount}
+            </span>
+          )}
+          {syncing && <span style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>SYNC</span>}
+        </div>
+
+        {/* Avatar only — Add moves to bottom nav */}
+        <div style={{ position: "relative" }}>
+          <button onClick={() => setProfileOpen(o => !o)} style={{ width: 32, height: 32, borderRadius: "50%", background: members[0]?.color + "25" || C.accentDim, border: `2px solid ${members[0]?.color || C.accent}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 12, fontWeight: 700, color: members[0]?.color || C.accent }}>
+            {members[0]?.name?.[0] || "?"}
+          </button>
+          {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && (
+            <div style={{ position: "absolute", bottom: -2, right: -2, background: "#f85149", color: "#fff", fontSize: 9, fontWeight: 800, borderRadius: "50%", width: 15, height: 15, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace", border: `1.5px solid ${theme === 'dark' ? '#0d0d0f' : '#eef0f3'}` }}>
+              {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 9 ? "9+" : recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length}
+            </div>
+          )}
+          {profileOpen && (
+            <div style={{ position: "fixed", top: 60, right: 12, background: theme === 'dark' ? "#1c1c1f" : "#f0ece6", border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 0", minWidth: 190, boxShadow: "0 8px 32px rgba(0,0,0,0.4)", zIndex: 200 }}>
+              <div style={{ padding: "10px 16px 12px", borderBottom: `1px solid ${C.borderMid}` }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.textHi }}>{members[0]?.name || "Account"}</div>
+                <div style={{ fontSize: 11, color: C.textLo, marginTop: 2 }}>family·budget</div>
+              </div>
+              <button onClick={toggleTheme} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
+                <span>{theme === "dark" ? "☀️" : "🌙"}</span>
+                {theme === "dark" ? "Light mode" : "Dark mode"}
+              </button>
+              <button onClick={() => { setView("alerts"); setProfileOpen(false); }} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span>🔔</span> Alerts</div>
+                {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && <span style={{ background: "#f85149", color: "#fff", fontSize: 9, fontWeight: 800, borderRadius: 999, padding: "1px 6px", fontFamily: "'DM Mono',monospace" }}>{recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length}</span>}
+              </button>
+              <button onClick={() => { setView("settings"); setProfileOpen(false); }} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textMid, display: "flex", alignItems: "center", gap: 10 }}>
+                <span>⚙️</span> Settings
+              </button>
+              <div style={{ borderTop: `1px solid ${C.borderMid}`, marginTop: 4, paddingTop: 4 }}>
+                <button onClick={() => setProfileOpen(false)} style={{ width: "100%", textAlign: "left", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 13, color: C.textLo, display: "flex", alignItems: "center", gap: 10 }}>
+                  <span>🔓</span> Sign out <span style={{ fontSize: 10, color: C.textLo }}>(soon)</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+  </div>
+</header>
+
+
+{/* ─── MOBILE BOTTOM NAV (mobile only) ────────────────────────────────────── */}
+{!isDesktop && (
+  <nav style={{
+    position: "fixed",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    // Safe area padding for iPhone home indicator
+    paddingBottom: "env(safe-area-inset-bottom)",
+  }}>
+    {/* SVG notch background */}
+    <svg
+      viewBox="0 0 390 64"
+      preserveAspectRatio="none"
+      style={{ display: "block", width: "100%", height: 64, position: "absolute", top: 0, left: 0 }}
+    >
+      <path
+        d={`
+          M0,0
+          L152,0
+          C164,0 168,4 172,12
+          Q180,32 195,32
+          Q210,32 218,12
+          C222,4 226,0 238,0
+          L390,0
+          L390,64
+          L0,64
+          Z
+        `}
+        fill={theme === 'dark' ? "#141008" : "#f0ece6"}
+      />
+      {/* Top border line, split around notch */}
+      <path
+        d={`M0,0.5 L152,0.5 C164,0.5 168,4.5 172,12.5 Q180,32.5 195,32.5 Q210,32.5 218,12.5 C222,4.5 226,0.5 238,0.5 L390,0.5`}
+        fill="none"
+        stroke={theme === 'dark' ? "#2A2218" : "#d8d0c8"}
+        strokeWidth="1"
+      />
+    </svg>
+
+    {/* Tab items */}
+    <div style={{
+      position: "relative",
+      display: "flex",
+      alignItems: "flex-end",
+      justifyContent: "space-around",
+      height: 64,
+      paddingBottom: 8,
+    }}>
+      {/* Dashboard */}
+      <button onClick={() => setView("dashboard")} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "none", border: "none", cursor: "pointer", paddingBottom: 4 }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill={view === "dashboard" ? "none" : "none"} stroke={view === "dashboard" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83")} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          {view === "dashboard"
+            ? <><rect x="3" y="3" width="8" height="8" rx="2" fill={C.accent} stroke="none"/><rect x="13" y="3" width="8" height="8" rx="2" fill={C.accent} stroke="none" opacity="0.5"/><rect x="3" y="13" width="8" height="8" rx="2" fill={C.accent} stroke="none" opacity="0.5"/><rect x="13" y="13" width="8" height="8" rx="2" fill={C.accent} stroke="none" opacity="0.5"/></>
+            : <><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></>
+          }
+        </svg>
+        <span style={{ fontSize: 10, fontFamily: "'Sora',sans-serif", fontWeight: view === "dashboard" ? 700 : 400, color: view === "dashboard" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83") }}>Dashboard</span>
+      </button>
+
+      {/* Review */}
+      <button onClick={() => setView("review")} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "none", border: "none", cursor: "pointer", paddingBottom: 4 }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={view === "review" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83")} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          {view === "review"
+            ? <><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill={C.accent} stroke="none"/><polyline points="14 2 14 8 20 8" stroke={theme === 'dark' ? "#141008" : "#f0ece6"} strokeWidth="1.5"/><line x1="16" y1="13" x2="8" y2="13" stroke={theme === 'dark' ? "#141008" : "#f0ece6"} strokeWidth="1.5"/><line x1="16" y1="17" x2="8" y2="17" stroke={theme === 'dark' ? "#141008" : "#f0ece6"} strokeWidth="1.5"/></>
+            : <><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>
+          }
+        </svg>
+        <span style={{ fontSize: 10, fontFamily: "'Sora',sans-serif", fontWeight: view === "review" ? 700 : 400, color: view === "review" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83") }}>Review</span>
+      </button>
+
+      {/* ── Center FAB ── */}
+      <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "flex-start", paddingTop: 0, position: "relative" }}>
+        <button
+          onClick={() => setView("add")}
+          style={{
+            width: 52, height: 52,
+            borderRadius: "50%",
+            background: C.accent,
+            border: `3px solid ${theme === 'dark' ? "#141008" : "#f0ece6"}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
+            position: "absolute",
+            top: -26,
+          }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={theme === 'dark' ? "#1A1008" : "#fff"} strokeWidth="2.5" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* Trends */}
+      <button onClick={() => setView("trends")} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "none", border: "none", cursor: "pointer", paddingBottom: 4 }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={view === "trends" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83")} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          {view === "trends"
+            ? <><polyline points="3 17 8 12 13 14 21 7" stroke={C.accent} strokeWidth="2.2"/><line x1="3" y1="21" x2="21" y2="21"/></>
+            : <><polyline points="3 17 8 12 13 14 21 7"/><line x1="3" y1="21" x2="21" y2="21"/></>
+          }
+        </svg>
+        <span style={{ fontSize: 10, fontFamily: "'Sora',sans-serif", fontWeight: view === "trends" ? 700 : 400, color: view === "trends" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83") }}>Trends</span>
+      </button>
+
+      {/* Goals */}
+      <button onClick={() => setView("longterm")} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "none", border: "none", cursor: "pointer", paddingBottom: 4 }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={view === "longterm" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83")} strokeWidth="1.8" strokeLinecap="round">
+          <circle cx="12" cy="12" r="9"/>
+          <circle cx="12" cy="12" r="5"/>
+          <circle cx="12" cy="12" r="1" fill={view === "longterm" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83")} stroke="none"/>
+        </svg>
+        <span style={{ fontSize: 10, fontFamily: "'Sora',sans-serif", fontWeight: view === "longterm" ? 700 : 400, color: view === "longterm" ? C.accent : (theme === 'dark' ? "#4A4038" : "#9A8E83") }}>Goals</span>
+      </button>
+    </div>
+  </nav>
+)}
 
         {toast && <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.ok ? "#0f2a1a" : "#2a0f0f", border: `1px solid ${toast.ok ? "#1a5c35" : "#5c1a1a"}`, color: toast.ok ? "#4ade80" : "#f87171", padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600, zIndex: 500, boxShadow: "0 8px 40px rgba(0,0,0,0.6)" }}>{toast.msg}</div>}
 
