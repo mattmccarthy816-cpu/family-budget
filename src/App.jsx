@@ -14,7 +14,7 @@ const truncate = (str, len = 45) => str && str.length > len ? str.slice(0, len) 
 
 const DARK = {
   bg: "#0d0d0f",
-  bgCard: "rgba(255,255,255,0.05)",
+  bgCard: "rgba(0,0,0,0.2)",
   bgInset: "rgba(193,127,62,0.04)",
   border: "rgba(193,127,62,0.12)",
   borderMid: "rgba(193,127,62,0.08)",
@@ -763,7 +763,7 @@ export default function App() {
       <div style={{
         position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
         background: theme === 'dark'
-          ? `radial-gradient(ellipse at 10% 10%, rgba(193,127,62,0.14) 0%, transparent 50%), radial-gradient(ellipse at 90% 90%, rgba(193,127,62,0.09) 0%, transparent 50%)`
+          ? `radial-gradient(ellipse at 10% 10%, rgba(193,127,62,0.08) 0%, transparent 50%), radial-gradient(ellipse at 90% 90%, rgba(193,127,62,0.05) 0%, transparent 50%)`
           : `radial-gradient(ellipse at 10% 15%, rgba(193,127,62,0.13) 0%, transparent 45%), radial-gradient(ellipse at 90% 85%, rgba(193,127,62,0.09) 0%, transparent 45%)`,
       }} />
 
