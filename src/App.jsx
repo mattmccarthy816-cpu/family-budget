@@ -820,11 +820,11 @@ export default function App() {
                 <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                   {/* COPPER wordmark */}
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 18, letterSpacing: "0.035em", color: "#ffffff" }}>COPPER</span>
+                    <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 18, letterSpacing: "0.035em", color: "#ffffff" }}>BRAND</span>
                     <div style={{ width: 2, height: 28, background: C.accent, borderRadius: 1 }} />
                     <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
-                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 7.5, letterSpacing: "0.16em", color: "#ffffff" }}>PERSONAL</span>
-                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 7.5, letterSpacing: "0.16em", color: "#ffffff" }}>FINANCE</span>
+                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, fontSize: 7.5, letterSpacing: "0.16em", color: "#ffffff" }}>PERSONAL</span>
+                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, fontSize: 7.5, letterSpacing: "0.16em", color: "#ffffff" }}>FINANCE</span>
                     </div>
                   </div>
                   {syncing && <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>SYNCING</span>}
