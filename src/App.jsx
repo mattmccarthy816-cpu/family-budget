@@ -1051,7 +1051,7 @@ export default function App() {
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer",
             position: "absolute",
-            top: -60,
+            top: -10,
             // Kill tap highlight and selection
             WebkitTapHighlightColor: "transparent",
             outline: "none",
