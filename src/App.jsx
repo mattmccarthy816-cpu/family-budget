@@ -353,6 +353,7 @@ export default function App() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
   const [view, setView] = useState("dashboard");
+  const [addOpen, setAddOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const [nextId, setNextId] = useState(1);
   const [expandedSections, setExpandedSections] = useState({});
@@ -596,7 +597,7 @@ export default function App() {
     if (!form.member || !form.category || !form.amount || isNaN(+form.amount) || +form.amount <= 0) { showToast("Please fill all fields.", false); return; }
     const entry = { id: String(nextId), member: form.member, category: form.category, amount: parseFloat((+form.amount).toFixed(2)), date: new Date().toISOString().split("T")[0], notes: form.notes || '' };
     setSyncing(true);
-    try { await api({ action: "addEntry", ...entry }); setAllEntries(prev => [entry, ...prev]); setNextId(n => n + 1); setForm({ member: "", category: "", amount: "", notes: "" }); showToast(`${fmtD(entry.amount)} logged.`); setView("dashboard"); }
+    try { await api({ action: "addEntry", ...entry }); setAllEntries(prev => [entry, ...prev]); setNextId(n => n + 1); setForm({ member: "", category: "", amount: "", notes: "" }); showToast(`${fmtD(entry.amount)} logged.`); setAddOpen(false); }
     catch { showToast("Failed to save.", false); } finally { setSyncing(false); }
   }
 
@@ -853,11 +854,20 @@ export default function App() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 60 }}>
         {/* Wordmark */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 18, letterSpacing: "0.035em", color: "#ffffff" }}>BRAND</span>
-          <div style={{ width: 2, height: 28, background: C.accent, borderRadius: 1 }} />
+          {/* Geometric C logo — inline SVG, transparent bg, uses accent color */}
+          <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="30,18 50,8 50,28 30,38" fill={C.accent} />
+            <polygon points="50,8 72,18 72,28 50,28" fill={C.accent} opacity="0.8" />
+            <polygon points="22,22 30,18 30,38 22,58" fill={C.accent} opacity="0.9" />
+            <polygon points="22,58 30,62 50,72 50,52" fill={C.accent} />
+            <polygon points="50,52 50,72 72,62 72,52" fill={C.accent} opacity="0.8" />
+            <polygon points="22,58 30,62 22,70" fill={C.accent} opacity="0.7" />
+          </svg>
+          <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 18, letterSpacing: "0.035em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>BRAND</span>
+          <div style={{ width: 2, height: 28, background: C.accent, borderRadius: 1, opacity: 0.6 }} />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
-            <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, fontSize: 7.5, letterSpacing: "0.16em", color: "#ffffff" }}>PERSONAL</span>
-            <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, fontSize: 7.5, letterSpacing: "0.16em", color: "#ffffff" }}>FINANCE</span>
+            <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, fontSize: 7, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>PERSONAL</span>
+            <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, fontSize: 7, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>FINANCE</span>
           </div>
           {syncing && <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>SYNCING</span>}
         </div>
@@ -869,7 +879,7 @@ export default function App() {
               <button key={v} className={`npill ${view === v ? "active" : ""}`} onClick={() => setView(v)}>{label}</button>
             ))}
           </div>
-          <button onClick={() => setView("add")} style={{ background: view === "add" ? C.accentDim : C.accent, border: `1px solid ${view === "add" ? C.accent : "transparent"}`, borderRadius: 9, color: "#fff", fontSize: 13, fontWeight: 700, padding: "9px 18px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Add</button>
+          <button onClick={() => setAddOpen(true)} style={{ background: C.accent, border: "none", borderRadius: 9, color: "#fff", fontSize: 13, fontWeight: 700, padding: "9px 18px", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>+ Add</button>
           {/* Avatar */}
           <div style={{ position: "relative" }}>
             <button onClick={() => setProfileOpen(o => !o)} style={{ width: 36, height: 36, borderRadius: "50%", background: members[0]?.color + "25" || C.accentDim, border: `2px solid ${members[0]?.color || C.accent}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontFamily: "'Sora',sans-serif", fontSize: 14, fontWeight: 700, color: members[0]?.color || C.accent }}>
@@ -912,11 +922,19 @@ export default function App() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 52 }}>
         {/* Wordmark */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 16, letterSpacing: "0.035em", color: "#ffffff" }}>BRAND</span>
-          <div style={{ width: 1.5, height: 22, background: C.accent, borderRadius: 1 }} />
+          <svg width="22" height="22" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="30,18 50,8 50,28 30,38" fill={C.accent} />
+            <polygon points="50,8 72,18 72,28 50,28" fill={C.accent} opacity="0.8" />
+            <polygon points="22,22 30,18 30,38 22,58" fill={C.accent} opacity="0.9" />
+            <polygon points="22,58 30,62 50,72 50,52" fill={C.accent} />
+            <polygon points="50,52 50,72 72,62 72,52" fill={C.accent} opacity="0.8" />
+            <polygon points="22,58 30,62 22,70" fill={C.accent} opacity="0.7" />
+          </svg>
+          <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: "0.035em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>BRAND</span>
+          <div style={{ width: 1.5, height: 22, background: C.accent, borderRadius: 1, opacity: 0.6 }} />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
-            <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 6.5, letterSpacing: "0.16em", color: "#ffffff" }}>PERSONAL</span>
-            <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 6.5, letterSpacing: "0.16em", color: "#ffffff" }}>FINANCE</span>
+            <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, fontSize: 6.5, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>PERSONAL</span>
+            <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, fontSize: 6.5, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>FINANCE</span>
           </div>
           {alertCount > 0 && (
             <span style={{ background: overCount > 0 ? "#ef444418" : "#f9731618", color: overCount > 0 ? "#ef4444" : "#f97316", border: `1px solid ${overCount > 0 ? "#7f1d1d" : "#7c2d12"}`, fontSize: 9, fontWeight: 700, borderRadius: 999, padding: "2px 7px", fontFamily: "'DM Mono',monospace" }}>
@@ -1042,7 +1060,7 @@ export default function App() {
       {/* ── Center FAB ── */}
       <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "flex-start", position: "relative" }}>
         <button
-          onClick={() => setView("add")}
+          onClick={() => setAddOpen(true)}
           style={{
             width: 56, height: 56,
             borderRadius: "50%",
@@ -1095,7 +1113,10 @@ export default function App() {
         {/* Edit Entry Modal */}
         {editEntry && (
           <Modal onClose={() => setEditEntry(null)}>
-            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: C.textHi }}>Edit Entry</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: C.textHi }}>Edit Entry</div>
+              <button onClick={() => setEditEntry(null)} style={{ width: 30, height: 30, borderRadius: "50%", background: C.bgInset, border: `1px solid ${C.border}`, color: C.textLo, fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent", outline: "none" }}>×</button>
+            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div><FL>Member</FL><MemberChips value={editForm.member} onChange={m => setEditForm(f => ({ ...f, member: m }))} /></div>
               <div><FL>Category</FL><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{categories.map(c => (<button key={c} className="chip" onClick={() => setEditForm(f => ({ ...f, category: c }))} style={{ background: editForm.category === c ? catColors[c] + "25" : C.bgInset, border: `1px solid ${editForm.category === c ? catColors[c] : C.border}`, color: editForm.category === c ? catColors[c] : C.textLo }}>{c}</button>))}</div></div>
@@ -1110,7 +1131,10 @@ export default function App() {
         {/* Edit Category Modal */}
         {editCat !== null && (
           <Modal onClose={() => setEditCat(null)}>
-            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: C.textHi }}>{editCat === "new" ? "New Category" : "Edit Category"}</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: C.textHi }}>{editCat === "new" ? "New Category" : "Edit Category"}</div>
+              <button onClick={() => setEditCat(null)} style={{ width: 30, height: 30, borderRadius: "50%", background: C.bgInset, border: `1px solid ${C.border}`, color: C.textLo, fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent", outline: "none" }}>×</button>
+            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div><FL>Name</FL><input className="inp" type="text" placeholder="e.g. Subscriptions" value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value }))} /></div>
               <div><FL>Monthly Budget</FL><div style={{ position: "relative" }}><span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.textLo }}>$</span><input className="inp" type="number" min="0" value={catForm.budget} onChange={e => setCatForm(f => ({ ...f, budget: e.target.value }))} style={{ paddingLeft: 28 }} /></div></div>
@@ -1151,7 +1175,10 @@ export default function App() {
         {/* Edit LT Modal */}
         {editLT !== null && (
           <Modal onClose={() => setEditLT(null)}>
-            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: C.textHi }}>{editLT === "new" ? "New Goal" : "Edit Goal"}</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: C.textHi }}>{editLT === "new" ? "New Goal" : "Edit Goal"}</div>
+              <button onClick={() => setEditLT(null)} style={{ width: 30, height: 30, borderRadius: "50%", background: C.bgInset, border: `1px solid ${C.border}`, color: C.textLo, fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent", outline: "none" }}>×</button>
+            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div><FL>Name</FL><input className="inp" type="text" placeholder="e.g. Emergency Fund" value={ltForm.name} onChange={e => setLtForm(f => ({ ...f, name: e.target.value }))} /></div>
               <div>
@@ -1411,7 +1438,7 @@ export default function App() {
                           <button
                             onClick={() => {
                               setForm({ member: memberNames[0] || "", category: nudge.cat, amount: String(nudge.lastAmount), notes: "" });
-                              setView("add");
+                              setAddOpen(true);
                               setDismissedNudges(prev => new Set([...prev, nudge.cat]));
                             }}
                             style={{ background: C.accent, border: "none", borderRadius: 8, color: "#fff", fontSize: 12, fontWeight: 700, padding: "8px 14px", cursor: "pointer", fontFamily: "'Sora',sans-serif", whiteSpace: "nowrap" }}>
@@ -1539,11 +1566,28 @@ export default function App() {
                 </div>
               )}
 
-              {/* ADD */}
-              {view === "add" && (
-                <div className="fu" style={{ maxWidth: 440, margin: "0 auto" }}>
-                  <div className="card" style={{ padding: 28 }}>
-                    <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6, color: C.textHi }}>Log a spend</div>
+              {/* ADD MODAL — renders over any view, controlled by addOpen state */}
+              {addOpen && (
+                <div
+                  onClick={() => { setAddOpen(false); setForm({ member: "", category: "", amount: "", notes: "" }); }}
+                  style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: isDesktop ? "center" : "flex-end", justifyContent: "center" }}>
+                  <div
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      background: theme === 'dark' ? "#1c1c1f" : "#f0ece6",
+                      border: `1px solid ${C.border}`,
+                      borderRadius: isDesktop ? 20 : "20px 20px 0 0",
+                      padding: 28,
+                      width: "100%",
+                      maxWidth: isDesktop ? 480 : "100%",
+                      maxHeight: "90vh",
+                      overflowY: "auto",
+                      paddingBottom: isDesktop ? 28 : "calc(28px + env(safe-area-inset-bottom))",
+                    }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: C.textHi }}>Log a spend</div>
+                      <button onClick={() => { setAddOpen(false); setForm({ member: "", category: "", amount: "", notes: "" }); }} style={{ width: 30, height: 30, borderRadius: "50%", background: C.bgInset, border: `1px solid ${C.border}`, color: C.textLo, fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent", outline: "none" }}>×</button>
+                    </div>
                     <div style={{ fontSize: 13, color: C.textLo, marginBottom: 24 }}>Who's spending, what category, how much.</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                       <div><FL>Who are you?</FL><MemberChips value={form.member} onChange={m => setForm(f => ({ ...f, member: m }))} /></div>
