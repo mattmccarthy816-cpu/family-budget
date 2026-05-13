@@ -381,6 +381,7 @@ export default function App() {
   const [memberForm, setMemberForm] = useState({ name: "", color: MEMBER_COLOR_PALETTE[0], role: "contributor" });
   const [ltForm, setLtForm] = useState({ name: "", saved: "", goal: "", color: PALETTE[0], targetDate: "", startDate: "", type: "fixed", monthlyContribution: "" });
   const [theme, setTheme] = useState(() => localStorage.getItem('fb-theme') || 'dark');
+  const [heroDisplay, setHeroDisplay] = useState(() => localStorage.getItem('fb-hero-display') || 'remaining');
   const [profileOpen, setProfileOpen] = useState(false);
   // Nudge dismissals persisted to localStorage per month
   const nudgeKey = `copper-dismissed-${now.getFullYear()}-${now.getMonth()}`;
@@ -1293,31 +1294,94 @@ export default function App() {
                         </div>
                       </div>
                     ) : (
+                      // ── MOBILE HERO — arc design ──
                       <div>
-                        <div style={{ textAlign: "center", marginBottom: 16 }}>
-                          <div style={{ fontSize: 42, fontWeight: 800, color: overBudget ? "#f85149" : C.textHi, fontFamily: "'DM Mono',monospace", letterSpacing: -2, lineHeight: 1 }}>{fmt(totalSpend)}</div>
-                          <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginTop: 5 }}>spent this month</div>
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-                          <div style={{ background: C.bgInset, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: "10px 12px" }}>
-                            <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 3 }}>budget</div>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: -0.5 }}>{fmt(totalBudget)}</div>
-                          </div>
-                          <div style={{ background: diff >= 0 ? "rgba(35,134,54,0.1)" : "rgba(218,54,51,0.1)", border: `0.5px solid ${diff >= 0 ? "rgba(35,134,54,0.3)" : "rgba(218,54,51,0.3)"}`, borderRadius: 10, padding: "10px 12px" }}>
-                            <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 3 }}>remaining</div>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: diff >= 0 ? "#3fb950" : "#f85149", fontFamily: "'DM Mono',monospace", letterSpacing: -0.5 }}>{diff >= 0 ? "+" : "−"}{fmt(Math.abs(diff))}</div>
-                          </div>
-                        </div>
-                        <div style={{ marginBottom: 14 }}>
-                          <div style={{ background: C.borderMid, borderRadius: 999, height: 4, overflow: "hidden" }}>
-                            <div style={{ width: `${Math.min((totalSpend / Math.max(totalBudget, 1)) * 100, 100)}%`, height: "100%", borderRadius: 999, transition: "width 0.5s", background: overBudget ? "#f85149" : `linear-gradient(90deg, ${C.accent}, #3fb950)` }} />
-                          </div>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                            <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{isCurrentMonth ? `day ${dayOfMonth} of ${daysInMonth}` : isFutureMonth ? "future" : "past month"}</div>
-                            <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{Math.round((totalSpend / Math.max(totalBudget, 1)) * 100)}%</div>
-                          </div>
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 8px", paddingTop: 18, paddingBottom: 18, borderTop: `1px solid ${C.borderMid}`, borderBottom: `1px solid ${C.borderMid}`, marginTop: 8, marginBottom: 8 }}>
+                        {/* Arc */}
+                        {(() => {
+                          const size = 220;
+                          const strokeWidth = 14;
+                          const r = (size - strokeWidth) / 2;
+                          const cx = size / 2;
+                          const cy = size / 2;
+                          const startAngle = -210;
+                          const sweep = 240;
+                          const pct = Math.min(totalSpend / Math.max(totalBudget, 1), 1);
+                          const endAngle = startAngle + sweep * pct;
+                          const toRad = deg => (deg * Math.PI) / 180;
+                          const pt = angle => ({ x: cx + r * Math.cos(toRad(angle)), y: cy + r * Math.sin(toRad(angle)) });
+                          const ts = pt(startAngle);
+                          const te = pt(startAngle + sweep);
+                          const ae = pt(endAngle);
+                          const largeTrack = sweep > 180 ? 1 : 0;
+                          const largeFill = sweep * pct > 180 ? 1 : 0;
+                          const trackD = `M ${ts.x} ${ts.y} A ${r} ${r} 0 ${largeTrack} 1 ${te.x} ${te.y}`;
+                          const fillD = pct > 0.01 ? `M ${ts.x} ${ts.y} A ${r} ${r} 0 ${largeFill} 1 ${ae.x} ${ae.y}` : "";
+                          const arcColor = pct > 0.9 ? "#ef4444" : pct > 0.7 ? "#eab308" : C.accent;
+                          const showRemaining = heroDisplay === 'remaining';
+                          const heroValue = showRemaining ? diff : totalSpend;
+                          const heroColor = showRemaining ? (diff >= 0 ? "#3fb950" : "#ef4444") : (overBudget ? "#ef4444" : C.textHi);
+                          const heroPrefix = showRemaining ? (diff >= 0 ? "+" : "−") : "";
+                          const heroLabel = showRemaining ? "remaining" : "spent this month";
+                          return (
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: 8 }}>
+                              <div style={{ position: "relative", width: size, height: size }}>
+                                <svg width={size} height={size} style={{ overflow: "visible" }}>
+                                  <defs>
+                                    <filter id="arcGlow">
+                                      <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                                      <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                                    </filter>
+                                  </defs>
+                                  <path d={trackD} fill="none" stroke={C.borderMid} strokeWidth={strokeWidth} strokeLinecap="round" />
+                                  {fillD && <path d={fillD} fill="none" stroke={arcColor} strokeWidth={strokeWidth} strokeLinecap="round" filter="url(#arcGlow)" />}
+                                </svg>
+                                {/* Center content */}
+                                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 8 }}>
+                                  <div style={{ fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 4, textTransform: "uppercase" }}>{heroLabel}</div>
+                                  <div style={{ fontSize: 32, fontWeight: 800, color: heroColor, fontFamily: "'DM Mono',monospace", letterSpacing: -1.5, lineHeight: 1 }}>
+                                    {heroPrefix}{fmt(Math.abs(heroValue))}
+                                  </div>
+                                  <div style={{ fontSize: 11, color: C.textLo, marginTop: 6 }}>of {fmt(totalBudget)}</div>
+                                  {isCurrentMonth && (
+                                    <div style={{ marginTop: 8, fontSize: 11, color: pct < dayOfMonth / daysInMonth ? "#3fb950" : "#eab308", fontWeight: 600 }}>
+                                      {pct < dayOfMonth / daysInMonth ? "Pacing well" : "Watch pace"}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Spent / Day / Pace pill */}
+                              <div style={{ display: "flex", alignItems: "center", gap: 0, background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 99, overflow: "hidden", marginTop: 4 }}>
+                                {[
+                                  { label: "spent", value: fmt(totalSpend) },
+                                  { label: "day", value: `${dayOfMonth}/${daysInMonth}` },
+                                  { label: "pace", value: `${Math.round((totalSpend / Math.max(totalBudget, 1)) * 100)}%`, color: pct < dayOfMonth / daysInMonth ? "#3fb950" : "#eab308" },
+                                ].map((item, i) => (
+                                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 16px", borderRight: i < 2 ? `1px solid ${C.border}` : "none" }}>
+                                    <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 2 }}>{item.label}</div>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: item.color || C.textHi, fontFamily: "'DM Mono',monospace" }}>{item.value}</div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Projection line */}
+                              {projection && dayOfMonth >= 5 && (
+                                <div style={{ marginTop: 10, fontSize: 12, color: C.textLo, textAlign: "center", paddingBottom: 4 }}>
+                                  On track to finish{" "}
+                                  <span style={{ color: projection.projectedOver ? "#ef4444" : "#3fb950", fontWeight: 600 }}>
+                                    {projection.projectedDiff >= 0 ? "+" : "−"}{fmt(Math.abs(projection.projectedDiff))} {projection.projectedOver ? "over" : "under"}
+                                  </span>
+                                  {prevMonthTotals > 0 && (
+                                    <span style={{ color: C.textLo }}>{" · "}{totalSpend < prevMonthTotals ? `${fmt(prevMonthTotals - totalSpend)} less than last month` : `${fmt(totalSpend - prevMonthTotals)} more than last month`}</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Category legend */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 8px", paddingTop: 16, paddingBottom: 16, borderTop: `1px solid ${C.borderMid}`, borderBottom: `1px solid ${C.borderMid}`, marginTop: 4, marginBottom: 8 }}>
                           {donutSegments.filter(s => s.value > 0).map((s, i) => (
                             <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                               <div style={{ width: 7, height: 7, borderRadius: 2, background: s.color, flexShrink: 0 }} />
@@ -1326,7 +1390,9 @@ export default function App() {
                             </div>
                           ))}
                         </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 14px", marginTop: 14 }}>
+
+                        {/* Member bars */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 14px" }}>
                           {memberNames.map(m => (
                             <div key={m}>
                               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -1343,8 +1409,8 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* Projection + Pulse */}
-                  {(isCurrentMonth || (!isCurrentMonth && !isFutureMonth)) && (
+                  {/* Projection + Pulse — desktop only; mobile handled in arc hero */}
+                  {(isCurrentMonth || (!isCurrentMonth && !isFutureMonth)) && isDesktop && (
                     <div className="card" style={{ padding: isDesktop ? "18px 28px" : "14px 18px", marginBottom: 16 }}>
                       {isCurrentMonth ? (
                         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1px 1fr 1px 1fr" : "1fr", gap: isDesktop ? 0 : 16 }}>
@@ -1701,6 +1767,29 @@ export default function App() {
                           <button onClick={toggleTheme} style={{ background: C.accentDim, border: `1px solid ${C.accent}`, borderRadius: 999, padding: "7px 16px", color: C.accent, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>
                             {theme === "dark" ? "☀️ Light mode" : "🌙 Dark mode"}
                           </button>
+                        </div>
+                      </div>
+
+                      {/* Hero display preference */}
+                      <div className="card" style={{ marginBottom: 14 }}>
+                        <div style={{ padding: "16px 20px" }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: C.textHi, marginBottom: 4 }}>Dashboard hero</div>
+                          <div style={{ fontSize: 11, color: C.textLo, marginBottom: 14 }}>What number takes center stage on your dashboard</div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {[
+                              { value: "remaining", label: "Remaining budget", desc: "How much you can still spend — great if you think in limits" },
+                              { value: "spent", label: "Amount spent", desc: "How much you've logged so far — great if you track every dollar" },
+                            ].map(opt => (
+                              <div key={opt.value} onClick={() => { setHeroDisplay(opt.value); localStorage.setItem('fb-hero-display', opt.value); }}
+                                style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", borderRadius: 10, cursor: "pointer", border: `1px solid ${heroDisplay === opt.value ? C.accent : C.border}`, background: heroDisplay === opt.value ? C.accentDim : "transparent", transition: "all 0.15s" }}>
+                                <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${heroDisplay === opt.value ? C.accent : C.textLo}`, background: heroDisplay === opt.value ? C.accent : "transparent", flexShrink: 0, marginTop: 2, transition: "all 0.15s" }} />
+                                <div>
+                                  <div style={{ fontSize: 13, fontWeight: 600, color: heroDisplay === opt.value ? C.textHi : C.textMid }}>{opt.label}</div>
+                                  <div style={{ fontSize: 11, color: C.textLo, marginTop: 2 }}>{opt.desc}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
 
