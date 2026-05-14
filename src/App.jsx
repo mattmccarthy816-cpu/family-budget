@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 
 const API_URL = "https://script.google.com/macros/s/AKfycbxbNc2pXZT8AsSgXNS9mjtaGda24l3kTl3Etvex1xmMV58_SX9DynXqXItYFwBYwaqryA/exec";
 
@@ -810,6 +810,7 @@ export default function App() {
   @keyframes barPulse { 0%, 100% { transform: scaleY(0.4); opacity: 0.3; } 50% { transform: scaleY(1); opacity: 1; } }
   .load-bar { border-radius: 999px; animation: barPulse 1.2s ease-in-out infinite; transform-origin: bottom; }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes countUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 `}</style>
 
 {/*
@@ -1296,83 +1297,150 @@ export default function App() {
                     ) : (
                       // ── MOBILE HERO — arc design ──
                       <div>
-                        {/* Arc */}
                         {(() => {
+                          // Arc geometry
+                          // Use a larger viewBox with padding so the arc never clips
+                          const pad = 18; // padding around arc to prevent clipping
                           const size = 220;
+                          const vb = size + pad * 2; // viewBox is larger than rendered size
                           const strokeWidth = 14;
                           const r = (size - strokeWidth) / 2;
-                          const cx = size / 2;
-                          const cy = size / 2;
+                          const cx = vb / 2;
+                          const cy = vb / 2;
                           const startAngle = -210;
                           const sweep = 240;
-                          const pct = Math.min(totalSpend / Math.max(totalBudget, 1), 1);
-                          const endAngle = startAngle + sweep * pct;
+                          const budgetPct = Math.min(totalSpend / Math.max(totalBudget, 1), 1);
+                          const dayPct = dayOfMonth / daysInMonth;
                           const toRad = deg => (deg * Math.PI) / 180;
                           const pt = angle => ({ x: cx + r * Math.cos(toRad(angle)), y: cy + r * Math.sin(toRad(angle)) });
+
                           const ts = pt(startAngle);
                           const te = pt(startAngle + sweep);
-                          const ae = pt(endAngle);
+                          const ae = pt(startAngle + sweep * budgetPct);
+                          // Day notch position on the arc
+                          const notchPt = pt(startAngle + sweep * dayPct);
+                          const notchInner = (() => {
+                            const ang = startAngle + sweep * dayPct;
+                            const rInner = r - strokeWidth / 2 - 2;
+                            const rOuter = r + strokeWidth / 2 + 2;
+                            return {
+                              x1: cx + rInner * Math.cos(toRad(ang)),
+                              y1: cy + rInner * Math.sin(toRad(ang)),
+                              x2: cx + rOuter * Math.cos(toRad(ang)),
+                              y2: cy + rOuter * Math.sin(toRad(ang)),
+                            };
+                          })();
+
                           const largeTrack = sweep > 180 ? 1 : 0;
-                          const largeFill = sweep * pct > 180 ? 1 : 0;
+                          const largeFill = sweep * budgetPct > 180 ? 1 : 0;
                           const trackD = `M ${ts.x} ${ts.y} A ${r} ${r} 0 ${largeTrack} 1 ${te.x} ${te.y}`;
-                          const fillD = pct > 0.01 ? `M ${ts.x} ${ts.y} A ${r} ${r} 0 ${largeFill} 1 ${ae.x} ${ae.y}` : "";
-                          const arcColor = pct > 0.9 ? "#ef4444" : pct > 0.7 ? "#eab308" : C.accent;
+                          const fillD = budgetPct > 0.01 ? `M ${ts.x} ${ts.y} A ${r} ${r} 0 ${largeFill} 1 ${ae.x} ${ae.y}` : "";
+                          const arcColor = budgetPct > 0.9 ? "#ef4444" : budgetPct > 0.7 ? "#eab308" : C.accent;
+
                           const showRemaining = heroDisplay === 'remaining';
                           const heroValue = showRemaining ? diff : totalSpend;
                           const heroColor = showRemaining ? (diff >= 0 ? "#3fb950" : "#ef4444") : (overBudget ? "#ef4444" : C.textHi);
                           const heroPrefix = showRemaining ? (diff >= 0 ? "+" : "−") : "";
-                          const heroLabel = showRemaining ? "remaining" : "spent this month";
+                          const heroLabel = showRemaining ? "remaining" : "spent";
+
+                          // Two-line projection text
+                          const projLine1 = projection && dayOfMonth >= 5
+                            ? `On track to finish ${fmt(Math.abs(projection.projectedDiff))} ${projection.projectedOver ? "over" : "under"} budget`
+                            : null;
+                          const projLine2 = projection && dayOfMonth >= 5 && prevMonthTotals > 0
+                            ? (() => {
+                                const diff2 = prevMonthTotals - projection.projectedSpend;
+                                return `Projected to spend ${fmt(Math.abs(Math.round(diff2)))} ${diff2 >= 0 ? "less" : "more"} than last month`;
+                              })()
+                            : null;
+
                           return (
                             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: 8 }}>
+                              {/* Arc — rendered in larger viewBox, displayed at size px to prevent clipping */}
                               <div style={{ position: "relative", width: size, height: size }}>
-                                <svg width={size} height={size} style={{ overflow: "visible" }}>
+                                <svg
+                                  viewBox={`0 0 ${vb} ${vb}`}
+                                  width={size}
+                                  height={size}
+                                  style={{ display: "block", overflow: "visible" }}
+                                >
                                   <defs>
-                                    <filter id="arcGlow">
+                                    <filter id="arcGlow" x="-20%" y="-20%" width="140%" height="140%">
                                       <feGaussianBlur stdDeviation="3" result="coloredBlur" />
                                       <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
                                     </filter>
                                   </defs>
+                                  {/* Track */}
                                   <path d={trackD} fill="none" stroke={C.borderMid} strokeWidth={strokeWidth} strokeLinecap="round" />
-                                  {fillD && <path d={fillD} fill="none" stroke={arcColor} strokeWidth={strokeWidth} strokeLinecap="round" filter="url(#arcGlow)" />}
+                                  {/* Fill */}
+                                  {fillD && (
+                                    <path
+                                      d={fillD}
+                                      fill="none"
+                                      stroke={arcColor}
+                                      strokeWidth={strokeWidth}
+                                      strokeLinecap="round"
+                                      filter="url(#arcGlow)"
+                                      style={{ transition: "stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)" }}
+                                    />
+                                  )}
+                                  {/* Day notch — subtle white line crossing the arc stroke */}
+                                  {isCurrentMonth && dayPct > 0.01 && dayPct < 0.99 && (
+                                    <line
+                                      x1={notchInner.x1} y1={notchInner.y1}
+                                      x2={notchInner.x2} y2={notchInner.y2}
+                                      stroke={theme === 'dark' ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.3)"}
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                    />
+                                  )}
                                 </svg>
-                                {/* Center content */}
+
+                                {/* Center content — animated number */}
                                 <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 8 }}>
-                                  <div style={{ fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 4, textTransform: "uppercase" }}>{heroLabel}</div>
-                                  <div style={{ fontSize: 32, fontWeight: 800, color: heroColor, fontFamily: "'DM Mono',monospace", letterSpacing: -1.5, lineHeight: 1 }}>
+                                  <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 4, textTransform: "uppercase" }}>{heroLabel}</div>
+                                  <div
+                                    key={Math.abs(heroValue)}
+                                    style={{
+                                      fontSize: 30,
+                                      fontWeight: 800,
+                                      color: heroColor,
+                                      fontFamily: "'DM Mono',monospace",
+                                      letterSpacing: -1.5,
+                                      lineHeight: 1,
+                                      animation: "countUp 1s ease-out both",
+                                    }}
+                                  >
                                     {heroPrefix}{fmt(Math.abs(heroValue))}
                                   </div>
-                                  <div style={{ fontSize: 11, color: C.textLo, marginTop: 6 }}>of {fmt(totalBudget)}</div>
-                                  {isCurrentMonth && (
-                                    <div style={{ marginTop: 8, fontSize: 11, color: pct < dayOfMonth / daysInMonth ? "#3fb950" : "#eab308", fontWeight: 600 }}>
-                                      {pct < dayOfMonth / daysInMonth ? "Pacing well" : "Watch pace"}
-                                    </div>
-                                  )}
+                                  <div style={{ fontSize: 10, color: C.textLo, marginTop: 5 }}>of {fmt(totalBudget)}</div>
                                 </div>
                               </div>
 
                               {/* Spent / Day / Pace pill */}
-                              <div style={{ display: "flex", alignItems: "center", gap: 0, background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 99, overflow: "hidden", marginTop: 4 }}>
+                              <div style={{ display: "flex", alignItems: "center", background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 99, overflow: "hidden", marginTop: 2 }}>
                                 {[
                                   { label: "spent", value: fmt(totalSpend) },
-                                  { label: "day", value: `${dayOfMonth}/${daysInMonth}` },
-                                  { label: "pace", value: `${Math.round((totalSpend / Math.max(totalBudget, 1)) * 100)}%`, color: pct < dayOfMonth / daysInMonth ? "#3fb950" : "#eab308" },
+                                  { label: "day", value: `${dayOfMonth} of ${daysInMonth}` },
+                                  { label: "pace", value: `${Math.round(budgetPct * 100)}%`, color: budgetPct <= dayPct ? "#3fb950" : "#eab308" },
                                 ].map((item, i) => (
-                                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 16px", borderRight: i < 2 ? `1px solid ${C.border}` : "none" }}>
+                                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "7px 14px", borderRight: i < 2 ? `1px solid ${C.border}` : "none" }}>
                                     <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 2 }}>{item.label}</div>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: item.color || C.textHi, fontFamily: "'DM Mono',monospace" }}>{item.value}</div>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: item.color || C.textHi, fontFamily: "'DM Mono',monospace" }}>{item.value}</div>
                                   </div>
                                 ))}
                               </div>
 
-                              {/* Projection line */}
-                              {projection && dayOfMonth >= 5 && (
-                                <div style={{ marginTop: 10, fontSize: 12, color: C.textLo, textAlign: "center", paddingBottom: 4 }}>
-                                  On track to finish{" "}
-                                  <span style={{ color: projection.projectedOver ? "#ef4444" : "#3fb950", fontWeight: 600 }}>
-                                    {projection.projectedDiff >= 0 ? "+" : "−"}{fmt(Math.abs(projection.projectedDiff))} {projection.projectedOver ? "over" : "under"}
-                                  </span>
-                                  {prevMonthTotals > 0 && (
-                                    <span style={{ color: C.textLo }}>{" · "}{totalSpend < prevMonthTotals ? `${fmt(prevMonthTotals - totalSpend)} less than last month` : `${fmt(totalSpend - prevMonthTotals)} more than last month`}</span>
+                              {/* Two-line projection */}
+                              {projLine1 && (
+                                <div style={{ marginTop: 10, textAlign: "center", paddingBottom: 4 }}>
+                                  <div style={{ fontSize: 12, color: C.textLo }}>
+                                    <span style={{ color: projection.projectedOver ? "#ef4444" : "#3fb950", fontWeight: 600 }}>
+                                      {projLine1}
+                                    </span>
+                                  </div>
+                                  {projLine2 && (
+                                    <div style={{ fontSize: 11, color: C.textLo, marginTop: 3 }}>{projLine2}</div>
                                   )}
                                 </div>
                               )}
