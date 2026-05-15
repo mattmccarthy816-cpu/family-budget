@@ -1456,33 +1456,35 @@ export default function App() {
                         {/* Divider */}
                         <div style={{ height: 1, background: C.borderMid, margin: "14px 0 12px" }} />
 
-                        {/* Category rows — full width with progress bars */}
-                        {sectionStructure.map(sec =>
-                          sec.cats.map(c => {
-                            const spent  = byCategory[c] || 0;
-                            const budget = budgets[c] || 0;
-                            if (spent === 0 && budget === 0) return null;
-                            const pct   = Math.min(spent / Math.max(budget, 0.01), 1);
-                            const color = catColors[c] || C.accent;
-                            return (
-                              <div key={c} style={{ marginBottom: 14 }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                                    <div style={{ width: 7, height: 7, borderRadius: 2, background: color, flexShrink: 0 }} />
-                                    <span style={{ fontSize: 13, color: C.textMid, fontFamily: "'Sora',sans-serif" }}>{truncate(c, 22)}</span>
-                                  </div>
-                                  <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color: C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
-                                    <span style={{ fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budget)}</span>
-                                  </div>
+                        {/* Section rows — full width with progress bars */}
+                        {sectionStructure.map(sec => {
+                          const totals = sectionTotals[sec.name];
+                          const spent  = totals.spent;
+                          const budget = totals.budget;
+                          if (spent === 0 && budget === 0) return null;
+                          const pct   = Math.min(spent / Math.max(budget, 0.01), 1);
+                          const color = sec.cats.length > 0 ? (catColors[sec.cats[0]] || C.accent) : C.accent;
+                          const over  = totals.alertableSpent > totals.alertableBudget + 2;
+                          const barColor = over ? "#ef4444" : color;
+                          return (
+                            <div key={sec.name} style={{ marginBottom: 14 }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                                  <div style={{ width: 7, height: 7, borderRadius: 2, background: barColor, flexShrink: 0 }} />
+                                  <span style={{ fontSize: 13, color: C.textMid, fontFamily: "'Sora',sans-serif" }}>{sec.name}</span>
+                                  {over && <span style={{ fontSize: 10, color: "#ef4444", fontWeight: 800 }}>!</span>}
                                 </div>
-                                <div style={{ height: 4, background: C.borderMid, borderRadius: 999, overflow: "hidden" }}>
-                                  <div style={{ height: "100%", width: `${pct * 100}%`, background: color, borderRadius: 999, transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)", boxShadow: `0 0 6px ${color}55` }} />
+                                <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: over ? "#ef4444" : C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
+                                  <span style={{ fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budget)}</span>
                                 </div>
                               </div>
-                            );
-                          })
-                        )}
+                              <div style={{ height: 4, background: C.borderMid, borderRadius: 999, overflow: "hidden" }}>
+                                <div style={{ height: "100%", width: `${pct * 100}%`, background: barColor, borderRadius: 999, transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)", boxShadow: `0 0 6px ${barColor}55` }} />
+                              </div>
+                            </div>
+                          );
+                        })}
 
                         {/* Divider */}
                         <div style={{ height: 1, background: C.borderMid, margin: "4px 0 12px" }} />
