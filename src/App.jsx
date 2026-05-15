@@ -1400,7 +1400,7 @@ export default function App() {
                                 <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 8 }}>
                                   <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 4, textTransform: "uppercase" }}>{heroLabel}</div>
                                   <div
-                                    key={Math.abs(heroValue)}
+                                    key={`${heroDisplay}-${Math.round(Math.abs(heroValue))}`}
                                     style={{
                                       fontSize: 30,
                                       fontWeight: 800,
@@ -1408,7 +1408,7 @@ export default function App() {
                                       fontFamily: "'DM Mono',monospace",
                                       letterSpacing: -1.5,
                                       lineHeight: 1,
-                                      animation: "countUp 1s ease-out both",
+                                      animation: "countUp 0.5s ease-out both",
                                     }}
                                   >
                                     {heroPrefix}{fmt(Math.abs(heroValue))}
@@ -1417,27 +1417,32 @@ export default function App() {
                                 </div>
                               </div>
 
-                              {/* Spent / Day / Pace pill */}
-                              <div style={{ display: "flex", alignItems: "center", background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 99, overflow: "hidden", marginTop: 2 }}>
-                                {[
-                                  { label: "spent", value: fmt(totalSpend) },
-                                  { label: "day", value: `${dayOfMonth} of ${daysInMonth}` },
-                                  { label: "pace", value: `${Math.round(budgetPct * 100)}%`, color: budgetPct <= dayPct ? "#3fb950" : "#eab308" },
-                                ].map((item, i) => (
-                                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "7px 14px", borderRight: i < 2 ? `1px solid ${C.border}` : "none" }}>
-                                    <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 2 }}>{item.label}</div>
-                                    <div style={{ fontSize: 12, fontWeight: 700, color: item.color || C.textHi, fontFamily: "'DM Mono',monospace" }}>{item.value}</div>
-                                  </div>
+                              {/* Remaining / Spent toggle */}
+                              <div style={{ display: "flex", gap: 7, marginTop: -4, marginBottom: 12 }}>
+                                {["remaining", "spent"].map(opt => (
+                                  <button
+                                    key={opt}
+                                    onClick={() => { setHeroDisplay(opt); localStorage.setItem('fb-hero-display', opt); }}
+                                    style={{
+                                      padding: "5px 16px", borderRadius: 99,
+                                      border: `1px solid ${heroDisplay === opt ? C.accent : C.border}`,
+                                      background: heroDisplay === opt ? C.accentDim : "transparent",
+                                      color: heroDisplay === opt ? C.accent : C.textLo,
+                                      fontSize: 11, fontFamily: "'Sora',sans-serif",
+                                      fontWeight: heroDisplay === opt ? 700 : 400,
+                                      cursor: "pointer", transition: "all 0.15s",
+                                      textTransform: "capitalize",
+                                      WebkitTapHighlightColor: "transparent",
+                                    }}
+                                  >{opt}</button>
                                 ))}
                               </div>
 
                               {/* Two-line projection */}
                               {projLine1 && (
-                                <div style={{ marginTop: 10, textAlign: "center", paddingBottom: 4 }}>
-                                  <div style={{ fontSize: 12, color: C.textLo }}>
-                                    <span style={{ color: projection.projectedOver ? "#ef4444" : "#3fb950", fontWeight: 600 }}>
-                                      {projLine1}
-                                    </span>
+                                <div style={{ marginTop: 2, textAlign: "center", paddingBottom: 4 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 600, color: projection.projectedOver ? "#ef4444" : "#3fb950" }}>
+                                    {projLine1}
                                   </div>
                                   {projLine2 && (
                                     <div style={{ fontSize: 11, color: C.textLo, marginTop: 3 }}>{projLine2}</div>
@@ -1448,16 +1453,39 @@ export default function App() {
                           );
                         })()}
 
-                        {/* Category legend */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 8px", paddingTop: 16, paddingBottom: 16, borderTop: `1px solid ${C.borderMid}`, borderBottom: `1px solid ${C.borderMid}`, marginTop: 4, marginBottom: 8 }}>
-                          {donutSegments.filter(s => s.value > 0).map((s, i) => (
-                            <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <div style={{ width: 7, height: 7, borderRadius: 2, background: s.color, flexShrink: 0 }} />
-                              <span style={{ fontSize: 10, color: C.textMid, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</span>
-                              <span style={{ fontSize: 10, color: s.color, fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(s.value)}</span>
-                            </div>
-                          ))}
-                        </div>
+                        {/* Divider */}
+                        <div style={{ height: 1, background: C.borderMid, margin: "14px 0 12px" }} />
+
+                        {/* Category rows — full width with progress bars */}
+                        {sectionStructure.map(sec =>
+                          sec.cats.map(c => {
+                            const spent  = byCategory[c] || 0;
+                            const budget = budgets[c] || 0;
+                            if (spent === 0 && budget === 0) return null;
+                            const pct   = Math.min(spent / Math.max(budget, 0.01), 1);
+                            const color = catColors[c] || C.accent;
+                            return (
+                              <div key={c} style={{ marginBottom: 14 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                                    <div style={{ width: 7, height: 7, borderRadius: 2, background: color, flexShrink: 0 }} />
+                                    <span style={{ fontSize: 13, color: C.textMid, fontFamily: "'Sora',sans-serif" }}>{truncate(c, 22)}</span>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
+                                    <span style={{ fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budget)}</span>
+                                  </div>
+                                </div>
+                                <div style={{ height: 4, background: C.borderMid, borderRadius: 999, overflow: "hidden" }}>
+                                  <div style={{ height: "100%", width: `${pct * 100}%`, background: color, borderRadius: 999, transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)", boxShadow: `0 0 6px ${color}55` }} />
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+
+                        {/* Divider */}
+                        <div style={{ height: 1, background: C.borderMid, margin: "4px 0 12px" }} />
 
                         {/* Member bars */}
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 14px" }}>
