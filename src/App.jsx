@@ -1413,17 +1413,24 @@ export default function App() {
                                 </div>
                               </div>
 
-                              {/* Spent / Day / Pace pill */}
-                              <div style={{ display: "flex", alignItems: "center", background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 99, overflow: "hidden", marginTop: 2 }}>
-                                {[
-                                  { label: "spent", value: fmt(totalSpend) },
-                                  { label: "day", value: `${dayOfMonth} of ${daysInMonth}` },
-                                  { label: "pace", value: `${Math.round(budgetPct * 100)}%`, color: budgetPct <= dayPct ? "#3fb950" : "#eab308" },
-                                ].map((item, i) => (
-                                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "7px 14px", borderRight: i < 2 ? `1px solid ${C.border}` : "none" }}>
-                                    <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 2 }}>{item.label}</div>
-                                    <div style={{ fontSize: 12, fontWeight: 700, color: item.color || C.textHi, fontFamily: "'DM Mono',monospace" }}>{item.value}</div>
-                                  </div>
+                              {/* Remaining / Spent toggle */}
+                              <div style={{ display: "flex", gap: 7, marginTop: -4, marginBottom: 12 }}>
+                                {["remaining", "spent"].map(opt => (
+                                  <button
+                                    key={opt}
+                                    onClick={() => { setHeroDisplay(opt); localStorage.setItem('fb-hero-display', opt); }}
+                                    style={{
+                                      padding: "5px 16px", borderRadius: 99,
+                                      border: `1px solid ${heroDisplay === opt ? C.accent : C.border}`,
+                                      background: heroDisplay === opt ? C.accentDim : "transparent",
+                                      color: heroDisplay === opt ? C.accent : C.textLo,
+                                      fontSize: 11, fontFamily: "'Sora',sans-serif",
+                                      fontWeight: heroDisplay === opt ? 700 : 400,
+                                      cursor: "pointer", transition: "all 0.15s",
+                                      textTransform: "capitalize",
+                                      WebkitTapHighlightColor: "transparent",
+                                    }}
+                                  >{opt}</button>
                                 ))}
                               </div>
 
