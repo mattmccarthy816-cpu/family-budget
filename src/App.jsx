@@ -1568,9 +1568,7 @@ export default function App() {
     </div>
   );
 })()}
-                    )}
-                  </div>
-
+                 
                   {/* Projection + Pulse — desktop only; mobile handled in arc hero */}
                   {(isCurrentMonth || (!isCurrentMonth && !isFutureMonth)) && isDesktop && (
                     <div className="card" style={{ padding: isDesktop ? "18px 28px" : "14px 18px", marginBottom: 16 }}>
