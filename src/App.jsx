@@ -1568,9 +1568,7 @@ export default function App() {
     </div>
   );
 })()}
-                        </div>
-                    );
-                  })()}
+
                  
                   {/* Projection + Pulse — desktop only; mobile handled in arc hero */}
                   {(isCurrentMonth || (!isCurrentMonth && !isFutureMonth)) && isDesktop && (
