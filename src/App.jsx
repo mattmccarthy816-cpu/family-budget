@@ -1527,7 +1527,9 @@ export default function App() {
                               )}
                             </div>
                           )}
-                        })}
+                        </div>
+                      );
+                    })}
 
                         {/* Divider */}
                         <div style={{ height: 1, background: C.borderMid, margin: "4px 0 12px" }} />
