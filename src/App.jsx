@@ -382,6 +382,7 @@ export default function App() {
   const [ltForm, setLtForm] = useState({ name: "", saved: "", goal: "", color: PALETTE[0], targetDate: "", startDate: "", type: "fixed", monthlyContribution: "" });
   const [theme, setTheme] = useState(() => localStorage.getItem('fb-theme') || 'dark');
   const [heroDisplay, setHeroDisplay] = useState(() => localStorage.getItem('fb-hero-display') || 'remaining');
+  const [mobileSectionOpen, setMobileSectionOpen] = useState(null);
   const [profileOpen, setProfileOpen] = useState(false);
   // Nudge dismissals persisted to localStorage per month
   const nudgeKey = `copper-dismissed-${now.getFullYear()}-${now.getMonth()}`;
@@ -938,11 +939,6 @@ export default function App() {
             <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, fontSize: 6.5, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>PERSONAL</span>
             <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, fontSize: 6.5, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>FINANCE</span>
           </div>
-          {alertCount > 0 && (
-            <span style={{ background: overCount > 0 ? "#ef444418" : "#f9731618", color: overCount > 0 ? "#ef4444" : "#f97316", border: `1px solid ${overCount > 0 ? "#7f1d1d" : "#7c2d12"}`, fontSize: 9, fontWeight: 700, borderRadius: 999, padding: "2px 7px", fontFamily: "'DM Mono',monospace" }}>
-              {alertCount}
-            </span>
-          )}
           {syncing && <span style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>SYNC</span>}
         </div>
 
@@ -1400,7 +1396,7 @@ export default function App() {
                                 <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 8 }}>
                                   <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginBottom: 4, textTransform: "uppercase" }}>{heroLabel}</div>
                                   <div
-                                    key={`${heroDisplay}-${Math.round(Math.abs(heroValue))}`}
+                                    key={Math.abs(heroValue)}
                                     style={{
                                       fontSize: 30,
                                       fontWeight: 800,
@@ -1408,7 +1404,7 @@ export default function App() {
                                       fontFamily: "'DM Mono',monospace",
                                       letterSpacing: -1.5,
                                       lineHeight: 1,
-                                      animation: "countUp 0.5s ease-out both",
+                                      animation: "countUp 1s ease-out both",
                                     }}
                                   >
                                     {heroPrefix}{fmt(Math.abs(heroValue))}
@@ -1417,32 +1413,27 @@ export default function App() {
                                 </div>
                               </div>
 
-                              {/* Remaining / Spent toggle */}
-                              <div style={{ display: "flex", gap: 7, marginTop: -4, marginBottom: 12 }}>
-                                {["remaining", "spent"].map(opt => (
-                                  <button
-                                    key={opt}
-                                    onClick={() => { setHeroDisplay(opt); localStorage.setItem('fb-hero-display', opt); }}
-                                    style={{
-                                      padding: "5px 16px", borderRadius: 99,
-                                      border: `1px solid ${heroDisplay === opt ? C.accent : C.border}`,
-                                      background: heroDisplay === opt ? C.accentDim : "transparent",
-                                      color: heroDisplay === opt ? C.accent : C.textLo,
-                                      fontSize: 11, fontFamily: "'Sora',sans-serif",
-                                      fontWeight: heroDisplay === opt ? 700 : 400,
-                                      cursor: "pointer", transition: "all 0.15s",
-                                      textTransform: "capitalize",
-                                      WebkitTapHighlightColor: "transparent",
-                                    }}
-                                  >{opt}</button>
+                              {/* Spent / Day / Pace pill */}
+                              <div style={{ display: "flex", alignItems: "center", background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 99, overflow: "hidden", marginTop: 2 }}>
+                                {[
+                                  { label: "spent", value: fmt(totalSpend) },
+                                  { label: "day", value: `${dayOfMonth} of ${daysInMonth}` },
+                                  { label: "pace", value: `${Math.round(budgetPct * 100)}%`, color: budgetPct <= dayPct ? "#3fb950" : "#eab308" },
+                                ].map((item, i) => (
+                                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "7px 14px", borderRight: i < 2 ? `1px solid ${C.border}` : "none" }}>
+                                    <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 2 }}>{item.label}</div>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: item.color || C.textHi, fontFamily: "'DM Mono',monospace" }}>{item.value}</div>
+                                  </div>
                                 ))}
                               </div>
 
                               {/* Two-line projection */}
                               {projLine1 && (
-                                <div style={{ marginTop: 2, textAlign: "center", paddingBottom: 4 }}>
-                                  <div style={{ fontSize: 12, fontWeight: 600, color: projection.projectedOver ? "#ef4444" : "#3fb950" }}>
-                                    {projLine1}
+                                <div style={{ marginTop: 10, textAlign: "center", paddingBottom: 4 }}>
+                                  <div style={{ fontSize: 12, color: C.textLo }}>
+                                    <span style={{ color: projection.projectedOver ? "#ef4444" : "#3fb950", fontWeight: 600 }}>
+                                      {projLine1}
+                                    </span>
                                   </div>
                                   {projLine2 && (
                                     <div style={{ fontSize: 11, color: C.textLo, marginTop: 3 }}>{projLine2}</div>
@@ -1456,32 +1447,77 @@ export default function App() {
                         {/* Divider */}
                         <div style={{ height: 1, background: C.borderMid, margin: "14px 0 12px" }} />
 
-                        {/* Section rows — full width with progress bars */}
+                        {/* Section rows — expandable accordion, none open on load */}
                         {sectionStructure.map(sec => {
-                          const totals = sectionTotals[sec.name];
-                          const spent  = totals.spent;
-                          const budget = totals.budget;
+                          const totals   = sectionTotals[sec.name];
+                          const spent    = totals.spent;
+                          const budget   = totals.budget;
                           if (spent === 0 && budget === 0) return null;
-                          const pct   = Math.min(spent / Math.max(budget, 0.01), 1);
-                          const color = sec.cats.length > 0 ? (catColors[sec.cats[0]] || C.accent) : C.accent;
-                          const over  = totals.alertableSpent > totals.alertableBudget + 2;
+                          const pct      = Math.min(spent / Math.max(budget, 0.01), 1);
+                          const color    = sec.cats.length > 0 ? (catColors[sec.cats[0]] || C.accent) : C.accent;
+                          const over     = totals.alertableSpent > totals.alertableBudget + 2;
                           const barColor = over ? "#ef4444" : color;
+                          const isOpen   = mobileSectionOpen === sec.name;
                           return (
-                            <div key={sec.name} style={{ marginBottom: 14 }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                                  <div style={{ width: 7, height: 7, borderRadius: 2, background: barColor, flexShrink: 0 }} />
-                                  <span style={{ fontSize: 13, color: C.textMid, fontFamily: "'Sora',sans-serif" }}>{sec.name}</span>
-                                  {over && <span style={{ fontSize: 10, color: "#ef4444", fontWeight: 800 }}>!</span>}
+                            <div key={sec.name}>
+                              {/* Section header */}
+                              <div
+                                onClick={() => setMobileSectionOpen(isOpen ? null : sec.name)}
+                                style={{ marginBottom: isOpen ? 6 : 14, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
+                              >
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                                    <div style={{ width: 7, height: 7, borderRadius: 2, background: barColor, flexShrink: 0 }} />
+                                    <span style={{ fontSize: 13, color: C.textMid, fontFamily: "'Sora',sans-serif" }}>{sec.name}</span>
+                                    {over && <span style={{ fontSize: 10, color: "#ef4444", fontWeight: 800 }}>!</span>}
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+                                      <span style={{ fontSize: 13, fontWeight: 700, color: over ? "#ef4444" : C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
+                                      <span style={{ fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budget)}</span>
+                                    </div>
+                                    <span style={{ fontSize: 9, color: C.textLo, display: "inline-block", transform: isOpen ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▶</span>
+                                  </div>
                                 </div>
-                                <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
-                                  <span style={{ fontSize: 13, fontWeight: 700, color: over ? "#ef4444" : C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
-                                  <span style={{ fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budget)}</span>
+                                <div style={{ height: 4, background: C.borderMid, borderRadius: 999, overflow: "hidden" }}>
+                                  <div style={{ height: "100%", width: `${pct * 100}%`, background: barColor, borderRadius: 999, transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)", boxShadow: `0 0 6px ${barColor}55` }} />
                                 </div>
                               </div>
-                              <div style={{ height: 4, background: C.borderMid, borderRadius: 999, overflow: "hidden" }}>
-                                <div style={{ height: "100%", width: `${pct * 100}%`, background: barColor, borderRadius: 999, transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)", boxShadow: `0 0 6px ${barColor}55` }} />
-                              </div>
+
+                              {/* Expanded category rows */}
+                              {isOpen && (
+                                <div style={{ marginBottom: 12, paddingLeft: 14, borderLeft: `2px solid ${barColor}40` }}>
+                                  {sec.cats.map(c => {
+                                    const cSpent  = byCategory[c] || 0;
+                                    const cBudget = budgets[c] || 0;
+                                    if (cSpent === 0 && cBudget === 0) return null;
+                                    const cPct   = Math.min(cSpent / Math.max(cBudget, 0.01), 1);
+                                    const cColor = catColors[c] || C.accent;
+                                    const cOver  = cSpent > cBudget + 2;
+                                    const status = categoryStatuses[c];
+                                    return (
+                                      <div key={c} style={{ marginBottom: 10 }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+                                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                            <div style={{ width: 5, height: 5, borderRadius: 1, background: cColor, flexShrink: 0 }} />
+                                            <span style={{ fontSize: 11, color: C.textLo, fontFamily: "'Sora',sans-serif" }}>{truncate(c, 22)}</span>
+                                            {status !== "ok" && (catTypes[c] || "expense") !== "investment" && (
+                                              <span style={{ fontSize: 9, color: STATUS[status].color, fontWeight: 800 }}>{STATUS[status].icon}</span>
+                                            )}
+                                          </div>
+                                          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                                            <span style={{ fontSize: 11, fontWeight: 700, color: cOver ? "#ef4444" : C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(cSpent)}</span>
+                                            <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(cBudget)}</span>
+                                          </div>
+                                        </div>
+                                        <div style={{ height: 3, background: C.borderMid, borderRadius: 999, overflow: "hidden" }}>
+                                          <div style={{ height: "100%", width: `${cPct * 100}%`, background: cOver ? "#ef4444" : cColor, borderRadius: 999, transition: "width 0.6s cubic-bezier(0.4,0,0.2,1)" }} />
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
