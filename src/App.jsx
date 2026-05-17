@@ -1520,20 +1520,19 @@ export default function App() {
                                         <div style={{ height: 3, background: C.borderMid, borderRadius: 999, overflow: "hidden" }}>
                                           <div style={{ height: "100%", width: `${cPct * 100}%`, background: cOver ? "#ef4444" : cColor, borderRadius: 999, transition: "width 0.6s cubic-bezier(0.4,0,0.2,1)" }} />
                                         </div>
+                                        </div>
                                       </div>
                                     );
                                   })}
                                 </div>
                               )}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                          );
+                        })}
 
                         {/* Divider */}
                         <div style={{ height: 1, background: C.borderMid, margin: "4px 0 12px" }} />
-
+                      
                         {/* Member bars */}
                         
                         {/* Member spend — horizontal split bar */}
