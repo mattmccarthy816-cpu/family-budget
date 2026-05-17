@@ -710,14 +710,19 @@ export default function App() {
   );
 
   const SectionBlock = ({ mobile = false }) => (
-    <>
-      {sectionStructure.map(sec => {
-        const totals = sectionTotals[sec.name];
-        const isExpanded = !!expandedSections[sec.name];
-        const secOver = totals.alertableSpent > totals.alertableBudget + 2;
-        return (
-          <div key={sec.name}>
-            <div onClick={() => toggleSection(sec.name)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", cursor: "pointer", borderBottom: `1px solid ${C.borderMid}`, userSelect: "none" }}>
+  <>
+    {sectionStructure.map(sec => {
+      const totals = sectionTotals[sec.name];
+      const isExpanded = mobile ? mobileSectionOpen === sec.name : !!expandedSections[sec.name];
+      const secOver = totals.alertableSpent > totals.alertableBudget + 2;
+      const barColor = secOver ? "#ef4444" : (sec.cats.length > 0 ? catColors[sec.cats[0]] || C.accent : C.accent);
+      return (
+        <div key={sec.name}>
+          <div
+            onClick={() => mobile ? setMobileSectionOpen(isExpanded ? null : sec.name) : toggleSection(sec.name)}
+            style={{ display: "flex", flexDirection: "column", padding: "12px 0", cursor: "pointer", borderBottom: isExpanded ? "none" : `1px solid ${C.borderMid}`, userSelect: "none" }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 10, color: C.textLo, display: "inline-block", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▶</span>
                 <span style={{ fontSize: 13, fontWeight: 700, color: C.textHi }}>{sec.name}</span>
@@ -728,37 +733,42 @@ export default function App() {
                 <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(totals.budget)}</span>
               </div>
             </div>
-            {isExpanded && sec.cats.map(c => {
-              const status = categoryStatuses[c];
-              const sc = STATUS[status];
-              const spent = byCategory[c] || 0;
-              return (
-                <div key={c} style={{ display: "flex", alignItems: "center", padding: "9px 0 9px 16px", borderBottom: `1px solid ${C.borderMid}`, gap: 10 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: 2, background: catColors[c] || "#94a3b8", flexShrink: 0 }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <span style={{ fontSize: 12, color: C.textMid, fontWeight: 500 }}>{truncate(c)}</span>
-                        {status !== "ok" && (catTypes[c] || "expense") === "expense" && <span style={{ fontSize: 10, color: sc.color, fontWeight: 800 }}>{sc.icon}</span>}
-                        {(catTypes[c] || "expense") === "investment" && <span style={{ fontSize: 9, color: "#388bfd", fontWeight: 700, background: "rgba(56,139,253,0.12)", padding: "1px 5px", borderRadius: 3 }}>↗</span>}
-                        {(catTypes[c] || "expense") === "fixed" && <span style={{ fontSize: 9, color: C.textLo, fontWeight: 600, background: C.bgInset, padding: "1px 5px", borderRadius: 3, border: `1px solid ${C.border}` }}>fixed</span>}
-                      </div>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: sc.color, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
-                        <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budgets[c])}</span>
-                      </div>
-                    </div>
-                    <CategoryBar spent={spent} budget={budgets[c]} color={catColors[c] || C.accent} dayOfMonth={dayOfMonth} daysInMonth={daysInMonth} type={catTypes[c] || "expense"} />
-                  </div>
-                </div>
-              );
-            })}
+            {mobile && (
+              <div style={{ height: 3, background: C.borderMid, borderRadius: 999, overflow: "hidden", marginTop: 6 }}>
+                <div style={{ height: "100%", width: `${Math.min((totals.spent / Math.max(totals.budget, 0.01)) * 100, 100)}%`, background: barColor, borderRadius: 999, transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)" }} />
+              </div>
+            )}
           </div>
-        );
-      })}
-    </>
-  );
-
+          {isExpanded && sec.cats.map(c => {
+            const status = categoryStatuses[c];
+            const sc = STATUS[status];
+            const spent = byCategory[c] || 0;
+            return (
+              <div key={c} style={{ display: "flex", alignItems: "center", padding: "9px 0 9px 16px", borderBottom: `1px solid ${C.borderMid}`, gap: 10 }}>
+                <div style={{ width: 6, height: 6, borderRadius: 2, background: catColors[c] || "#94a3b8", flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ fontSize: 12, color: C.textMid, fontWeight: 500 }}>{truncate(c)}</span>
+                      {!mobile && status !== "ok" && (catTypes[c] || "expense") === "expense" && <span style={{ fontSize: 10, color: sc.color, fontWeight: 800 }}>{sc.icon}</span>}
+                      {!mobile && (catTypes[c] || "expense") === "investment" && <span style={{ fontSize: 9, color: "#388bfd", fontWeight: 700, background: "rgba(56,139,253,0.12)", padding: "1px 5px", borderRadius: 3 }}>↗</span>}
+                      {!mobile && (catTypes[c] || "expense") === "fixed" && <span style={{ fontSize: 9, color: C.textLo, fontWeight: 600, background: C.bgInset, padding: "1px 5px", borderRadius: 3, border: `1px solid ${C.border}` }}>fixed</span>}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: sc.color, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
+                      <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budgets[c])}</span>
+                    </div>
+                  </div>
+                  <CategoryBar spent={spent} budget={budgets[c]} color={catColors[c] || C.accent} dayOfMonth={dayOfMonth} daysInMonth={daysInMonth} type={catTypes[c] || "expense"} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    })}
+  </>
+);
   return (
     <div style={{ minHeight: "100vh", background: theme === 'dark' ? "#0d0d0f" : "linear-gradient(135deg, #eef0f3 0%, #e8eaed 100%)", fontFamily: "'Sora', sans-serif", color: C.textHi, paddingBottom: 0 }}>
 
