@@ -1633,54 +1633,56 @@ export default function App() {
 )}
 
                   {/* Sections + Breakdown */}
-                  {isDesktop ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                      <div className="card" style={{ padding: "20px 24px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                          <div style={{ fontSize: 11, color: C.textMid, fontFamily: "'Sora',sans-serif", fontWeight: 600 }}>Spending</div>
-                          {isCurrentMonth && <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 1.5, height: 8, background: "rgba(255,255,255,0.25)", borderRadius: 1 }} /> TODAY</div>}
-                        </div>
-                        <SectionBlock />
-                      </div>
-                      <div className="card" style={{ padding: "0", overflow: "hidden" }}>
-                        <div onClick={() => setBreakdownOpen(o => !o)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none", padding: "16px 20px" }}>
-                          <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>MEMBER BREAKDOWN</div>
-                          <span style={{ fontSize: 10, color: C.textLo, transform: breakdownOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
-                        </div>
-                        {breakdownOpen && (
-                          <div style={{ padding: "0 20px 20px", borderTop: `1px solid ${C.borderMid}` }}>
-                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, marginTop: 14 }}>
-                              <thead><tr><th style={{ textAlign: "left", color: C.textLo, padding: "0 0 10px", fontWeight: 500, fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>Category</th>{memberNames.map(m => (<th key={m} style={{ textAlign: "right", color: memberColors[m], padding: "0 0 10px 10px", fontWeight: 600, fontSize: 11 }}>{m}</th>))}</tr></thead>
-                              <tbody>{categories.filter(c => (byCategory[c] || 0) > 0).map(c => (
-                                <tr key={c} style={{ borderTop: `1px solid ${C.borderMid}` }}>
-                                  <td style={{ padding: "8px 0", color: C.textMid, display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: 1, background: catColors[c] || C.textLo, display: "inline-block", flexShrink: 0 }} />{truncate(c, 30)}</td>
-                                  {memberNames.map(m => (<td key={m} style={{ textAlign: "right", padding: "8px 0 8px 10px", color: (byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? C.textHi : C.borderMid, fontFamily: "'DM Mono',monospace", fontSize: 11 }}>{(byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? fmt(byMemberCategory[m][c]) : "—"}</td>))}
-                                </tr>
-                              ))}</tbody>
-                            </table>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                        <div onClick={() => setBreakdownOpen(o => !o)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}>
-                          <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>BREAKDOWN</div>
-                          <span style={{ fontSize: 10, color: C.textLo, transform: breakdownOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
-                        </div>
-                        {breakdownOpen && (
-                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, marginTop: 14 }}>
-                            <thead><tr><th style={{ textAlign: "left", color: C.textLo, padding: "0 0 10px", fontWeight: 500, fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>Category</th>{memberNames.map(m => (<th key={m} style={{ textAlign: "right", color: memberColors[m], padding: "0 0 10px 10px", fontWeight: 600 }}>{m}</th>))}</tr></thead>
-                            <tbody>{categories.filter(c => (byCategory[c] || 0) > 0).map(c => (
-                              <tr key={c} style={{ borderTop: `1px solid ${C.borderMid}` }}>
-                                <td style={{ padding: "8px 0", color: C.textMid, display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: 1, background: catColors[c] || C.textLo, display: "inline-block" }} />{c}</td>
-                                {memberNames.map(m => (<td key={m} style={{ textAlign: "right", padding: "8px 0 8px 10px", color: (byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? C.textHi : C.borderMid, fontFamily: "'DM Mono',monospace" }}>{(byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? fmt(byMemberCategory[m][c]) : "—"}</td>))}
-                              </tr>
-                            ))}</tbody>
-                          </table>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
+{isDesktop ? (
+  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="card" style={{ padding: "20px 24px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <div style={{ fontSize: 11, color: C.textMid, fontFamily: "'Sora',sans-serif", fontWeight: 600 }}>Spending</div>
+        {isCurrentMonth && <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 1.5, height: 8, background: "rgba(255,255,255,0.25)", borderRadius: 1 }} /> TODAY</div>}
+      </div>
+      <SectionBlock />
+    </div>
+    <div className="card" style={{ padding: "0", overflow: "hidden" }}>
+      <div onClick={() => setBreakdownOpen(o => !o)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none", padding: "16px 20px" }}>
+        <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>MEMBER BREAKDOWN</div>
+        <span style={{ fontSize: 10, color: C.textLo, transform: breakdownOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
+      </div>
+      {breakdownOpen && (
+        <div style={{ padding: "0 20px 20px", borderTop: `1px solid ${C.borderMid}` }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, marginTop: 14 }}>
+            <thead><tr><th style={{ textAlign: "left", color: C.textLo, padding: "0 0 10px", fontWeight: 500, fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>Category</th>{memberNames.map(m => (<th key={m} style={{ textAlign: "right", color: memberColors[m], padding: "0 0 10px 10px", fontWeight: 600, fontSize: 11 }}>{m}</th>))}</tr></thead>
+            <tbody>{categories.filter(c => (byCategory[c] || 0) > 0).map(c => (
+              <tr key={c} style={{ borderTop: `1px solid ${C.borderMid}` }}>
+                <td style={{ padding: "8px 0", color: C.textMid, display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: 1, background: catColors[c] || C.textLo, display: "inline-block", flexShrink: 0 }} />{truncate(c, 30)}</td>
+                {memberNames.map(m => (<td key={m} style={{ textAlign: "right", padding: "8px 0 8px 10px", color: (byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? C.textHi : C.borderMid, fontFamily: "'DM Mono',monospace", fontSize: 11 }}>{(byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? fmt(byMemberCategory[m][c]) : "—"}</td>))}
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  </div>
+) : (
+  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <div className="card" style={{ padding: "18px 16px" }}>
+      <div onClick={() => setBreakdownOpen(o => !o)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}>
+        <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>BREAKDOWN</div>
+        <span style={{ fontSize: 10, color: C.textLo, transform: breakdownOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
+      </div>
+      {breakdownOpen && (
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, marginTop: 14 }}>
+          <thead><tr><th style={{ textAlign: "left", color: C.textLo, padding: "0 0 10px", fontWeight: 500, fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>Category</th>{memberNames.map(m => (<th key={m} style={{ textAlign: "right", color: memberColors[m], padding: "0 0 10px 10px", fontWeight: 600 }}>{m}</th>))}</tr></thead>
+          <tbody>{categories.filter(c => (byCategory[c] || 0) > 0).map(c => (
+            <tr key={c} style={{ borderTop: `1px solid ${C.borderMid}` }}>
+              <td style={{ padding: "8px 0", color: C.textMid, display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: 1, background: catColors[c] || C.textLo, display: "inline-block" }} />{c}</td>
+              {memberNames.map(m => (<td key={m} style={{ textAlign: "right", padding: "8px 0 8px 10px", color: (byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? C.textHi : C.borderMid, fontFamily: "'DM Mono',monospace" }}>{(byMemberCategory[m] && byMemberCategory[m][c]) > 0 ? fmt(byMemberCategory[m][c]) : "—"}</td>))}
+            </tr>
+          ))}</tbody>
+        </table>
+      )}
+    </div>
+  </div>
+)}
                   {/* Entries */}
                   <div className="card" style={{ padding: isDesktop ? "20px 24px" : "18px 16px", marginTop: 16 }}>
                     {isDesktop ? (
