@@ -1533,18 +1533,41 @@ export default function App() {
                         <div style={{ height: 1, background: C.borderMid, margin: "4px 0 12px" }} />
 
                         {/* Member bars */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 14px" }}>
-                          {memberNames.map(m => (
-                            <div key={m}>
-                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                <span style={{ fontSize: 10, color: memberColors[m], fontWeight: 600 }}>{m}</span>
-                                <span style={{ fontSize: 10, color: memberColors[m], fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(byMember[m])}</span>
-                              </div>
-                              <div style={{ background: C.borderMid, borderRadius: 999, height: 3 }}>
-                                <div style={{ width: `${(byMember[m] / maxMemberSpend) * 100}%`, height: "100%", background: memberColors[m], borderRadius: 999, transition: "width 0.5s" }} />
-                              </div>
-                            </div>
-                          ))}
+                        
+                        {/* Member spend — horizontal split bar */}
+{(() => {
+  const totalMemberSpend = memberNames.reduce((s, m) => s + (byMember[m] || 0), 0);
+  return (
+    <div style={{ marginTop: 4 }}>
+      <div style={{ fontSize: 9, color: C.textLo, letterSpacing: 1.5, fontFamily: "'DM Mono',monospace", textTransform: "uppercase", marginBottom: 8 }}>member spend</div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+        {memberNames.map((m, i) => (
+          <div key={m} style={{ display: "flex", flexDirection: "column", alignItems: i % 2 === 0 ? "flex-start" : "flex-end" }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: memberColors[m] }}>{m}</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: memberColors[m], fontFamily: "'DM Mono',monospace", letterSpacing: -0.5 }}>{fmt(byMember[m] || 0)}</span>
+            <span style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>
+              {totalMemberSpend > 0 ? Math.round(((byMember[m] || 0) / totalMemberSpend) * 100) : 0}% of total
+            </span>
+          </div>
+        ))}
+      </div>
+      <div style={{ height: 5, borderRadius: 999, background: C.borderMid, overflow: "hidden", display: "flex" }}>
+        {memberNames.map((m, i) => {
+          const pct = totalMemberSpend > 0 ? ((byMember[m] || 0) / totalMemberSpend) * 100 : 100 / memberNames.length;
+          return (
+            <div key={m} style={{
+              height: "100%",
+              width: `${pct}%`,
+              background: memberColors[m],
+              borderRadius: i === 0 ? "999px 0 0 999px" : i === memberNames.length - 1 ? "0 999px 999px 0" : 0,
+              transition: "width 0.5s",
+            }} />
+          );
+        })}
+      </div>
+    </div>
+  );
+})()}
                         </div>
                       </div>
                     )}
