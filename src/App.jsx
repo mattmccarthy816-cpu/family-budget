@@ -1414,7 +1414,7 @@ export default function App() {
                               </div>
 
                               {/* Remaining / Spent toggle */}
-                              <div style={{ display: "flex", gap: 7, marginTop: -4, marginBottom: 12 }}>
+                              <div style={{ display: "flex", gap: 7, marginTop: -14, marginBottom: 8 }}>
                                 {["remaining", "spent"].map(opt => (
                                   <button
                                     key={opt}
@@ -1629,37 +1629,48 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Recurring nudges */}
-                  {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && (
-                    <div style={{ marginBottom: 16 }}>
-                      {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).map(nudge => (
-                        <div key={nudge.cat} className="card" style={{ padding: "14px 18px", marginBottom: 8, display: "flex", alignItems: "center", gap: 14, borderLeft: `3px solid ${C.accent}` }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: C.textHi, marginBottom: 2 }}>
-                              Log {nudge.cat}?
-                            </div>
-                            <div style={{ fontSize: 11, color: C.textLo }}>
-                              You've logged this {nudge.count > 1 ? `${nudge.count} months in a row` : "last month"} — usually around the {nudge.avgDay}{nudge.avgDay === 1 ? "st" : nudge.avgDay === 2 ? "nd" : nudge.avgDay === 3 ? "rd" : "th"}
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => {
-                              setForm({ member: memberNames[0] || "", category: nudge.cat, amount: String(nudge.lastAmount), notes: "" });
-                              setAddOpen(true);
-                              setDismissedNudges(prev => new Set([...prev, nudge.cat]));
-                            }}
-                            style={{ background: C.accent, border: "none", borderRadius: 8, color: "#fff", fontSize: 12, fontWeight: 700, padding: "8px 14px", cursor: "pointer", fontFamily: "'Sora',sans-serif", whiteSpace: "nowrap" }}>
-                            Log it →
-                          </button>
-                          <button
-                            onClick={() => setDismissedNudges(prev => new Set([...prev, nudge.cat]))}
-                            style={{ background: "none", border: "none", color: C.textLo, fontSize: 16, cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {/* Reminder nudge banner */}
+{!isDesktop && recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && (
+  <div
+    onClick={() => { setView("alerts"); }}
+    className="card"
+    style={{ padding: "10px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10, cursor: "pointer", borderLeft: `3px solid #f85149`, borderRadius: 12 }}
+  >
+    <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#f85149", flexShrink: 0 }} />
+    <div style={{ flex: 1, fontSize: 12, color: C.textMid }}>
+      <span style={{ color: C.textHi, fontWeight: 600 }}>
+        {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length === 1
+          ? `Log ${recurringNudges.filter(n => !dismissedNudges.has(n.cat))[0].cat}?`
+          : `${recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length} reminders`}
+      </span>
+      {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length === 1
+        ? ` — usually around the ${recurringNudges.filter(n => !dismissedNudges.has(n.cat))[0].avgDay}${[1,'st',2,'nd',3,'rd'][recurringNudges.filter(n=>!dismissedNudges.has(n.cat))[0].avgDay] || 'th'}`
+        : ` — ${recurringNudges.filter(n => !dismissedNudges.has(n.cat)).map(n => n.cat).join(' & ')} due`}
+    </div>
+    <span style={{ fontSize: 11, color: C.accent, fontFamily: "'DM Mono',monospace", whiteSpace: "nowrap" }}>view →</span>
+  </div>
+)}
+{/* Desktop nudges unchanged */}
+{isDesktop && recurringNudges.filter(n => !dismissedNudges.has(n.cat)).length > 0 && (
+  <div style={{ marginBottom: 16 }}>
+    {recurringNudges.filter(n => !dismissedNudges.has(n.cat)).map(nudge => (
+      <div key={nudge.cat} className="card" style={{ padding: "14px 18px", marginBottom: 8, display: "flex", alignItems: "center", gap: 14, borderLeft: `3px solid ${C.accent}` }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.textHi, marginBottom: 2 }}>Log {nudge.cat}?</div>
+          <div style={{ fontSize: 11, color: C.textLo }}>
+            You've logged this {nudge.count > 1 ? `${nudge.count} months in a row` : "last month"} — usually around the {nudge.avgDay}{nudge.avgDay === 1 ? "st" : nudge.avgDay === 2 ? "nd" : nudge.avgDay === 3 ? "rd" : "th"}
+          </div>
+        </div>
+        <button
+          onClick={() => { setForm({ member: memberNames[0] || "", category: nudge.cat, amount: String(nudge.lastAmount), notes: "" }); setAddOpen(true); setDismissedNudges(prev => new Set([...prev, nudge.cat])); }}
+          style={{ background: C.accent, border: "none", borderRadius: 8, color: "#fff", fontSize: 12, fontWeight: 700, padding: "8px 14px", cursor: "pointer", fontFamily: "'Sora',sans-serif", whiteSpace: "nowrap" }}>
+          Log it →
+        </button>
+        <button onClick={() => setDismissedNudges(prev => new Set([...prev, nudge.cat]))} style={{ background: "none", border: "none", color: C.textLo, fontSize: 16, cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>×</button>
+      </div>
+    ))}
+  </div>
+)}
 
                   {/* Sections + Breakdown */}
                   {isDesktop ? (
