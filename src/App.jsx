@@ -1464,83 +1464,11 @@ export default function App() {
                         {/* Divider */}
                         <div style={{ height: 1, background: C.borderMid, margin: "14px 0 12px" }} />
 
-                        {/* Section rows — expandable accordion, none open on load */}
-                        {sectionStructure.map(sec => {
-                          const totals   = sectionTotals[sec.name];
-                          const spent    = totals.spent;
-                          const budget   = totals.budget;
-                          if (spent === 0 && budget === 0) return null;
-                          const pct      = Math.min(spent / Math.max(budget, 0.01), 1);
-                          const color    = sec.cats.length > 0 ? (catColors[sec.cats[0]] || C.accent) : C.accent;
-                          const over     = totals.alertableSpent > totals.alertableBudget + 2;
-                          const barColor = over ? "#ef4444" : color;
-                          const isOpen   = mobileSectionOpen === sec.name;
-                          return (
-                            <div key={sec.name}>
-                              {/* Section header */}
-                              <div
-                                onClick={() => setMobileSectionOpen(isOpen ? null : sec.name)}
-                                style={{ marginBottom: isOpen ? 6 : 14, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
-                              >
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                                    <div style={{ width: 7, height: 7, borderRadius: 2, background: barColor, flexShrink: 0 }} />
-                                    <span style={{ fontSize: 13, color: C.textMid, fontFamily: "'Sora',sans-serif" }}>{sec.name}</span>
-                                    {over && <span style={{ fontSize: 10, color: "#ef4444", fontWeight: 800 }}>!</span>}
-                                  </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                    <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
-                                      <span style={{ fontSize: 13, fontWeight: 700, color: over ? "#ef4444" : C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
-                                      <span style={{ fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budget)}</span>
-                                    </div>
-                                    <span style={{ fontSize: 9, color: C.textLo, display: "inline-block", transform: isOpen ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▶</span>
-                                  </div>
-                                </div>
-                                <div style={{ height: 4, background: C.borderMid, borderRadius: 999, overflow: "hidden" }}>
-                                  <div style={{ height: "100%", width: `${pct * 100}%`, background: barColor, borderRadius: 999, transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)", boxShadow: `0 0 6px ${barColor}55` }} />
-                                </div>
-                              </div>
+                       {/* Section rows */}
+<SectionBlock mobile />
 
-                              {/* Expanded category rows */}
-                              {isOpen && (
-                                <div style={{ marginBottom: 12, paddingLeft: 14, borderLeft: `2px solid ${barColor}40` }}>
-                                  {sec.cats.map(c => {
-                                    const cSpent  = byCategory[c] || 0;
-                                    const cBudget = budgets[c] || 0;
-                                    if (cSpent === 0 && cBudget === 0) return null;
-                                    const cPct   = Math.min(cSpent / Math.max(cBudget, 0.01), 1);
-                                    const cColor = catColors[c] || C.accent;
-                                    const cOver  = cSpent > cBudget + 2;
-                                    const status = categoryStatuses[c];
-                                    return (
-                                      <div key={c} style={{ marginBottom: 10 }}>
-                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-                                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                            <div style={{ width: 5, height: 5, borderRadius: 1, background: cColor, flexShrink: 0 }} />
-                                            <span style={{ fontSize: 11, color: C.textLo, fontFamily: "'Sora',sans-serif" }}>{truncate(c, 22)}</span>
-                                            {status !== "ok" && (catTypes[c] || "expense") !== "investment" && (
-                                              <span style={{ fontSize: 9, color: STATUS[status].color, fontWeight: 800 }}>{STATUS[status].icon}</span>
-                                            )}
-                                          </div>
-                                          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                                            <span style={{ fontSize: 11, fontWeight: 700, color: cOver ? "#ef4444" : C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(cSpent)}</span>
-                                            <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(cBudget)}</span>
-                                          </div>
-                                        </div>
-                                        <div style={{ height: 3, background: C.borderMid, borderRadius: 999, overflow: "hidden" }}>
-                                          <div style={{ height: "100%", width: `${cPct * 100}%`, background: cOver ? "#ef4444" : cColor, borderRadius: 999, transition: "width 0.6s cubic-bezier(0.4,0,0.2,1)" }} />
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-
-                        {/* Divider */}
-                        <div style={{ height: 1, background: C.borderMid, margin: "4px 0 12px" }} />
+{/* Divider */}
+<div style={{ height: 1, background: C.borderMid, margin: "4px 0 12px" }} />
                       
                         {/* Member bars */}
                         
