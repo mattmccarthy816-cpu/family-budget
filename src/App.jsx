@@ -1662,15 +1662,7 @@ export default function App() {
                         )}
                       </div>
                     </div>
-                  ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                      <div className="card" style={{ padding: "18px 16px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                          <div style={{ fontSize: 11, color: C.textMid, fontFamily: "'Sora',sans-serif", fontWeight: 600 }}>Spending</div>
-                          {isCurrentMonth && <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>| TODAY</div>}
-                        </div>
-                        <SectionBlock mobile />
-                      </div>
+
                       <div className="card" style={{ padding: "18px 16px" }}>
                         <div onClick={() => setBreakdownOpen(o => !o)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}>
                           <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>BREAKDOWN</div>
