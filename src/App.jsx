@@ -1662,7 +1662,6 @@ export default function App() {
                         )}
                       </div>
                     </div>
-
                       <div className="card" style={{ padding: "18px 16px" }}>
                         <div onClick={() => setBreakdownOpen(o => !o)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}>
                           <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>BREAKDOWN</div>
