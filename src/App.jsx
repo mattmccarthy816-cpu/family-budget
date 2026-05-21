@@ -394,7 +394,17 @@ export default function App() {
     setDismissedNudges(next);
     localStorage.setItem(nudgeKey, JSON.stringify([...next]));
   }
-
+// ── Featured goal state ──
+  const [featuredGoalIndex, setFeaturedGoalIndex] = useState(() => {
+    const s = localStorage.getItem('fb-featured-goal');
+    return s !== null ? parseInt(s) : null;
+  });
+  function setFeatured(i) {
+    const next = featuredGoalIndex === i ? null : i;
+    setFeaturedGoalIndex(next);
+    if (next === null) localStorage.removeItem('fb-featured-goal');
+    else localStorage.setItem('fb-featured-goal', String(next));
+  }
   // Update the module-level C reference on every render
   C = theme === 'dark' ? DARK : LIGHT;
 
@@ -1631,7 +1641,116 @@ export default function App() {
     ))}
   </div>
 )}
+{/* Featured Goal */}
+{!isDesktop && (() => {
+  const typeBadgeColors = {
+    fixed:      { color: '#3fb950', bg: 'rgba(63,185,80,0.12)' },
+    investment: { color: '#388bfd', bg: 'rgba(56,139,253,0.12)' },
+    debt:       { color: '#f97316', bg: 'rgba(249,115,22,0.12)' },
+  };
+  const typeLabels = { fixed: 'savings', investment: '↗ invest', debt: 'debt ↓' };
 
+  const nowStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const monthsBetween = (a, b) => {
+    if (!a || !b) return null;
+    const [ay, am] = a.split('-').map(Number);
+    const [by, bm] = b.split('-').map(Number);
+    return (by - ay) * 12 + (bm - am);
+  };
+
+  if (featuredGoalIndex === null || !longTerm[featuredGoalIndex]) {
+    return (
+      <div className="card" style={{ padding: '16px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textLo} strokeWidth="1.5">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 12, color: C.textMid, fontWeight: 600, marginBottom: 2 }}>No featured goal</div>
+          <div style={{ fontSize: 11, color: C.textLo }}>Star a goal in the Goals tab to feature it here</div>
+        </div>
+        <button onClick={() => setView('longterm')} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 8, color: C.textLo, fontSize: 11, fontFamily: "'DM Mono',monospace", padding: '5px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Goals →</button>
+      </div>
+    );
+  }
+
+  const item = longTerm[featuredGoalIndex];
+  const type = item.type || 'fixed';
+  const isDebt = type === 'debt';
+  const isInv = type === 'investment';
+  const badge = typeBadgeColors[type];
+  const pct = item.goal > 0 ? Math.min(isDebt ? 1 - (item.saved / item.goal) : item.saved / item.goal, 1) : 0;
+  const monthsLeft = monthsBetween(nowStr, item.targetDate);
+  const monthly = item.monthlyContribution || 0;
+  const totalMonths = item.startDate && item.targetDate ? monthsBetween(item.startDate, item.targetDate) : null;
+  const monthsElapsed = item.startDate ? monthsBetween(item.startDate, nowStr) : null;
+  const pacingPct = totalMonths > 0 && monthsElapsed !== null ? Math.min(monthsElapsed / totalMonths, 0.98) : null;
+
+  let projText = null;
+  let projOk = null;
+  if (monthsLeft > 0 && monthly > 0) {
+    if (isInv) {
+      const r = 0.07 / 12;
+      const fv = item.saved * Math.pow(1+r, monthsLeft) + monthly * ((Math.pow(1+r, monthsLeft)-1)/r);
+      projOk = fv >= item.goal;
+      const d = Math.abs(Math.round(fv - item.goal));
+      projText = projOk
+        ? `On track · projected ${fmt(Math.round(fv))} by target — ${fmt(d)} above goal`
+        : `Need ${fmt(Math.round((item.goal - fv * 0.9) / monthsLeft))}/mo to close gap`;
+    } else {
+      const remaining = isDebt ? item.saved : Math.max(item.goal - item.saved, 0);
+      const req = remaining / monthsLeft;
+      projOk = monthly >= req;
+      const diff = Math.abs(Math.round(req - monthly));
+      projText = projOk
+        ? `On track · ${fmt(monthly)}/mo — goal reached ahead of target`
+        : `Need ${fmt(Math.round(req))}/mo to hit target — ${fmt(diff)} short of on-track pace`;
+    }
+  }
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>FEATURED GOAL</div>
+        <button onClick={() => setView('longterm')} style={{ background: 'none', border: 'none', color: C.textLo, fontSize: 10, fontFamily: "'DM Mono',monospace", cursor: 'pointer', padding: 0, letterSpacing: 0.5 }}>all goals →</button>
+      </div>
+      <div className="card" style={{ padding: '18px', position: 'relative' }}>
+        <div style={{ position: 'absolute', top: 16, right: 16 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#c17f3e" stroke="none">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+        </div>
+        <div style={{ fontSize: 9, color: badge.color, background: badge.bg, padding: '2px 8px', borderRadius: 4, fontFamily: "'DM Mono',monospace", letterSpacing: 1, display: 'inline-block', marginBottom: 6 }}>
+          {typeLabels[type]}
+        </div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: C.textHi, letterSpacing: -0.4, lineHeight: 1.2, paddingRight: 28, marginBottom: 3 }}>{item.name}</div>
+        {item.targetDate && (
+          <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", marginBottom: 14, letterSpacing: 0.3 }}>
+            Target · {new Date(item.targetDate+'-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+          </div>
+        )}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
+          <span style={{ fontSize: 24, fontWeight: 800, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: -1, lineHeight: 1 }}>{fmt(item.saved)}</span>
+          <span style={{ fontSize: 13, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(item.goal)}</span>
+        </div>
+        <div style={{ height: 4, background: C.borderMid, borderRadius: 999, overflow: 'visible', position: 'relative', marginBottom: 8 }}>
+          <div style={{ width: `${pct * 100}%`, height: '100%', background: C.accent, borderRadius: 999, transition: 'width 0.5s' }} />
+          {pacingPct !== null && (
+            <div style={{ position: 'absolute', top: -4, bottom: -4, left: `${pacingPct * 100}%`, width: 1.5, background: 'rgba(255,255,255,0.25)', borderRadius: 1, transform: 'translateX(-50%)' }} />
+          )}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: projText ? 12 : 0 }}>
+          <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{Math.round(pct * 100)}% {isDebt ? 'paid' : 'saved'}</span>
+          {pacingPct !== null && <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>│ expected today</span>}
+        </div>
+        {projText && (
+          <div style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: projOk ? '#3fb950' : '#eab308', background: projOk ? 'rgba(63,185,80,0.07)' : 'rgba(234,179,8,0.07)', border: `1px solid ${projOk ? 'rgba(63,185,80,0.15)' : 'rgba(234,179,8,0.15)'}`, borderRadius: 8, padding: '8px 11px', lineHeight: 1.5 }}>
+            {projText}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+})()}
                   {/* Sections + Breakdown */}
 {isDesktop ? (
   <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -2095,8 +2214,20 @@ export default function App() {
                                     <div style={{ fontSize: 13, fontWeight: 700, color: C.textHi, marginBottom: 4 }}>{item.name}</div>
                                     <span style={{ fontSize: 9, color: typeBadge.color, background: typeBadge.color + '18', padding: '2px 7px', borderRadius: 4, fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{typeBadge.label}</span>
                                   </div>
-                                  <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>edit ›</span>
-                                </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                      <button
+                                        onClick={e => { e.preventDefault(); e.stopPropagation(); setFeatured(i); }}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 }}
+                                      >
+                                        <svg width="15" height="15" viewBox="0 0 24 24"
+                                          fill={featuredGoalIndex === i ? '#c17f3e' : 'none'}
+                                          stroke={featuredGoalIndex === i ? '#c17f3e' : C.textLo}
+                                          strokeWidth="2">
+                                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                        </svg>
+                                      </button>
+                                      <span style={{ fontSize: 10, color: C.textLo }}>edit ›</span>
+                                    </div>
                                 {done ? (
                                   <div style={{ background: color + '18', border: `1px solid ${color}35`, borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
                                     <div style={{ fontSize: 13, fontWeight: 700, color, marginBottom: 3 }}>{isDebt ? '🎉 Paid off!' : '🎉 Goal reached!'}</div>
