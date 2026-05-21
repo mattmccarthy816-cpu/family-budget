@@ -2317,6 +2317,7 @@ export default function App() {
                           })}
                         </div>
                       )}
+                                         </div>
                     <div style={{ marginTop: 16, background: C.bgCard, border: `1px dashed ${C.border}`, borderRadius: 14, padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                       <div style={{ fontSize: 13, color: C.textLo }}>Add a new goal to track</div>
                       <button onClick={openNewLT} style={{ background: C.accent, border: 'none', borderRadius: 9, color: '#fff', fontSize: 12, fontWeight: 700, padding: '9px 20px', cursor: 'pointer', fontFamily: "'Sora',sans-serif", whiteSpace: 'nowrap' }}>Add Goal</button>
