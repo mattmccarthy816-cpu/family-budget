@@ -1722,12 +1722,8 @@ export default function App() {
         <div style={{ fontSize: 9, color: badge.color, background: badge.bg, padding: '2px 8px', borderRadius: 4, fontFamily: "'DM Mono',monospace", letterSpacing: 1, display: 'inline-block', marginBottom: 6 }}>
           {typeLabels[type]}
         </div>
-        <div style={{ fontSize: 16, fontWeight: 800, color: C.textHi, letterSpacing: -0.4, lineHeight: 1.2, paddingRight: 28, marginBottom: 3 }}>{item.name}</div>
-        {item.targetDate && (
-          <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", marginBottom: 14, letterSpacing: 0.3 }}>
-            Target · {new Date(item.targetDate+'-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-          </div>
-        )}
+        <div style={{ fontSize: 16, fontWeight: 800, color: C.textHi, letterSpacing: -0.4, lineHeight: 1.2, paddingRight: 28, marginBottom: 14 }}>{item.name}</div>
+
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
           <span style={{ fontSize: 24, fontWeight: 800, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: -1, lineHeight: 1 }}>{fmt(item.saved)}</span>
           <span style={{ fontSize: 13, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(item.goal)}</span>
@@ -1738,10 +1734,15 @@ export default function App() {
             <div style={{ position: 'absolute', top: -4, bottom: -4, left: `${pacingPct * 100}%`, width: 1.5, background: 'rgba(255,255,255,0.25)', borderRadius: 1, transform: 'translateX(-50%)' }} />
           )}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: projText ? 12 : 0 }}>
-          <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{Math.round(pct * 100)}% {isDebt ? 'paid' : 'saved'}</span>
-          {pacingPct !== null && <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>│ expected today</span>}
-        </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: projText ? 12 : 0 }}>
+            <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{Math.round(pct * 100)}% {isDebt ? 'paid' : 'saved'}</span>
+            {item.targetDate && (
+              <span style={{ fontSize: 10, fontFamily: "'DM Mono',monospace" }}>
+                <span style={{ color: C.textLo }}>target </span>
+                <span style={{ color: C.textHi }}>{new Date(item.targetDate+'-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+              </span>
+            )}
+          </div>
         {projText && (
           <div style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: projOk ? '#3fb950' : '#eab308', background: projOk ? 'rgba(63,185,80,0.07)' : 'rgba(234,179,8,0.07)', border: `1px solid ${projOk ? 'rgba(63,185,80,0.15)' : 'rgba(234,179,8,0.15)'}`, borderRadius: 8, padding: '8px 11px', lineHeight: 1.5 }}>
             {projText}
