@@ -267,7 +267,7 @@ function NetWorthChart({ data, isDesktop }) {
         {change !== null && (
           <div style={{ fontSize: 13, color: change >= 0 ? '#3fb950' : '#f85149', fontFamily: "'DM Mono',monospace", fontWeight: 600 }}>
             {change >= 0 ? '+' : '−'}${Math.abs(Math.round(change)).toLocaleString('en-US')}
-            <span style={{ fontSize: 10, color: C.textLo, marginLeft: 4 }}>vs last snapshot</span>
+            <span style={{ f, marginLeft: 4 }}>vs last snapshot</span>
           </div>
         )}
       </div>
@@ -2213,22 +2213,23 @@ export default function App() {
                                   <div>
                                     <div style={{ fontSize: 13, fontWeight: 700, color: C.textHi, marginBottom: 4 }}>{item.name}</div>
                                     <span style={{ fontSize: 9, color: typeBadge.color, background: typeBadge.color + '18', padding: '2px 7px', borderRadius: 4, fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{typeBadge.label}</span>
-                                  </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                      <button
-                                        onClick={e => { e.preventDefault(); e.stopPropagation(); setFeatured(i); }}
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 }}
-                                      >
-                                        <svg width="15" height="15" viewBox="0 0 24 24"
-                                          fill={featuredGoalIndex === i ? '#c17f3e' : 'none'}
-                                          stroke={featuredGoalIndex === i ? '#c17f3e' : C.textLo}
-                                          strokeWidth="2">
-                                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                        </svg>
-                                      </button>
-                                      <span style={{ fontSize: 10, color: C.textLo }}>edit ›</span>
-                                    </div>
-                                {done ? (
+</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <button
+                      onClick={e => { e.preventDefault(); e.stopPropagation(); setFeatured(i); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24"
+                        fill={featuredGoalIndex === i ? '#c17f3e' : 'none'}
+                        stroke={featuredGoalIndex === i ? '#c17f3e' : C.textLo}
+                        strokeWidth="2">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    </button>
+                    <span style={{ fontSize: 10, color: C.textLo }}>edit ›</span>
+                  </div>
+                </div>
+                {done ? (
                                   <div style={{ background: color + '18', border: `1px solid ${color}35`, borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
                                     <div style={{ fontSize: 13, fontWeight: 700, color, marginBottom: 3 }}>{isDebt ? '🎉 Paid off!' : '🎉 Goal reached!'}</div>
                                     <div style={{ fontSize: 11, color: C.textMid }}>Great work — redirect funds toward your next goal.</div>
