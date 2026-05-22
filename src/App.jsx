@@ -1714,10 +1714,14 @@ export default function App() {
         <button onClick={() => setView('longterm')} style={{ background: 'none', border: 'none', color: C.textLo, fontSize: 10, fontFamily: "'DM Mono',monospace", cursor: 'pointer', padding: 0, letterSpacing: 0.5 }}>all goals →</button>
       </div>
       <div className="card" style={{ padding: '18px', position: 'relative' }}>
-        <div style={{ position: 'absolute', top: 16, right: 16 }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#c17f3e" stroke="none">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-          </svg>
+<button
+  onClick={e => { e.stopPropagation(); setFeatured(featuredGoalIndex); }}
+  style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', padding: 2, lineHeight: 1, WebkitTapHighlightColor: 'transparent' }}
+>
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="#c17f3e" stroke="none">
+    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+  </svg>
+</button>
         </div>
         <div style={{ fontSize: 9, color: badge.color, background: badge.bg, padding: '2px 8px', borderRadius: 4, fontFamily: "'DM Mono',monospace", letterSpacing: 1, display: 'inline-block', marginBottom: 6 }}>
           {typeLabels[type]}
