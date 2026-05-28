@@ -1753,7 +1753,6 @@ export default function App() {
           </div>
         )}
       </div>
-    </div>
   );
 })()}
                   {/* Sections + Breakdown */}
