@@ -349,6 +349,7 @@ export default function App() {
   const [longTerm, setLongTerm] = useState([]);
   const [rawSections, setRawSections] = useState([]);
   const [netWorth, setNetWorth] = useState([]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
@@ -433,7 +434,8 @@ export default function App() {
     setLoading(true); setError(null);
     try {
       const data = await api({ action: "getAll" });
-      const entries = (data.entries || []).filter(r => r[0]).map(r => ({ id: String(r[0]), date: String(r[1]), member: String(r[2]), category: String(r[3]), amount: parseFloat(r[4]), notes: String(r[5] || '') }));
+      const entries = (data.entries || []).filter(r => r[0]).map(r => ({ id: String(r[0]), date: String(r[1]), member: String(r[2]), category: String(r[3]), amount: parseFloat(r[4]), notes: String(r[5] || ''), payment_method: String(r[6] || '') }));
+      const paymentMethods = (data.paymentMethods || []).map(r => ({ name: String(r[0]), network: String(r[1]), removable: String(r[0]) !== "Debit" && String(r[0]) !== "Cash" }));
       const bm = {}, cm = {}, tm = {};
       (data.budgets || []).forEach(r => { if (r[0]) { bm[String(r[0])] = parseFloat(r[1]); cm[String(r[0])] = String(r[2]); const rawType = String(r[3] || ""); tm[String(r[0])] = ["expense","fixed","investment"].includes(rawType) ? rawType : "expense"; } });
       const parseMonthStr = v => {
@@ -453,7 +455,7 @@ export default function App() {
       const secs = (data.sections || []).filter(r => r[0] && r[1]).map(r => ({ section: String(r[0]), category: String(r[1]), order: parseInt(r[2]) || 0 }));
       const mems = (data.members || []).filter(r => r[0]).map(r => ({ name: String(r[0]), color: String(r[1] || MEMBER_COLOR_PALETTE[0]), role: String(r[2] || "contributor") }));
       const nw = (data.netWorth || []).filter(r => r[0]).map(r => ({ date: String(r[0]).slice(0, 10), total: parseFloat(r[1]) || 0, breakdown: (() => { try { return JSON.parse(String(r[2] || '[]')); } catch { return []; } })() })).sort((a, b) => a.date.localeCompare(b.date));
-      setAllEntries(entries); setBudgets(bm); setCatColors(cm); setCatTypes(tm); setLongTerm(lt); setRawSections(secs); setNetWorth(nw);
+      setAllEntries(entries); setBudgets(bm); setCatColors(cm); setCatTypes(tm); setLongTerm(lt); setRawSections(secs); setNetWorth(nw); setPaymentMethods(paymentMethods);
       if (mems.length > 0) setMembers(mems);
       setNextId(entries.reduce((m, e) => Math.max(m, parseInt(e.id) || 0), 0) + 1);
     } catch (err) { setError(err.message); }
