@@ -319,7 +319,7 @@ function NetWorthChart({ data, isDesktop }) {
         {change !== null && (
           <div style={{ fontSize: 13, color: change >= 0 ? '#3fb950' : '#f85149', fontFamily: "'DM Mono',monospace", fontWeight: 600 }}>
             {change >= 0 ? '+' : '−'}${Math.abs(Math.round(change)).toLocaleString('en-US')}
-            <span style={{ f, marginLeft: 4 }}>vs last snapshot</span>
+            <span style={{ fontSize: 11, color: C.textLo, marginLeft: 4 }}>vs last snapshot</span>
           </div>
         )}
       </div>
