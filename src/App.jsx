@@ -199,6 +199,58 @@ function Modal({ onClose, children, theme: _theme }) {
   );
 }
 
+function NetworkBadge({ type }) {
+  if (type === "visa") return (
+    <svg width="32" height="20" viewBox="0 0 32 20" fill="none">
+      <rect width="32" height="20" rx="3" fill="#1A1F71"/>
+      <text x="16" y="14" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="Arial">VISA</text>
+    </svg>
+  );
+  if (type === "mastercard") return (
+    <svg width="32" height="20" viewBox="0 0 32 20" fill="none">
+      <rect width="32" height="20" rx="3" fill="#252525"/>
+      <circle cx="12" cy="10" r="6" fill="#EB001B"/>
+      <circle cx="20" cy="10" r="6" fill="#F79E1B"/>
+      <path d="M16 5.5a6 6 0 0 1 0 9 6 6 0 0 1 0-9z" fill="#FF5F00"/>
+    </svg>
+  );
+  if (type === "amex") return (
+    <svg width="32" height="20" viewBox="0 0 32 20" fill="none">
+      <rect width="32" height="20" rx="3" fill="#007BC1"/>
+      <text x="16" y="13" textAnchor="middle" fill="white" fontSize="6.5" fontWeight="700" fontFamily="Arial" letterSpacing="0.5">AMEX</text>
+    </svg>
+  );
+  if (type === "discover") return (
+    <svg width="32" height="20" viewBox="0 0 32 20" fill="none">
+      <rect width="32" height="20" rx="3" fill="#fff" stroke="#e5e7eb" strokeWidth="0.5"/>
+      <text x="9" y="13" fill="#231F20" fontSize="5.5" fontWeight="700" fontFamily="Arial">DIS-</text>
+      <text x="9" y="18" fill="#231F20" fontSize="5.5" fontWeight="700" fontFamily="Arial">COVER</text>
+      <circle cx="24" cy="10" r="6" fill="#F76F20"/>
+    </svg>
+  );
+  if (type === "capital_one") return (
+    <svg width="32" height="20" viewBox="0 0 32 20" fill="none">
+      <rect width="32" height="20" rx="3" fill="#CC0000"/>
+      <text x="16" y="13" textAnchor="middle" fill="white" fontSize="5" fontWeight="700" fontFamily="Arial" letterSpacing="0.3">CAPITAL</text>
+      <text x="16" y="18" textAnchor="middle" fill="white" fontSize="5" fontWeight="700" fontFamily="Arial" letterSpacing="0.3">ONE</text>
+    </svg>
+  );
+  if (type === "apple") return (
+    <svg width="32" height="20" viewBox="0 0 32 20" fill="none">
+      <rect width="32" height="20" rx="3" fill="#f5f5f7" stroke="#e5e7eb" strokeWidth="0.5"/>
+      <text x="16" y="14" textAnchor="middle" fill="#1d1d1f" fontSize="8" fontWeight="600" fontFamily="Arial">Apple</text>
+    </svg>
+  );
+  return (
+    <svg width="32" height="20" viewBox="0 0 32 20" fill="none">
+      <rect width="32" height="20" rx="3" fill="#30363d"/>
+      <rect x="4" y="6" width="24" height="3" rx="1" fill="#6e7681"/>
+      <rect x="4" y="13" width="8" height="2" rx="1" fill="#6e7681"/>
+      <rect x="14" y="13" width="6" height="2" rx="1" fill="#6e7681"/>
+    </svg>
+  );
+}
+
 function Spinner() {
   return (
     <div style={{ position: "fixed", inset: 0, background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 32, zIndex: 999 }}>
