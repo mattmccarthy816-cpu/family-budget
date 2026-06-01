@@ -418,6 +418,10 @@ export default function App() {
   const [expandedSections, setExpandedSections] = useState({});
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [entriesOpen, setEntriesOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterQuery, setFilterQuery] = useState("");
+  const [filterMember, setFilterMember] = useState(null);
+  const [filterCard, setFilterCard] = useState(null);
   const [showAllEntries, setShowAllEntries] = useState(false);
   const [hoveredSegment, setHoveredSegment] = useState(null);
   const [expandedSummary, setExpandedSummary] = useState(false);
