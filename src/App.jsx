@@ -1201,8 +1201,34 @@ export default function App() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div><FL>Member</FL><MemberChips value={editForm.member} onChange={m => setEditForm(f => ({ ...f, member: m }))} /></div>
-              <div><FL>Category</FL><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{categories.map(c => (<button key={c} className="chip" onClick={() => setEditForm(f => ({ ...f, category: c }))} style={{ background: editForm.category === c ? catColors[c] + "25" : C.bgInset, border: `1px solid ${editForm.category === c ? catColors[c] : C.border}`, color: editForm.category === c ? catColors[c] : C.textLo }}>{c}</button>))}</div></div>
-              <div><FL>Amount</FL><div style={{ position: "relative" }}><span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.textLo }}>$</span><input className="inp" type="number" min="0" step="0.01" value={editForm.amount} onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} style={{ paddingLeft: 28 }} /></div></div>
+<div>
+  <FL>Category{editForm.category ? <span style={{ marginLeft: 8, fontSize: 10, color: catColors[editForm.category] || C.accent, background: (catColors[editForm.category] || C.accent) + '18', padding: '2px 8px', borderRadius: 999, fontWeight: 700, border: `1px solid ${(catColors[editForm.category] || C.accent)}40` }}>{editForm.category}</span> : null}</FL>
+  <div style={{ background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", maxHeight: 240, overflowY: "auto" }}>
+    {sectionStructure.map((sec, i) => (
+      <div key={sec.name}>
+        {i > 0 && <div style={{ height: 1, background: C.borderMid }} />}
+        <button
+          onClick={() => setEditForm(f => ({ ...f, _openSection: f._openSection === sec.name ? null : sec.name }))}
+          style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 14px", background: "none", border: "none", cursor: "pointer" }}
+        >
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: C.textLo }}>{sec.name}</span>
+          <span style={{ fontSize: 11, color: C.textLo, display: "inline-block", transform: editForm._openSection === sec.name ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>▾</span>
+        </button>
+        {editForm._openSection === sec.name && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "2px 12px 12px" }}>
+            {sec.cats.map(c => (
+              <button key={c} onClick={() => setEditForm(f => ({ ...f, category: c }))}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, fontSize: 13, fontWeight: 500, cursor: "pointer", border: editForm.category === c ? `1.5px solid ${catColors[c] || C.accent}` : `1.5px solid ${C.border}`, background: editForm.category === c ? (catColors[c] || C.accent) + '18' : C.bgInset, color: editForm.category === c ? (catColors[c] || C.accent) : C.textLo, transition: "all 0.15s" }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: catColors[c] || C.accent, flexShrink: 0 }} />
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+</div>              <div><FL>Amount</FL><div style={{ position: "relative" }}><span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.textLo }}>$</span><input className="inp" type="number" min="0" step="0.01" value={editForm.amount} onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} style={{ paddingLeft: 28 }} /></div></div>
               <div><FL>Date</FL><input className="inp" type="date" value={editForm.date} onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} style={{ colorScheme: theme }} /></div>
               <div>
   <FL>Card / payment <span style={{ fontWeight: 400, textTransform: "none", fontSize: 10, color: C.textLo, letterSpacing: 0 }}>optional</span></FL>
