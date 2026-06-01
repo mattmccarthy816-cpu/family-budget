@@ -1935,8 +1935,27 @@ const filteredEntries = useMemo(() => {
                   {/* Entries */}
                   <div className="card" style={{ padding: isDesktop ? "20px 24px" : "18px 16px", marginTop: 16 }}>
                     {isDesktop ? (
-                      <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 14 }}>ENTRIES <span style={{ color: C.borderMid, fontSize: 9 }}>· CLICK TO EDIT</span></div>
-                    ) : (
+<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>ENTRIES</span>
+    <span style={{ fontSize: 10, color: C.borderMid, fontFamily: "'DM Mono',monospace" }}>· CLICK TO EDIT</span>
+    <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{filteredEntries.length !== sortedEntries.length ? `${filteredEntries.length} of ${sortedEntries.length}` : sortedEntries.length}</span>
+  </div>
+  <button
+    onClick={() => setFilterOpen(v => !v)}
+    style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 8, background: filterOpen || filterQuery || filterMember || filterCard ? C.accentDim : C.bgInset, border: `1px solid ${filterOpen || filterQuery || filterMember || filterCard ? C.accent : C.border}`, color: filterOpen || filterQuery || filterMember || filterCard ? C.accent : C.textLo, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Sora',sans-serif", transition: "all 0.15s" }}
+  >
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+    </svg>
+    Search
+    {[filterMember, filterCard].filter(Boolean).length > 0 && (
+      <span style={{ background: C.accent, color: "#0d0d0f", fontSize: 9, fontWeight: 800, borderRadius: "50%", width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace" }}>
+        {[filterMember, filterCard].filter(Boolean).length}
+      </span>
+    )}
+  </button>
+</div>                    ) : (
                       <div onClick={() => setEntriesOpen(o => !o)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none", marginBottom: entriesOpen ? 14 : 0 }}>
                         <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2 }}>ENTRIES <span style={{ color: C.borderMid, fontSize: 9 }}>· TAP TO EDIT</span></div>
                         <span style={{ fontSize: 10, color: C.textLo, transform: entriesOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
