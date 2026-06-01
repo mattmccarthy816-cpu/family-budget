@@ -1952,8 +1952,14 @@ export default function App() {
                             <div style={{ padding: "10px", fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", display: "flex", alignItems: "center" }}>{e.date.slice(5, 10)}</div>
                             <div style={{ padding: "10px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 2 }}>
                               <div style={{ fontSize: 12, color: C.textMid, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 4, height: 4, borderRadius: 1, background: catColors[e.category] || C.textLo, display: "inline-block" }} />{e.category}</div>
-                              <div style={{ fontSize: 10, color: C.textLo }}>{e.member}{e.notes ? ` · ${e.notes}` : ""}</div>
-                            </div>
+<div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+  <span style={{ fontSize: 10, color: C.textLo }}>{e.member}{e.notes ? ` · ${e.notes}` : ""}</span>
+  {e.payment_method && (
+    <span style={{ fontSize: 9, color: C.textLo, background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 4, padding: "1px 5px", fontFamily: "'DM Mono',monospace" }}>
+      {e.payment_method}
+    </span>
+  )}
+</div>                            </div>
                             <div style={{ padding: "10px", display: "flex", alignItems: "center", justifyContent: "flex-end", fontFamily: "'DM Mono',monospace", fontWeight: 700, color: catColors[e.category] || C.textMid, fontSize: 12 }}>{fmtD(e.amount)}</div>
                           </div>
                         ))}
