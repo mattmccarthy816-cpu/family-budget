@@ -1885,32 +1885,74 @@ export default function App() {
                     </div>
                     <div style={{ fontSize: 13, color: C.textLo, marginBottom: 24 }}>Who's spending, what category, how much.</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                      <div><FL>Who are you?</FL><MemberChips value={form.member} onChange={m => setForm(f => ({ ...f, member: m }))} /></div>
-                      <div>
-                        <FL>Category</FL>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                          {categories.map(c => {
-                            const status = categoryStatuses[c];
-                            const isSelected = form.category === c;
-                            return (
-                              <button key={c} className="chip" onClick={() => setForm(f => ({ ...f, category: c }))} style={{ background: isSelected ? catColors[c] + "25" : C.bgInset, border: `1px solid ${isSelected ? catColors[c] : status !== "ok" ? STATUS[status].color + "50" : C.border}`, color: isSelected ? catColors[c] : status !== "ok" ? STATUS[status].color : C.textLo }}>
-                                {status !== "ok" && <span style={{ fontSize: 9 }}>{STATUS[status].icon}</span>}{c}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {form.category && (
-                          <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 10, background: C.bgInset, border: `1px solid ${C.border}` }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 6 }}>
-                              <span style={{ color: C.textLo }}>{form.category}</span>
-                              <span style={{ color: STATUS[categoryStatuses[form.category]].color, fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{fmt(byCategory[form.category] || 0)} / {fmt(budgets[form.category])}</span>
-                            </div>
-                            <CategoryBar spent={byCategory[form.category] || 0} budget={budgets[form.category]} color={catColors[form.category] || C.accent} dayOfMonth={dayOfMonth} daysInMonth={daysInMonth} type={catTypes[form.category] || "expense"} />
-                          </div>
-                        )}
-                      </div>
-                      <div><FL>Amount</FL><div style={{ position: "relative" }}><span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.textLo, fontSize: 15 }}>$</span><input className="inp" type="number" min="0" step="0.01" placeholder="0.00" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} style={{ paddingLeft: 30, fontSize: 16 }} /></div></div>
-                      <div><FL>Notes (optional)</FL><textarea className="inp" placeholder="e.g. Costco run…" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} style={{ resize: "none", lineHeight: 1.5 }} /></div>
+  {/* Who */}
+  <div>
+    <FL>Who are you?</FL>
+    <MemberChips value={form.member} onChange={m => setForm(f => ({ ...f, member: m }))} />
+  </div>
+
+  {/* Category — section-grouped accordion */}
+  <div>
+    <FL>Category{form.category ? <span style={{ marginLeft: 8, fontSize: 10, color: catColors[form.category] || C.accent, background: (catColors[form.category] || C.accent) + '18', padding: '2px 8px', borderRadius: 999, fontWeight: 700, border: `1px solid ${(catColors[form.category] || C.accent)}40` }}>{form.category}</span> : null}</FL>
+    <div style={{ background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", maxHeight: 240, overflowY: "auto" }}>
+      {sectionStructure.map((sec, i) => (
+        <div key={sec.name}>
+          {i > 0 && <div style={{ height: 1, background: C.borderMid }} />}
+          <button
+            onClick={() => setForm(f => ({ ...f, _openSection: f._openSection === sec.name ? null : sec.name }))}
+            style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 14px", background: "none", border: "none", cursor: "pointer" }}
+          >
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: C.textLo }}>{sec.name}</span>
+            <span style={{ fontSize: 11, color: C.textLo, display: "inline-block", transform: form._openSection === sec.name ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>▾</span>
+          </button>
+          {form._openSection === sec.name && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "2px 12px 12px" }}>
+              {sec.cats.map(c => (
+                <button key={c} onClick={() => setForm(f => ({ ...f, category: c }))}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, fontSize: 13, fontWeight: 500, cursor: "pointer", border: form.category === c ? `1.5px solid ${catColors[c] || C.accent}` : `1.5px solid ${C.border}`, background: form.category === c ? (catColors[c] || C.accent) + '18' : C.bgInset, color: form.category === c ? (catColors[c] || C.accent) : C.textLo, transition: "all 0.15s" }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: catColors[c] || C.accent, flexShrink: 0 }} />
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {/* Amount */}
+  <div>
+    <FL>Amount</FL>
+    <div style={{ position: "relative" }}>
+      <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.textLo, fontSize: 15 }}>$</span>
+      <input className="inp" type="number" min="0" step="0.01" placeholder="0.00" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} style={{ paddingLeft: 30, fontSize: 16 }} />
+    </div>
+  </div>
+
+  {/* Card / Payment */}
+  <div>
+    <FL>Card / payment <span style={{ fontWeight: 400, textTransform: "none", fontSize: 10, color: C.textLo, letterSpacing: 0 }}>optional</span></FL>
+    <div style={{ position: "relative" }}>
+      <select
+        value={form.payment_method || ""}
+        onChange={e => setForm(f => ({ ...f, payment_method: e.target.value }))}
+        className="inp"
+        style={{ appearance: "none", WebkitAppearance: "none", paddingRight: 32, backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236e7681' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", fontSize: 13 }}
+      >
+        <option value="">— skip —</option>
+        {paymentMethods.map(p => (
+          <option key={p.name} value={p.name}>{p.name}</option>
+        ))}
+      </select>
+    </div>
+  </div>
+
+  {/* Notes */}
+  <div>
+    <FL>Notes <span style={{ fontWeight: 400, textTransform: "none", fontSize: 10, color: C.textLo, letterSpacing: 0 }}>optional</span></FL>
+    <textarea className="inp" placeholder="e.g. Costco run…" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} style={{ resize: "none", lineHeight: 1.5 }} />
+  </div>
                       <button className="cta" onClick={handleAddSubmit} disabled={syncing}>{syncing ? "Saving…" : "Log Spend"}</button>
                     </div>
                   </div>
