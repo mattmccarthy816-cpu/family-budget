@@ -402,6 +402,12 @@ export default function App() {
   const [rawSections, setRawSections] = useState([]);
   const [netWorth, setNetWorth] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
+  const [settingsCardsOpen, setSettingsCardsOpen] = useState(true);
+  const [cardDragId, setCardDragId] = useState(null);
+  const [cardDragOverId, setCardDragOverId] = useState(null);
+  const [cardDeletingName, setCardDeletingName] = useState(null);
+  const [newCardName, setNewCardName] = useState("");
+  const [newCardNetwork, setNewCardNetwork] = useState("visa");
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
