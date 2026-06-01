@@ -605,24 +605,6 @@ export default function App() {
     const projectedOver = projectedDiff < -2;
     return { projectedSpend, projectedDiff, projectedOver };
   }, [isCurrentMonth, dayOfMonth, daysInMonth, categories, catTypes, byCategory, budgets, totalBudget]);
-
-const filteredEntries = useMemo(() => {
-  return sortedEntries.filter(e => {
-    if (filterMember && e.member !== filterMember) return false;
-    if (filterCard && e.payment_method !== filterCard) return false;
-    if (filterQuery.trim()) {
-      const q = filterQuery.toLowerCase();
-      if (
-        !e.category.toLowerCase().includes(q) &&
-        !(e.notes || "").toLowerCase().includes(q) &&
-        !e.member.toLowerCase().includes(q) &&
-        !(e.payment_method || "").toLowerCase().includes(q) &&
-        !String(e.amount).includes(q)
-      ) return false;
-    }
-    return true;
-  });
-}, [sortedEntries, filterMember, filterCard, filterQuery]);
   
   const prevMonthTotals = useMemo(() => {
     const pm = viewMonth === 0 ? 11 : viewMonth - 1;
@@ -659,6 +641,24 @@ const filteredEntries = useMemo(() => {
   }, [longTerm, now]);
 
   const sortedEntries = useMemo(() => [...entries].sort((a, b) => new Date(b.date) - new Date(a.date)), [entries]);
+  
+const filteredEntries = useMemo(() => {
+  return sortedEntries.filter(e => {
+    if (filterMember && e.member !== filterMember) return false;
+    if (filterCard && e.payment_method !== filterCard) return false;
+    if (filterQuery.trim()) {
+      const q = filterQuery.toLowerCase();
+      if (
+        !e.category.toLowerCase().includes(q) &&
+        !(e.notes || "").toLowerCase().includes(q) &&
+        !e.member.toLowerCase().includes(q) &&
+        !(e.payment_method || "").toLowerCase().includes(q) &&
+        !String(e.amount).includes(q)
+      ) return false;
+    }
+    return true;
+  });
+}, [sortedEntries, filterMember, filterCard, filterQuery]);
 
   // ── Recurring nudges — detect fixed categories not yet logged this month ──
   // Looks at last 2 months of entries per category to determine typical log day
