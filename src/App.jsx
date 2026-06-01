@@ -2104,6 +2104,138 @@ export default function App() {
                         </div>
                       </Section>
 
+                      <Section title="Cards & Payment" open={settingsCardsOpen} onToggle={() => setSettingsCardsOpen(v => !v)}>
+  <div style={{ paddingTop: 12 }}>
+    <div style={{ fontSize: 12, color: C.textLo, marginBottom: 14, lineHeight: 1.6 }}>
+      These appear when logging an entry. Drag to reorder. Debit and Cash are always on.
+    </div>
+
+    {/* Card list */}
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+      {paymentMethods.filter(p => p.removable).map(p => (
+        cardDeletingName === p.name ? (
+          <div key={p.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "rgba(248,81,73,0.08)", border: "1.5px solid rgba(248,81,73,0.25)", borderRadius: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <NetworkBadge type={p.network} />
+              <span style={{ fontSize: 13, color: "#f85149" }}>Remove "{p.name}"?</span>
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={() => setCardDeletingName(null)} style={{ background: "none", border: "none", cursor: "pointer", color: C.textLo, fontSize: 12, padding: "4px 10px", fontFamily: "'Sora',sans-serif" }}>Cancel</button>
+              <button onClick={() => { setPaymentMethods(prev => prev.filter(c => c.name !== p.name)); setCardDeletingName(null); savePaymentMethodsToSheet(paymentMethods.filter(c => c.name !== p.name)); }} style={{ background: "rgba(248,81,73,0.12)", border: "none", borderRadius: 6, cursor: "pointer", color: "#f85149", fontSize: 12, padding: "4px 10px", fontFamily: "'Sora',sans-serif" }}>Remove</button>
+            </div>
+          </div>
+        ) : (
+          <div key={p.name}
+            draggable
+            onDragStart={() => setCardDragId(p.name)}
+            onDragEnter={() => setCardDragOverId(p.name)}
+            onDragOver={e => e.preventDefault()}
+            onDragEnd={() => {
+              if (cardDragId && cardDragOverId && cardDragId !== cardDragOverId) {
+                setPaymentMethods(prev => {
+                  const rem = prev.filter(c => c.removable);
+                  const pin = prev.filter(c => !c.removable);
+                  const from = rem.findIndex(c => c.name === cardDragId);
+                  const to = rem.findIndex(c => c.name === cardDragOverId);
+                  if (from === -1 || to === -1) return prev;
+                  const next = [...rem];
+                  const [moved] = next.splice(from, 1);
+                  next.splice(to, 0, moved);
+                  const updated = [...next, ...pin];
+                  savePaymentMethodsToSheet(updated);
+                  return updated;
+                });
+              }
+              setCardDragId(null); setCardDragOverId(null);
+            }}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: cardDragId === p.name ? C.bgInset : C.bgInset, border: cardDragOverId === p.name && cardDragId !== p.name ? `1.5px solid ${C.accent}` : "1.5px solid transparent", borderRadius: 10, cursor: "grab", opacity: cardDragId === p.name ? 0.4 : 1, transition: "border-color 0.1s, opacity 0.1s", userSelect: "none" }}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, opacity: 0.4 }}>
+              <rect x="3" y="2" width="8" height="1.5" rx="0.75" fill={C.textLo}/>
+              <rect x="3" y="6" width="8" height="1.5" rx="0.75" fill={C.textLo}/>
+              <rect x="3" y="10" width="8" height="1.5" rx="0.75" fill={C.textLo}/>
+            </svg>
+            <NetworkBadge type={p.network} />
+            <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: C.textHi }}>{p.name}</span>
+            <button onClick={() => setCardDeletingName(p.name)} style={{ width: 28, height: 28, borderRadius: 6, background: "none", border: "none", cursor: "pointer", color: C.textLo, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+          </div>
+        )
+      ))}
+
+      {/* Always-on divider */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
+        <div style={{ flex: 1, height: 1, background: C.border }} />
+        <span style={{ fontSize: 10, color: C.textLo, letterSpacing: "0.06em", textTransform: "uppercase" }}>always on</span>
+        <div style={{ flex: 1, height: 1, background: C.border }} />
+      </div>
+
+      {paymentMethods.filter(p => !p.removable).map(p => (
+        <div key={p.name} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: C.bgInset, borderRadius: 10 }}>
+          <span style={{ width: 14, flexShrink: 0 }} />
+          <NetworkBadge type={p.network} />
+          <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: C.textHi }}>{p.name}</span>
+          <span style={{ fontSize: 10, color: C.textLo, letterSpacing: "0.05em" }}>always on</span>
+        </div>
+      ))}
+    </div>
+
+    {/* Add new card */}
+    <div style={{ borderTop: `1px solid ${C.borderMid}`, paddingTop: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: C.textLo, marginBottom: 10 }}>Add a card</div>
+
+      {/* Network picker */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+        {[
+          { label: "Visa", value: "visa" }, { label: "Mastercard", value: "mastercard" },
+          { label: "Amex", value: "amex" }, { label: "Discover", value: "discover" },
+          { label: "Capital One", value: "capital_one" }, { label: "Apple", value: "apple" },
+          { label: "Other", value: "generic" },
+        ].map(n => (
+          <button key={n.value} onClick={() => setNewCardNetwork(n.value)} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 500, cursor: "pointer", border: newCardNetwork === n.value ? `1.5px solid ${C.accent}` : `1.5px solid ${C.border}`, background: newCardNetwork === n.value ? C.accentDim : C.bgInset, color: newCardNetwork === n.value ? C.accent : C.textLo, transition: "all 0.12s", fontFamily: "'Sora',sans-serif" }}>
+            <NetworkBadge type={n.value} />
+            {n.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Name input */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 10 }}>
+        <NetworkBadge type={newCardNetwork} />
+        <input
+          type="text"
+          placeholder="Card name…"
+          value={newCardName}
+          maxLength={20}
+          onChange={e => setNewCardName(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter" && newCardName.trim()) {
+              const updated = [...paymentMethods.filter(p => p.removable), { name: newCardName.trim(), network: newCardNetwork, removable: true }, ...paymentMethods.filter(p => !p.removable)];
+              setPaymentMethods(updated);
+              savePaymentMethodsToSheet(updated);
+              setNewCardName("");
+            }
+          }}
+          style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.textHi, fontSize: 13, fontFamily: "'Sora',sans-serif" }}
+        />
+        {newCardName.length > 0 && <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: 20 - newCardName.length <= 4 ? "#eab308" : C.textLo, flexShrink: 0 }}>{20 - newCardName.length}</span>}
+        <button
+          onClick={() => {
+            if (!newCardName.trim()) return;
+            const updated = [...paymentMethods.filter(p => p.removable), { name: newCardName.trim(), network: newCardNetwork, removable: true }, ...paymentMethods.filter(p => !p.removable)];
+            setPaymentMethods(updated);
+            savePaymentMethodsToSheet(updated);
+            setNewCardName("");
+          }}
+          disabled={!newCardName.trim()}
+          style={{ padding: "5px 14px", background: newCardName.trim() ? "#3fb950" : C.bgInset, border: "none", borderRadius: 6, color: newCardName.trim() ? "#0d1117" : C.textLo, fontSize: 12, fontWeight: 600, cursor: newCardName.trim() ? "pointer" : "default", transition: "all 0.15s", flexShrink: 0, fontFamily: "'Sora',sans-serif" }}>
+          Add
+        </button>
+      </div>
+      <div style={{ fontSize: 11, color: C.textLo, marginTop: 6 }}>Max 20 characters · press Enter to add</div>
+    </div>
+  </div>
+</Section>
+
                       {/* Appearance */}
                       <div className="card" style={{ marginBottom: 14 }}>
                         <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
