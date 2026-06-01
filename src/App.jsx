@@ -686,6 +686,10 @@ export default function App() {
     try { await api({ action: "deleteEntry", id }); setAllEntries(prev => prev.filter(e => e.id !== id)); setEditEntry(null); showToast("Deleted."); }
     catch { showToast("Failed.", false); } finally { setSyncing(false); }
   }
+  async function savePaymentMethodsToSheet(methods) {
+    try { await api({ action: "savePaymentMethods", paymentMethods: JSON.stringify(methods.map(p => ({ name: p.name, network: p.network }))) }); }
+    catch { showToast("Card sync failed.", false); }
+  }
   async function saveSectionsToSheet(secs) {
     try { await api({ action: "saveSections", sections: JSON.stringify(secs) }); }
     catch { showToast("Section sync failed.", false); }
