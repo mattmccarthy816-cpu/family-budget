@@ -1142,6 +1142,20 @@ export default function App() {
               <div><FL>Category</FL><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{categories.map(c => (<button key={c} className="chip" onClick={() => setEditForm(f => ({ ...f, category: c }))} style={{ background: editForm.category === c ? catColors[c] + "25" : C.bgInset, border: `1px solid ${editForm.category === c ? catColors[c] : C.border}`, color: editForm.category === c ? catColors[c] : C.textLo }}>{c}</button>))}</div></div>
               <div><FL>Amount</FL><div style={{ position: "relative" }}><span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.textLo }}>$</span><input className="inp" type="number" min="0" step="0.01" value={editForm.amount} onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} style={{ paddingLeft: 28 }} /></div></div>
               <div><FL>Date</FL><input className="inp" type="date" value={editForm.date} onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} style={{ colorScheme: theme }} /></div>
+              <div>
+  <FL>Card / payment <span style={{ fontWeight: 400, textTransform: "none", fontSize: 10, color: C.textLo, letterSpacing: 0 }}>optional</span></FL>
+  <select
+    value={editForm.payment_method || ""}
+    onChange={e => setEditForm(f => ({ ...f, payment_method: e.target.value }))}
+    className="inp"
+    style={{ appearance: "none", WebkitAppearance: "none", paddingRight: 32, backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236e7681' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", fontSize: 13 }}
+  >
+    <option value="">— skip —</option>
+    {paymentMethods.map(p => (
+      <option key={p.name} value={p.name}>{p.name}</option>
+    ))}
+  </select>
+</div>
               <div><FL>Notes</FL><textarea className="inp" value={editForm.notes || ''} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} rows={2} style={{ resize: "none", lineHeight: 1.5 }} /></div>
               <div style={{ display: "flex", gap: 10, marginTop: 4 }}><button className="cta" onClick={saveEditEntry} disabled={syncing} style={{ flex: 1 }}>Save</button><button className="del-btn" onClick={() => deleteEntry(editEntry.id)}>Delete</button></div>
             </div>
