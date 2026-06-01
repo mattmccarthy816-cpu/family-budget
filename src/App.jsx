@@ -609,13 +609,13 @@ export default function App() {
 
   async function handleAddSubmit() {
     if (!form.member || !form.category || !form.amount || isNaN(+form.amount) || +form.amount <= 0) { showToast("Please fill all fields.", false); return; }
-    const entry = { id: String(nextId), member: form.member, category: form.category, amount: parseFloat((+form.amount).toFixed(2)), date: new Date().toISOString().split("T")[0], notes: form.notes || '' };
+    const entry = { id: String(nextId), member: form.member, category: form.category, amount: parseFloat((+form.amount).toFixed(2)), date: new Date().toISOString().split("T")[0], notes: form.notes || '', payment_method: form.payment_method || '' };
     setSyncing(true);
-    try { await api({ action: "addEntry", ...entry }); setAllEntries(prev => [entry, ...prev]); setNextId(n => n + 1); setForm({ member: "", category: "", amount: "", notes: "" }); showToast(`${fmtD(entry.amount)} logged.`); setAddOpen(false); }
+    try { await api({ action: "addEntry", ...entry }); setAllEntries(prev => [entry, ...prev]); setNextId(n => n + 1); setForm({ member: "", category: "", amount: "", notes: "", payment_method: "" }); showToast(`${fmtD(entry.amount)} logged.`); setAddOpen(false); }
     catch { showToast("Failed to save.", false); } finally { setSyncing(false); }
   }
 
-  function openEditEntry(e) { setEditEntry(e); setEditForm({ member: e.member, category: e.category, amount: String(e.amount), date: e.date, notes: e.notes || '' }); }
+  function openEditEntry(e) { setEditEntry(e); setEditForm({ member: e.member, category: e.category, amount: String(e.amount), date: e.date, notes: e.notes || '', payment_method: e.payment_method || '' }); }
   async function saveEditEntry() {
     if (!editForm.member || !editForm.category || !editForm.amount || isNaN(+editForm.amount) || +editForm.amount <= 0) { showToast("Please fill all fields.", false); return; }
     const updated = { ...editEntry, ...editForm, amount: parseFloat((+editForm.amount).toFixed(2)) };
