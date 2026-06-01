@@ -1931,8 +1931,14 @@ export default function App() {
                             <div className="tc"><div style={{ width: 22, height: 22, borderRadius: 6, background: (memberColors[e.member] || C.textLo) + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: memberColors[e.member] || C.textLo }}>{e.member ? e.member[0] : "?"}</div></div>
                             <div className="tc" style={{ gap: 6 }}><span style={{ width: 5, height: 5, borderRadius: 1, background: catColors[e.category] || C.textLo, display: "inline-block", flexShrink: 0 }} /><span style={{ color: C.textMid, fontSize: 12 }}>{e.category}</span></div>
                             <div className="tc" style={{ fontFamily: "'DM Mono',monospace", fontWeight: 700, color: catColors[e.category] || C.textMid, fontSize: 12 }}>{fmtD(e.amount)}</div>
-                            <div className="tc" style={{ color: C.textLo, fontSize: 11 }}>{e.notes || <span style={{ color: C.borderMid }}>—</span>}</div>
-                          </div>
+<div className="tc" style={{ color: C.textLo, fontSize: 11, flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
+  <span>{e.notes || <span style={{ color: C.borderMid }}>—</span>}</span>
+  {e.payment_method && (
+    <span style={{ fontSize: 9, color: C.textLo, background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 4, padding: "1px 5px", fontFamily: "'DM Mono',monospace" }}>
+      {e.payment_method}
+    </span>
+  )}
+</div>                          </div>
                         ))}
                         {sortedEntries.length > 10 && (
                           <div style={{ textAlign: "center", paddingTop: 12 }}>
