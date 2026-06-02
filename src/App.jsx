@@ -1977,6 +1977,53 @@ const filteredEntries = useMemo(() => {
     )}
   </button>
 </div>
+  {filterOpen && (
+  <div style={{ marginBottom: 14, padding: "12px 14px", background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ position: "relative" }}>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.textLo} strokeWidth="2" strokeLinecap="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input
+        type="text"
+        placeholder="Search category, notes, amount, card…"
+        value={filterQuery}
+        onChange={e => setFilterQuery(e.target.value)}
+        style={{ width: "100%", background: C.bgCard, border: `1px solid ${filterQuery ? C.accent : C.border}`, borderRadius: 8, padding: "8px 30px 8px 30px", color: C.textHi, fontSize: 12, fontFamily: "'Sora',sans-serif", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" }}
+      />
+      {filterQuery && (
+        <button onClick={() => setFilterQuery("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: C.textLo, cursor: "pointer", fontSize: 13, padding: 2, lineHeight: 1 }}>✕</button>
+      )}
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+      <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, flexShrink: 0 }}>WHO</span>
+      {memberNames.map(m => (
+        <button key={m} onClick={() => setFilterMember(filterMember === m ? null : m)}
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: "pointer", border: filterMember === m ? `1.5px solid ${memberColors[m]}` : `1.5px solid ${C.border}`, background: filterMember === m ? memberColors[m] + "20" : C.bgInset, color: filterMember === m ? memberColors[m] : C.textLo, transition: "all 0.15s", fontFamily: "'Sora',sans-serif" }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: memberColors[m], flexShrink: 0 }} />{m}
+        </button>
+      ))}
+    </div>
+    {paymentMethods.length > 0 && (
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1, flexShrink: 0 }}>CARD</span>
+        {paymentMethods.map(p => (
+          <button key={p.name} onClick={() => setFilterCard(filterCard === p.name ? null : p.name)}
+            style={{ padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: "pointer", border: filterCard === p.name ? `1.5px solid ${C.accent}` : `1.5px solid ${C.border}`, background: filterCard === p.name ? C.accentDim : C.bgInset, color: filterCard === p.name ? C.accent : C.textLo, transition: "all 0.15s", fontFamily: "'Sora',sans-serif" }}>
+            {p.name}
+          </button>
+        ))}
+      </div>
+    )}
+    {(filterQuery || filterMember || filterCard) && (
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", paddingTop: 2, borderTop: `1px solid ${C.borderMid}` }}>
+        {filterQuery && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, fontSize: 10, background: C.accentDim, color: C.accent, border: `1px solid ${C.accent}40` }}>"{filterQuery}" <button onClick={() => setFilterQuery("")} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontSize: 10, padding: 0, lineHeight: 1 }}>✕</button></span>}
+        {filterMember && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, fontSize: 10, background: memberColors[filterMember] + "20", color: memberColors[filterMember], border: `1px solid ${memberColors[filterMember]}40` }}>{filterMember} <button onClick={() => setFilterMember(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 10, padding: 0, lineHeight: 1 }}>✕</button></span>}
+        {filterCard && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, fontSize: 10, background: C.accentDim, color: C.accent, border: `1px solid ${C.accent}40` }}>{filterCard} <button onClick={() => setFilterCard(null)} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontSize: 10, padding: 0, lineHeight: 1 }}>✕</button></span>}
+        <button onClick={() => { setFilterQuery(""); setFilterMember(null); setFilterCard(null); }} style={{ background: "none", border: "none", color: C.textLo, fontSize: 11, cursor: "pointer", fontFamily: "'Sora',sans-serif", textDecoration: "underline", textUnderlineOffset: 3, padding: 0 }}>Clear all</button>
+      </div>
+    )}
+  </div>
+)}
                     )}
                     {(isDesktop || entriesOpen) ? (sortedEntries.length === 0 ? (
                       <div style={{ textAlign: "center", padding: "28px 0", color: C.textLo, fontSize: 12 }}>No entries for {MONTH_NAMES[viewMonth]}.</div>
