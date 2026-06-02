@@ -2024,7 +2024,6 @@ const filteredEntries = useMemo(() => {
     )}
   </div>
 )}
-                    )}
                     {(isDesktop || entriesOpen) ? (sortedEntries.length === 0 ? (
                       <div style={{ textAlign: "center", padding: "28px 0", color: C.textLo, fontSize: 12 }}>No entries for {MONTH_NAMES[viewMonth]}.</div>
                     ) : isDesktop ? (
