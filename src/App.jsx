@@ -2045,7 +2045,7 @@ const filteredEntries = useMemo(() => {
   )}
 </div>                          </div>
                         ))}
-                        {sortedEntries.length > 10 && (
+                        {filteredEntries.length > 10 && (
                           <div style={{ textAlign: "center", paddingTop: 12 }}>
                             <button onClick={() => setShowAllEntries(v => !v)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, color: C.textLo, fontSize: 11, fontFamily: "'DM Mono',monospace", padding: "5px 16px", cursor: "pointer", letterSpacing: 0.5 }}
                               onMouseEnter={e => { e.target.style.color = C.textHi; e.target.style.borderColor = C.textMid; }}
