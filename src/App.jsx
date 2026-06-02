@@ -2030,7 +2030,7 @@ const filteredEntries = useMemo(() => {
                     ) : isDesktop ? (
                       <>
                         <div className="tr-hdr">{["DATE","WHO","CATEGORY","AMOUNT","NOTES"].map(h => (<div key={h} style={{ padding: "0 10px", fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5 }}>{h}</div>))}</div>
-                        {(showAllEntries ? sortedEntries : sortedEntries.slice(0, 10)).map((e, i) => (
+                        {(showAllEntries ? filteredEntries : filteredEntries.slice(0, 10)).map((e, i) => (
                           <div key={e.id} className="tr-row" style={{ background: i % 2 === 1 ? C.bgInset : "transparent" }} onClick={() => openEditEntry(e)}>
                             <div className="tc" style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: C.textLo }}>{e.date.slice(0, 10)}</div>
                             <div className="tc"><div style={{ width: 22, height: 22, borderRadius: 6, background: (memberColors[e.member] || C.textLo) + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: memberColors[e.member] || C.textLo }}>{e.member ? e.member[0] : "?"}</div></div>
