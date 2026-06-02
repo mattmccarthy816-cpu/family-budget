@@ -1977,6 +1977,7 @@ const filteredEntries = useMemo(() => {
     )}
   </button>
 </div>
+)} 
   {filterOpen && (
   <div style={{ marginBottom: 14, padding: "12px 14px", background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 10, display: "flex", flexDirection: "column", gap: 10 }}>
     <div style={{ position: "relative" }}>
