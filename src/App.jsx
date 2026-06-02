@@ -2058,7 +2058,7 @@ const filteredEntries = useMemo(() => {
                     ) : (
                       <>
                         <div className="tr-hdr-m">{["DATE","DETAILS","AMT"].map(h => (<div key={h} style={{ padding: "0 10px", fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5 }}>{h}</div>))}</div>
-                        {sortedEntries.map((e, i) => (
+                        {filteredEntries.map((e, i) => (
                           <div key={e.id} className="tr-row-m" style={{ background: i % 2 === 1 ? C.bgInset : "transparent" }} onClick={() => openEditEntry(e)}>
                             <div style={{ padding: "10px", fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", display: "flex", alignItems: "center" }}>{e.date.slice(5, 10)}</div>
                             <div style={{ padding: "10px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 2 }}>
