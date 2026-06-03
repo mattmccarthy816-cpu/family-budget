@@ -1476,7 +1476,7 @@ const filteredEntries = useMemo(() => {
                           const largeTrack = sweep > 180 ? 1 : 0;
                           const largeFill = sweep * budgetPct > 180 ? 1 : 0;
                           const trackD = `M ${ts.x} ${ts.y} A ${r} ${r} 0 ${largeTrack} 1 ${te.x} ${te.y}`;
-                          const fillD = budgetPct > 0.01 ? `M ${ts.x} ${ts.y} A ${r} ${r} 0 ${largeFill} 1 ${ae.x} ${ae.y}` : "";
+                          const fillD = budgetPct > 0.01 ? `M ${ts.x} ${ts.y} A ${r} ${r} 0 ${largeFill} 0 ${ae.x} ${ae.y}` : "";
                           const arcColor = budgetPct > 0.9 ? "#ef4444" : budgetPct > 0.7 ? "#eab308" : C.accent;
 
                           const showRemaining = heroDisplay === 'remaining';
