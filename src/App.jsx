@@ -1039,11 +1039,11 @@ const filteredEntries = useMemo(() => {
             <polygon points="50,52 50,72 72,62 72,52" fill={C.accent} opacity="0.8" />
             <polygon points="22,58 30,62 22,70" fill={C.accent} opacity="0.7" />
           </svg>
-          <span style={{ fontFamily: "'Playfair+Display', serif", fontWeight: 600, fontSize: 16, letterSpacing: "0.10em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>BRAND</span>
+          <span style={{ fontFamily: "'Playfair+Display', serif", fontWeight: 600, fontSize: 16, letterSpacing: "0.05em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>BRAND</span>
           <div style={{ width: 1.5, height: 22, background: C.accent, borderRadius: 1, opacity: 0.6 }} />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
-            <span style={{ fontFamily: "'Playfair+Display', serif", fontWeight: 400, fontSize: 6.5, letterSpacing: "0.28em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>PERSONAL</span>
-            <span style={{ fontFamily: "'Playfair+Display', serif", fontWeight: 400, fontSize: 6.5, letterSpacing: "0.28em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>FINANCE</span>
+            <span style={{ fontFamily: "'Playfair+Display', serif", fontWeight: 400, fontSize: 6.5, letterSpacing: "0.15em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>PERSONAL</span>
+            <span style={{ fontFamily: "'Playfair+Display', serif", fontWeight: 400, fontSize: 6.5, letterSpacing: "0.15em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>FINANCE</span>
           </div>
           {syncing && <span style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>SYNC</span>}
         </div>
