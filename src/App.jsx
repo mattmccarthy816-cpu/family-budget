@@ -1446,10 +1446,10 @@ const filteredEntries = useMemo(() => {
                           const size = 220;
                           const vb = size + pad * 2; // viewBox is larger than rendered size
                           const strokeWidth = 14;
-                          const r = (size - strokeWidth) / 2;
+                          const r = (vb - strokeWidth) / 2;
                           const cx = vb / 2;
                           const cy = vb / 2;
-                          const startAngle = 150;
+                          const startAngle = -210;
                           const sweep = 240;
                           const budgetPct = Math.min(totalSpend / Math.max(totalBudget, 1), 1);
                           const dayPct = dayOfMonth / daysInMonth;
