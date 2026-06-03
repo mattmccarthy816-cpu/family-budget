@@ -1458,7 +1458,7 @@ const filteredEntries = useMemo(() => {
 
                           const ts = pt(startAngle);
                           const te = pt(startAngle + sweep);
-                          const ae = pt(startAngle + sweep * budgetPct);
+                          const ae = pt(startAngle + sweep * (1 -budgetPct));
                           // Day notch position on the arc
                           const notchPt = pt(startAngle + sweep * dayPct);
                           const notchInner = (() => {
