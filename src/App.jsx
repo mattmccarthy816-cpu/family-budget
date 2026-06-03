@@ -1446,10 +1446,10 @@ const filteredEntries = useMemo(() => {
                           const size = 220;
                           const vb = size + pad * 2; // viewBox is larger than rendered size
                           const strokeWidth = 14;
-                          const r = (vb - strokeWidth) / 2;
+                          const r = size / 2 - strokeWidth;
                           const cx = vb / 2;
                           const cy = vb / 2;
-                          const startAngle = -210;
+                          const startAngle = 150;
                           const sweep = 240;
                           const budgetPct = Math.min(totalSpend / Math.max(totalBudget, 1), 1);
                           const dayPct = dayOfMonth / daysInMonth;
@@ -1458,7 +1458,7 @@ const filteredEntries = useMemo(() => {
 
                           const ts = pt(startAngle);
                           const te = pt(startAngle + sweep);
-                          const ae = pt(startAngle + sweep * (1 -budgetPct));
+                          const ae = pt(startAngle + sweep * budgetPct);
                           // Day notch position on the arc
                           const notchPt = pt(startAngle + sweep * dayPct);
                           const notchInner = (() => {
@@ -1475,8 +1475,8 @@ const filteredEntries = useMemo(() => {
 
                           const largeTrack = sweep > 180 ? 1 : 0;
                           const largeFill = sweep * budgetPct > 180 ? 1 : 0;
-                          const trackD = `M ${ts.x} ${ts.y} A ${r} ${r} 0 ${largeTrack} 1 ${te.x} ${te.y}`;
-                          const fillD = budgetPct > 0.01 ? `M ${ts.x} ${ts.y} A ${r} ${r} 0 ${largeFill} 0 ${ae.x} ${ae.y}` : "";
+                          const trackD = `M ${ts.x} ${ts.y} A ${r} ${r} 0 1 1 ${te.x} ${te.y}`;
+                          const fillD = budgetPct > 0.01 ? `M ${ts.x} ${ts.y} A ${r} ${r} 0 ${largeFill} 1 ${ae.x} ${ae.y}` : "";
                           const arcColor = budgetPct > 0.9 ? "#ef4444" : budgetPct > 0.7 ? "#eab308" : C.accent;
 
                           const showRemaining = heroDisplay === 'remaining';
