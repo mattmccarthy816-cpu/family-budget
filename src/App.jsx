@@ -880,7 +880,6 @@ const filteredEntries = useMemo(() => {
       {/* All content sits above the glow */}
       <div style={{ position: "relative", zIndex: 1 }}>
 
-        <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <style>{`
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { overscroll-behavior: none; -webkit-overflow-scrolling: touch; }
