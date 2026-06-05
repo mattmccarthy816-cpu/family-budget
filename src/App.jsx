@@ -1980,7 +1980,7 @@ const filteredEntries = useMemo(() => {
   )}
 </div>
 )} 
-  {filterOpen && (
+  {(isDesktop || entriesOpen) && filterOpen && (
   <div style={{ marginBottom: 14, padding: "12px 14px", background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 10, display: "flex", flexDirection: "column", gap: 10 }}>
     <div style={{ position: "relative" }}>
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.textLo} strokeWidth="2" strokeLinecap="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
