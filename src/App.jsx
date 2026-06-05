@@ -2028,7 +2028,10 @@ const filteredEntries = useMemo(() => {
   </div>
 )}
                     {(isDesktop || entriesOpen) ? (sortedEntries.length === 0 ? (
-                      <div style={{ textAlign: "center", padding: "28px 0", color: C.textLo, fontSize: 12 }}>No entries for {MONTH_NAMES[viewMonth]}.</div>
+filteredEntries.length === 0 ? (
+  <div style={{ textAlign: "center", padding: "28px 0", color: C.textLo, fontSize: 12 }}>
+    {entrySearch ? `No entries matching "${entrySearch}"` : `No entries for ${MONTH_NAMES[viewMonth]}.`}
+  </div>
                     ) : isDesktop ? (
                       <>
                         <div className="tr-hdr">{["DATE","WHO","CATEGORY","AMOUNT","NOTES"].map(h => (<div key={h} style={{ padding: "0 10px", fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5 }}>{h}</div>))}</div>
