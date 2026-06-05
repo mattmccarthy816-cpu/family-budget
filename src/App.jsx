@@ -1522,7 +1522,6 @@ const filteredEntries = useMemo(() => {
                                       stroke={arcColor}
                                       strokeWidth={strokeWidth}
                                       strokeLinecap="round"
-                                      filter="url(#arcGlow)"
                                       style={{ transition: "stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)" }}
                                     />
                                   )}
