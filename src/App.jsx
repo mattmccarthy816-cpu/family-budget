@@ -880,7 +880,7 @@ const filteredEntries = useMemo(() => {
       {/* All content sits above the glow */}
       <div style={{ position: "relative", zIndex: 1 }}>
 
-        <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@500&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet" />
         <style>{`
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { overscroll-behavior: none; -webkit-overflow-scrolling: touch; }
@@ -973,11 +973,11 @@ const filteredEntries = useMemo(() => {
             <polygon points="50,52 50,72 72,62 72,52" fill={C.accent} opacity="0.8" />
             <polygon points="22,58 30,62 22,70" fill={C.accent} opacity="0.7" />
           </svg>
-          <span style={{ fontFamily: "'Playfair+Display', serif", fontWeight: 700, fontSize: 18, letterSpacing: "0.035em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>BRAND</span>
+          <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 18, letterSpacing: "0.035em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>BRAND</span>
           <div style={{ width: 2, height: 28, background: C.accent, borderRadius: 1, opacity: 0.6 }} />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
-            <span style={{ fontFamily: "'Playfair+Display', serif", fontWeight: 400, fontSize: 7, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>PERSONAL</span>
-            <span style={{ fontFamily: "'Playfair+Display', serif", fontWeight: 400, fontSize: 7, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>FINANCE</span>
+            <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 400, fontSize: 7, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>PERSONAL</span>
+            <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 400, fontSize: 7, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>FINANCE</span>
           </div>
           {syncing && <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>SYNCING</span>}
         </div>
