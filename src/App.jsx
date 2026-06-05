@@ -1442,11 +1442,11 @@ const filteredEntries = useMemo(() => {
                         {(() => {
                           // Arc geometry
                           // Use a larger viewBox with padding so the arc never clips
-                          const pad = 18; // padding around arc to prevent clipping
-                          const size = 220;
-                          const vb = size + pad * 2; // viewBox is larger than rendered size
-                          const strokeWidth = 14;
-                          const r = size / 2 - strokeWidth;
+                          const pad = 0;
+                          const size = 200;
+                          const vb = size;
+                          const strokeWidth = 12;
+                          const r = size / 2 - strokeWidth - 8;
                           const cx = vb / 2;
                           const cy = vb / 2;
                           const startAngle = 150;
@@ -1463,8 +1463,8 @@ const filteredEntries = useMemo(() => {
                           const notchPt = pt(startAngle + sweep * dayPct);
                           const notchInner = (() => {
                             const ang = startAngle + sweep * dayPct;
-                            const rInner = r - strokeWidth / 2 - 2;
-                            const rOuter = r + strokeWidth / 2 + 2;
+                            const rInner = r - strokeWidth / 2 + 3;
+                            const rOuter = r + strokeWidth / 2 - 3;
                             return {
                               x1: cx + rInner * Math.cos(toRad(ang)),
                               y1: cy + rInner * Math.sin(toRad(ang)),
@@ -1501,10 +1501,10 @@ const filteredEntries = useMemo(() => {
                               {/* Arc — rendered in larger viewBox, displayed at size px to prevent clipping */}
                               <div style={{ position: "relative", width: size, height: size }}>
                                 <svg
-                                  viewBox={`0 0 ${vb} ${vb}`}
+                                  viewBox={`0 0 ${size} ${size}`}
                                   width={size}
                                   height={size}
-                                  style={{ display: "block", overflow: "visible" }}
+                                  style={{ display: "block", }}
                                 >
                                   <defs>
                                     <filter id="arcGlow" x="-20%" y="-20%" width="140%" height="140%">
@@ -1522,7 +1522,6 @@ const filteredEntries = useMemo(() => {
                                       stroke={arcColor}
                                       strokeWidth={strokeWidth}
                                       strokeLinecap="round"
-                                      filter="url(#arcGlow)"
                                       style={{ transition: "stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)" }}
                                     />
                                   )}
