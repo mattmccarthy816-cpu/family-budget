@@ -973,7 +973,7 @@ const filteredEntries = useMemo(() => {
             <polygon points="50,52 50,72 72,62 72,52" fill={C.accent} opacity="0.8" />
             <polygon points="22,58 30,62 22,70" fill={C.accent} opacity="0.7" />
           </svg>
-          <span style={{ fontFamily: "'Playfair+Display', serif", fontWeight: 700, fontSize: 18, letterSpacing: "0.035em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>BRAND</span>
+          <span style={{ fontFamily: "'Playfair+Display', serif", fontWeight: 700, fontSize: 18, letterSpacing: "0.035em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>COPPER</span>
           <div style={{ width: 2, height: 28, background: C.accent, borderRadius: 1, opacity: 0.6 }} />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
             <span style={{ fontFamily: "'Playfair+Display', serif", fontWeight: 400, fontSize: 7, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>PERSONAL</span>
@@ -1040,7 +1040,7 @@ const filteredEntries = useMemo(() => {
             <polygon points="50,52 50,72 72,62 72,52" fill={C.accent} opacity="0.8" />
             <polygon points="22,58 30,62 22,70" fill={C.accent} opacity="0.7" />
           </svg>
-          <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 600, fontSize: 16, letterSpacing: "0.05em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>BRAND</span>
+          <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 600, fontSize: 16, letterSpacing: "0.05em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>COPPER</span>
           <div style={{ width: 1.25, height: 22, background: C.accent, borderRadius: 1, opacity: 0.6 }} />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
             <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 400, fontSize: 6.5, letterSpacing: "0.12em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>PERSONAL</span>
