@@ -882,7 +882,7 @@ const filteredEntries = useMemo(() => {
 
         <style>{`
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  .playfair-brand { font-family: 'Playfair Display', serif !important; }
+  .playfair-brand { font-family: 'Playfair Display', serif !important; font-size: inherit; }
   html, body { overscroll-behavior: none; -webkit-overflow-scrolling: touch; }
   button, a { outline: none; user-select: none; }
   ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 3px; }
@@ -973,7 +973,7 @@ const filteredEntries = useMemo(() => {
             <polygon points="50,52 50,72 72,62 72,52" fill={C.accent} opacity="0.8" />
             <polygon points="22,58 30,62 22,70" fill={C.accent} opacity="0.7" />
           </svg>
-        <span className="playfair-brand" style={{ fontWeight: 700, fontSize: 18, letterSpacing: "0.035em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>BRAND</span>          
+        <span className="playfair-brand" style={{ fontWeight: 700, fontSize: 18, letterSpacing: "0.035em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>BRAND</span>     
           <div style={{ width: 2, height: 28, background: C.accent, borderRadius: 1, opacity: 0.6 }} />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
             <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 400, fontSize: 7, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>PERSONAL</span>
