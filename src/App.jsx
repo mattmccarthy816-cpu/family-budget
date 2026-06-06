@@ -1042,7 +1042,7 @@ const filteredEntries = useMemo(() => {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 52 }}>
         {/* Wordmark */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Logo size={28} color={#c17f3e} />
+          <Logo size={28} />
           <span className="playfair-brand" style={{ fontWeight: 700, fontSize: 18, letterSpacing: "0.035em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>BRAND</span>
           <div style={{ width: 1.25, height: 22, background: C.accent, borderRadius: 1, opacity: 0.6 }} />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
