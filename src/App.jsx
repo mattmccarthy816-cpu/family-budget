@@ -44,6 +44,16 @@ const LIGHT = {
   sandDim: "#999999",
 };
 
+const Logo = ({ size = 28, color = "#c17f3e" }) => (
+  <svg width={size} height={size} viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+    <path fill={color} d="M298.683685,464.999939 C298.683533,441.221008 ..." />
+    <path fill={color} d="M437.408997,718.640625 C393.395630,692.967102 ..." />
+    <path fill={color} d="M335.114624,367.062408 C391.925568,333.954254 ..." />
+    <path fill={color} d="M536.382629,363.686035 C534.500000,362.500000 ..." />
+    <path fill={color} d="M658.049011,678.088867 C612.187073,704.772888 ..." />
+  </svg>
+);
+
 // Mutable module-level reference — updated on every render inside App()
 // This allows helper components defined outside App() to read the current theme colors
 let C = DARK;
@@ -1032,14 +1042,7 @@ const filteredEntries = useMemo(() => {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 52 }}>
         {/* Wordmark */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <svg width="22" height="22" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="30,18 50,8 50,28 30,38" fill={C.accent} />
-            <polygon points="50,8 72,18 72,28 50,28" fill={C.accent} opacity="0.8" />
-            <polygon points="22,22 30,18 30,38 22,58" fill={C.accent} opacity="0.9" />
-            <polygon points="22,58 30,62 50,72 50,52" fill={C.accent} />
-            <polygon points="50,52 50,72 72,62 72,52" fill={C.accent} opacity="0.8" />
-            <polygon points="22,58 30,62 22,70" fill={C.accent} opacity="0.7" />
-          </svg>
+          <Logo size={28} color={C.accent} />
           <span className="playfair-brand" style={{ fontWeight: 700, fontSize: 18, letterSpacing: "0.035em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>BRAND</span>
           <div style={{ width: 1.25, height: 22, background: C.accent, borderRadius: 1, opacity: 0.6 }} />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
