@@ -882,7 +882,7 @@ const filteredEntries = useMemo(() => {
 
         <style>{`
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  .playfair-brand { font-family: 'Playfair Display', serif !important; font-size: inherit; }
+  .playfair-brand { font-family: 'Droid Serif', serif !important; font-size: inherit; }
   html, body { overscroll-behavior: none; -webkit-overflow-scrolling: touch; }
   button, a { outline: none; user-select: none; }
   ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 3px; }
@@ -976,8 +976,8 @@ const filteredEntries = useMemo(() => {
         <span className="playfair-brand" style={{ fontWeight: 700, fontSize: 18, letterSpacing: "0.035em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>BRAND</span>     
           <div style={{ width: 2, height: 28, background: C.accent, borderRadius: 1, opacity: 0.6 }} />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
-            <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 400, fontSize: 7, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>PERSONAL</span>
-            <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 400, fontSize: 7, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>FINANCE</span>
+            <span style={{ fontFamily: "'Droid Serif', serif", fontWeight: 400, fontSize: 7, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>PERSONAL</span>
+            <span style={{ fontFamily: "'Droid Serif', serif", fontWeight: 400, fontSize: 7, letterSpacing: "0.18em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>FINANCE</span>
           </div>
           {syncing && <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1 }}>SYNCING</span>}
         </div>
@@ -1043,8 +1043,8 @@ const filteredEntries = useMemo(() => {
           <span className="playfair-brand" style={{ fontWeight: 700, fontSize: 18, letterSpacing: "0.035em", color: theme === 'dark' ? "#ffffff" : "#1a1a1a" }}>BRAND</span>
           <div style={{ width: 1.25, height: 22, background: C.accent, borderRadius: 1, opacity: 0.6 }} />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.55 }}>
-            <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 400, fontSize: 6.5, letterSpacing: "0.12em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>PERSONAL</span>
-            <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 400, fontSize: 6.5, letterSpacing: "0.12em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>FINANCE</span>
+            <span style={{ fontFamily: "'Droid Serif', serif", fontWeight: 400, fontSize: 6.5, letterSpacing: "0.12em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>PERSONAL</span>
+            <span style={{ fontFamily: "'Droid Serif', serif", fontWeight: 400, fontSize: 6.5, letterSpacing: "0.12em", color: theme === 'dark' ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.32)" }}>FINANCE</span>
           </div>
           {syncing && <span style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>SYNC</span>}
         </div>
