@@ -440,6 +440,9 @@ export default function App() {
   const [expandedGoalsOutlook, setExpandedGoalsOutlook] = useState(false);
   const [settingsBudgetOpen, setSettingsBudgetOpen] = useState(true);
   const [settingsMembersOpen, setSettingsMembersOpen] = useState(true);
+  const [selectedReviewMonth, setSelectedReviewMonth] = useState(null);
+  const [reviewChartHover, setReviewChartHover] = useState(null);
+  const [reviewChartTapped, setReviewChartTapped] = useState(null);
   const [nwOpen, setNwOpen] = useState(false);
   const [whatIfOpen, setWhatIfOpen] = useState({});
   const [selectedTrendsMonth, setSelectedTrendsMonth] = useState(null);
@@ -2786,142 +2789,16 @@ const filteredEntries = useMemo(() => {
 
               {/* TRENDS */}
               {view === "trends" && (() => {
-                const trendsMonths = (() => {
-                  const months = [];
-                  for (let i = 11; i >= 0; i--) {
-                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                    const y = d.getFullYear(), m = d.getMonth();
-                    const key = `${y}-${String(m+1).padStart(2,"0")}`;
-                    const label = MONTH_NAMES[m].slice(0,3) + (i === 0 || m === 0 ? ` '${String(y).slice(2)}` : "");
-                    const monthEntries = allEntries.filter(e => e.date.startsWith(key));
-                    const spend = monthEntries.reduce((s, e) => s + e.amount, 0);
-                    const byCat = {}; categories.forEach(c => byCat[c] = 0); monthEntries.forEach(e => { if (byCat[e.category] !== undefined) byCat[e.category] += e.amount; });
-                    const byMem = {}; memberNames.forEach(m => byMem[m] = 0); monthEntries.forEach(e => { if (byMem[e.member] !== undefined) byMem[e.member] += e.amount; });
-                    months.push({ key, label, spend, byCat, byMem, entries: monthEntries });
-                  }
-                  return months;
-                })();
-                const selectedData = selectedTrendsMonth ? trendsMonths.find(m => m.key === selectedTrendsMonth) : null;
-                const catTrends = categories.filter(c => (catTypes[c] || "expense") !== "investment").map(c => {
-                  const recent = trendsMonths.slice(-3).reduce((s, m) => s + m.byCat[c], 0) / 3;
-                  const prior = trendsMonths.slice(-6, -3).reduce((s, m) => s + m.byCat[c], 0) / 3;
-                  const delta = prior > 0 ? (recent - prior) / prior : 0;
-                  return { cat: c, recent, prior, delta };
-                }).filter(c => c.recent > 0 || c.prior > 0).sort((a, b) => b.delta - a.delta);
-                const trending_up = catTrends.filter(c => c.delta > 0.1).slice(0, 3);
-                const trending_down = catTrends.filter(c => c.delta < -0.1).slice(0, 3);
-                const monthsWithSpend = trendsMonths.filter(m => m.spend > 0);
-                const avgSpend = monthsWithSpend.length > 0 ? monthsWithSpend.reduce((s, m) => s + m.spend, 0) / monthsWithSpend.length : 0;
-                const bestMonth = [...trendsMonths].filter(m => m.spend > 0).sort((a, b) => a.spend - b.spend)[0];
-                const worstMonth = [...trendsMonths].filter(m => m.spend > 0).sort((a, b) => b.spend - a.spend)[0];
-                return (
-                  <div className="fu">
-                    <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : "1fr", gap: 10, marginBottom: 16 }}>
-                      {[
-                        { label: "12-MONTH AVG", value: fmt(Math.round(avgSpend)), sub: "monthly spend" },
-                        { label: "BEST MONTH", value: bestMonth ? MONTH_NAMES[parseInt(bestMonth.key.slice(5,7))-1].slice(0,3) + " " + bestMonth.key.slice(0,4) : "—", sub: bestMonth ? fmt(bestMonth.spend) + " spent" : "no data", color: "#3fb950" },
-                        { label: "HIGHEST MONTH", value: worstMonth ? MONTH_NAMES[parseInt(worstMonth.key.slice(5,7))-1].slice(0,3) + " " + worstMonth.key.slice(0,4) : "—", sub: worstMonth ? fmt(worstMonth.spend) + " spent" : "no data", color: "#f85149" },
-                      ].map(({ label, value, sub, color }) => (
-                        <div key={label} className="card" style={{ padding: "14px 16px" }}>
-                          <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 6 }}>{label}</div>
-                          <div style={{ fontSize: 20, fontWeight: 800, color: color || C.textHi, fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1, marginBottom: 4 }}>{value}</div>
-                          <div style={{ fontSize: 11, color: C.textLo }}>{sub}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="card" style={{ padding: isDesktop ? "20px 24px" : "16px 14px", marginBottom: 16, overflowX: "auto" }}>
-                      <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 14 }}>MONTHLY SPEND — LAST 12 MONTHS<span style={{ marginLeft: 10, color: C.borderMid }}>· tap a bar to inspect</span></div>
-                      <TrendsChart monthData={trendsMonths} totalBudget={totalBudget} isDesktop={isDesktop} onSelectMonth={setSelectedTrendsMonth} selectedMonth={selectedTrendsMonth} />
-                    </div>
-                    {selectedData && (
-                      <div className="card" style={{ padding: isDesktop ? "20px 24px" : "16px 14px", marginBottom: 16, borderLeft: `3px solid ${C.accent}` }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                          <div style={{ fontSize: 10, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5 }}>{MONTH_NAMES[parseInt(selectedData.key.slice(5,7))-1].toUpperCase()} {selectedData.key.slice(0,4)}</div>
-                          <div style={{ fontSize: 18, fontWeight: 800, color: selectedData.spend > totalBudget + 2 ? "#f85149" : "#3fb950", fontFamily: "'DM Mono',monospace" }}>{fmt(selectedData.spend)}</div>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                          {categories.filter(c => selectedData.byCat[c] > 0).sort((a, b) => selectedData.byCat[b] - selectedData.byCat[a]).map(c => {
-                            const spent = selectedData.byCat[c];
-                            const budget = budgets[c] || 0;
-                            const pct = budget > 0 ? Math.min(spent / budget, 1.5) : 0;
-                            const over = spent > budget + 2;
-                            return (
-                              <div key={c}>
-                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 6, height: 6, borderRadius: 2, background: catColors[c] || C.textLo, flexShrink: 0 }} /><span style={{ fontSize: 12, color: C.textMid }}>{c}</span></div>
-                                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>{budget > 0 && <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budget)}</span>}<span style={{ fontSize: 12, fontWeight: 700, color: over ? "#f85149" : C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span></div>
-                                </div>
-                                {budget > 0 && (<div style={{ background: C.borderMid, borderRadius: 999, height: 3, overflow: "hidden" }}><div style={{ width: `${Math.min(pct * 100, 100)}%`, height: "100%", background: over ? "#f85149" : catColors[c] || C.accent, borderRadius: 999 }} /></div>)}
-                              </div>
-                            );
-                          })}
-                          {memberNames.length > 1 && (
-                            <div style={{ display: "flex", gap: 16, marginTop: 8, paddingTop: 10, borderTop: `1px solid ${C.borderMid}` }}>
-                              {memberNames.map(m => (
-                                <div key={m} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: memberColors[m], flexShrink: 0 }} />
-                                  <span style={{ fontSize: 11, color: C.textMid }}>{m}</span>
-                                  <span style={{ fontSize: 11, fontWeight: 700, color: memberColors[m], fontFamily: "'DM Mono',monospace" }}>{fmt(selectedData.byMem[m] || 0)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    {(trending_up.length > 0 || trending_down.length > 0) && (
-                      <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: 14 }}>
-                        {trending_up.length > 0 && (
-                          <div className="card" style={{ padding: "18px 20px" }}>
-                            <div style={{ fontSize: 10, color: "#f85149", fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 4 }}>TRENDING UP</div>
-                            <div style={{ fontSize: 11, color: C.textLo, marginBottom: 12 }}>Higher spend vs 3 months prior</div>
-                            {trending_up.map(({ cat, recent, delta }) => (
-                              <div key={cat} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.borderMid}` }}>
-                                <div style={{ width: 6, height: 6, borderRadius: 2, background: catColors[cat] || C.textLo, flexShrink: 0 }} />
-                                <span style={{ flex: 1, fontSize: 12, color: C.textMid }}>{cat}</span>
-                                <span style={{ fontSize: 11, color: "#f85149", fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>+{Math.round(delta * 100)}%</span>
-                                <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{fmt(Math.round(recent))}/mo avg</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {trending_down.length > 0 && (
-                          <div className="card" style={{ padding: "18px 20px" }}>
-                            <div style={{ fontSize: 10, color: "#3fb950", fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 4 }}>TRENDING DOWN</div>
-                            <div style={{ fontSize: 11, color: C.textLo, marginBottom: 12 }}>Lower spend vs 3 months prior</div>
-                            {trending_down.map(({ cat, recent, delta }) => (
-                              <div key={cat} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.borderMid}` }}>
-                                <div style={{ width: 6, height: 6, borderRadius: 2, background: catColors[cat] || C.textLo, flexShrink: 0 }} />
-                                <span style={{ flex: 1, fontSize: 12, color: C.textMid }}>{cat}</span>
-                                <span style={{ fontSize: 11, color: "#3fb950", fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{Math.round(delta * 100)}%</span>
-                                <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{fmt(Math.round(recent))}/mo avg</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {/* REVIEW */}
-              {view === "review" && (() => {
                 // ── Scoring helpers ──────────────────────────────────────────
                 function calcMonthlyScore({ needsPct, wantsPct, savingsPct, overBudget, overPct }) {
                   let score = 100;
-                  const wantsDev = Math.max(0, wantsPct - 30);
-                  score -= Math.min(30, wantsDev * 2.2);
-                  const needsDev = Math.abs(needsPct - 50);
-                  score -= Math.min(25, needsDev * 1.4);
-                  const savingsShortfall = Math.max(0, 20 - savingsPct);
-                  score -= Math.min(20, savingsShortfall * 1.8);
-                  const savingsBonus = Math.max(0, savingsPct - 20);
-                  score += Math.min(8, savingsBonus * 0.6);
+                  score -= Math.min(30, Math.max(0, wantsPct - 30) * 2.2);
+                  score -= Math.min(25, Math.abs(needsPct - 50) * 1.4);
+                  score -= Math.min(20, Math.max(0, 20 - savingsPct) * 1.8);
+                  score += Math.min(8, Math.max(0, savingsPct - 20) * 0.6);
                   if (overBudget) score -= Math.min(15, overPct * 0.8);
                   return Math.max(0, Math.min(100, Math.round(score)));
                 }
-
                 function calcCopperScore({ monthlyScores, underBudgetCount, savingsTrend, volatility }) {
                   const n = monthlyScores.length;
                   if (n === 0) return 0;
@@ -2930,29 +2807,12 @@ const filteredEntries = useMemo(() => {
                   const final = raw >= 90 ? 90 + (raw - 90) * 0.4 : raw >= 80 ? 80 + (raw - 80) * 0.7 : raw;
                   return Math.max(0, Math.min(100, Math.round(final)));
                 }
+                function scoreColor(s) { return s >= 91 ? "#22d3ee" : s >= 80 ? "#3fb950" : s >= 70 ? "#c17f3e" : s >= 60 ? "#eab308" : s >= 50 ? "#f97316" : "#f85149"; }
+                function scoreLabel(s) { return s >= 91 ? "Exceptional" : s >= 80 ? "Strong" : s >= 70 ? "Consistent" : s >= 60 ? "Doing OK" : s >= 50 ? "Needs Work" : "Off Track"; }
 
-                function scoreColor(s) {
-                  return s >= 91 ? "#22d3ee" : s >= 80 ? "#3fb950" : s >= 70 ? "#c17f3e" : s >= 60 ? "#eab308" : s >= 50 ? "#f97316" : "#f85149";
-                }
+                const totalRevBudget = Object.values(budgets).reduce((s, v) => s + v, 0);
 
-                function scoreLabel(s) {
-                  return s >= 91 ? "Exceptional" : s >= 80 ? "Strong" : s >= 70 ? "Consistent" : s >= 60 ? "Doing OK" : s >= 50 ? "Needs Work" : "Off Track";
-                }
-
-                // ── Per-month split calculation ──────────────────────────────
-                function getMonthSplits(monthEntries, monthSpend) {
-                  const needsSpend = monthEntries.reduce((s, e) => (catTypes[e.category] || "expense") === "fixed" ? s + e.amount : s, 0);
-                  const savingsSpend = monthEntries.reduce((s, e) => (catTypes[e.category] || "expense") === "investment" ? s + e.amount : s, 0);
-                  const wantsSpend = Math.max(0, monthSpend - needsSpend - savingsSpend);
-                  const needsPct = monthSpend > 0 ? Math.round((needsSpend / monthSpend) * 100) : 50;
-                  const wantsPct = monthSpend > 0 ? Math.round((wantsSpend / monthSpend) * 100) : 30;
-                  const savingsPct = Math.max(0, 100 - needsPct - wantsPct);
-                  return { needsPct, wantsPct, savingsPct };
-                }
-
-                // ── Build last 6 months ───────────────────────────────────────
-                const revBudget = Object.values(budgets).reduce((s, v) => s + v, 0);
-
+                // ── Build last 6 months for Copper Score + Report Card ───────
                 const last6 = (() => {
                   const months = [];
                   for (let i = 5; i >= 0; i--) {
@@ -2961,135 +2821,69 @@ const filteredEntries = useMemo(() => {
                     const key = `${y}-${String(m + 1).padStart(2, "0")}`;
                     const mEntries = allEntries.filter(e => e.date.startsWith(key));
                     const mSpend = mEntries.reduce((s, e) => s + e.amount, 0);
-                    const overBudget = mSpend > revBudget + 2;
-                    const overPct = overBudget && revBudget > 0 ? ((mSpend - revBudget) / revBudget) * 100 : 0;
-                    const { needsPct, wantsPct, savingsPct } = getMonthSplits(mEntries, mSpend);
-                    const isCurr = i === 0;
-                    const score = isCurr ? null : calcMonthlyScore({ needsPct, wantsPct, savingsPct, overBudget, overPct });
-                    months.push({ key, label: MONTH_NAMES[m].slice(0, 3), monthSpend: mSpend, overBudget, overPct, needsPct, wantsPct, savingsPct, score, isCurrent: isCurr });
+                    const overBudget = mSpend > totalRevBudget + 2;
+                    const overPct = overBudget && totalRevBudget > 0 ? ((mSpend - totalRevBudget) / totalRevBudget) * 100 : 0;
+                    const mNeeds = mEntries.reduce((s, e) => getClassification(e) === "need" ? s + e.amount : s, 0);
+                    const mSavings = mEntries.reduce((s, e) => getClassification(e) === "saving" ? s + e.amount : s, 0);
+                    const mWants = Math.max(0, mSpend - mNeeds - mSavings);
+                    const needsPct = mSpend > 0 ? Math.round((mNeeds / mSpend) * 100) : 50;
+                    const wantsPct = mSpend > 0 ? Math.round((mWants / mSpend) * 100) : 30;
+                    const savingsPct = Math.max(0, 100 - needsPct - wantsPct);
+                    const score = calcMonthlyScore({ needsPct, wantsPct, savingsPct, overBudget, overPct });
+                    months.push({ key, label: MONTH_NAMES[m].slice(0, 3), monthSpend: mSpend, overBudget, score, isCurrent: i === 0 });
                   }
                   return months;
                 })();
 
-                // ── Current month live splits ─────────────────────────────────
-                const revYear = viewYear, revMonth = viewMonth;
-                const prevRevMonth = revMonth === 0 ? 11 : revMonth - 1;
-                const prevRevYear = revMonth === 0 ? revYear - 1 : revYear;
-                const revPrefix = `${revYear}-${String(revMonth + 1).padStart(2, "0")}`;
-                const prevPrefix = `${prevRevYear}-${String(prevRevMonth + 1).padStart(2, "0")}`;
-                const revEntries = allEntries.filter(e => e.date.startsWith(revPrefix));
-                const prevEntries = allEntries.filter(e => e.date.startsWith(prevPrefix));
-                const revDays = getDaysInMonth(revYear, revMonth);
-                const revToday = isCurrentMonth ? now.getDate() : revDays;
-                const revTotal = revEntries.reduce((s, e) => s + e.amount, 0);
-                const prevTotal = prevEntries.reduce((s, e) => s + e.amount, 0);
-                const revDiff = revBudget - revTotal;
-                const momDelta = prevTotal > 0 ? revTotal - prevTotal : null;
-                const isFinal = !isCurrentMonth && !isFutureMonth;
-                const progress = revToday / revDays;
-
-                const revByCat = {}, prevByCat = {};
-                categories.forEach(c => { revByCat[c] = 0; prevByCat[c] = 0; });
-                revEntries.forEach(e => { if (revByCat[e.category] !== undefined) revByCat[e.category] += e.amount; });
-                prevEntries.forEach(e => { if (prevByCat[e.category] !== undefined) prevByCat[e.category] += e.amount; });
-
-                const { needsPct: curNeedsPct, wantsPct: curWantsPct, savingsPct: curSavingsPct } = getMonthSplits(revEntries, revTotal);
-                const curOverBudget = revTotal > revBudget + 2;
-                const curOverPct = curOverBudget && revBudget > 0 ? ((revTotal - revBudget) / revBudget) * 100 : 0;
-                const currentMonthScore = calcMonthlyScore({ needsPct: curNeedsPct, wantsPct: curWantsPct, savingsPct: curSavingsPct, overBudget: curOverBudget, overPct: curOverPct });
-
-                const last6WithScores = last6.map(m => m.isCurrent ? { ...m, score: currentMonthScore } : m);
-
-                // ── Copper Score ──────────────────────────────────────────────
-                const scores = last6WithScores.map(m => m.score);
-                const underBudgetCount = last6WithScores.filter(m => !m.overBudget).length;
-                const recent3 = last6WithScores.slice(3);
-                const prior3 = last6WithScores.slice(0, 3);
-                const recentSavingsAvg = recent3.reduce((s, m) => s + m.savingsPct, 0) / 3;
-                const priorSavingsAvg = prior3.reduce((s, m) => s + m.savingsPct, 0) / 3;
+                // ── Copper Score ─────────────────────────────────────────────
+                const scores = last6.map(m => m.score);
+                const underBudgetCount = last6.filter(m => !m.overBudget).length;
+                const recent3 = last6.slice(3), prior3 = last6.slice(0, 3);
+                const recentSavingsAvg = recent3.reduce((s, m) => s + (m.monthSpend > 0 ? allEntries.filter(e => e.date.startsWith(m.key) && getClassification(e) === "saving").reduce((a, e) => a + e.amount, 0) / m.monthSpend * 100 : 0), 0) / 3;
+                const priorSavingsAvg = prior3.reduce((s, m) => s + (m.monthSpend > 0 ? allEntries.filter(e => e.date.startsWith(m.key) && getClassification(e) === "saving").reduce((a, e) => a + e.amount, 0) / m.monthSpend * 100 : 0), 0) / 3;
                 const savingsTrend = Math.max(-1, Math.min(1, (recentSavingsAvg - priorSavingsAvg) / 20));
-                const spendPcts = last6WithScores.map(m => revBudget > 0 ? (m.monthSpend / revBudget) * 100 : 100);
+                const spendPcts = last6.map(m => totalRevBudget > 0 ? (m.monthSpend / totalRevBudget) * 100 : 100);
                 const mean = spendPcts.reduce((s, v) => s + v, 0) / spendPcts.length;
                 const variance = spendPcts.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / spendPcts.length;
                 const volatility = Math.min(100, Math.sqrt(variance) * 2);
                 const copperScore = calcCopperScore({ monthlyScores: scores, underBudgetCount, savingsTrend, volatility });
-
-                // ── Summary paragraph ─────────────────────────────────────────
-                const alertableCats = categories.filter(c => (catTypes[c] || "expense") === "expense");
-                const catsWithSpend = alertableCats.filter(c => revByCat[c] > 0 || budgets[c] > 0);
-                const catPct = c => budgets[c] > 0 ? revByCat[c] / budgets[c] : 0;
-                const worst = [...catsWithSpend].sort((a, b) => catPct(b) - catPct(a)).slice(0, 3);
-                const revByMember = {};
-                memberNames.forEach(m => revByMember[m] = 0);
-                revEntries.forEach(e => { if (revByMember[e.member] !== undefined) revByMember[e.member] += e.amount; });
-
-                const buildSummary = () => {
-                  const sentences = [];
-                  const monthName = MONTH_NAMES[revMonth];
-                  const prevMonthName = MONTH_NAMES[prevRevMonth];
-                  const underPct = revBudget > 0 ? revDiff / revBudget : 0;
-                  if (isFinal) {
-                    if (revDiff < -2) sentences.push(`${monthName} was a tough month — you came in ${fmt(Math.abs(revDiff))} over budget.`);
-                    else if (underPct > 0.2) sentences.push(`${monthName} was a strong month — you finished ${fmt(revDiff)} under budget, one of your better margins.`);
-                    else if (underPct > 0.1) sentences.push(`${monthName} was a solid month — you came in ${fmt(revDiff)} under budget.`);
-                    else sentences.push(`${monthName} was a close one — you finished just ${fmt(revDiff)} under budget.`);
-                  } else {
-                    const spendPct = revBudget > 0 ? revTotal / revBudget : 0;
-                    if (spendPct > progress + 0.1) sentences.push(`You're ${Math.round(progress * 100)}% through ${monthName} and spend is running ahead of pace — ${fmt(revTotal)} logged so far against a ${fmt(revBudget)} budget.`);
-                    else sentences.push(`You're ${Math.round(progress * 100)}% through ${monthName} with ${fmt(revTotal)} logged — tracking ${fmt(revDiff)} under budget so far.`);
-                  }
-                  if (momDelta !== null && prevTotal > 0) {
-                    const absDelta = Math.abs(momDelta);
-                    if (momDelta < -10) sentences.push(`That's ${fmt(absDelta)} less than ${prevMonthName}, which is encouraging.`);
-                    else if (momDelta > 10) sentences.push(`That's ${fmt(absDelta)} more than ${prevMonthName}.`);
-                    else sentences.push(`Spend is running at a similar level to ${prevMonthName}.`);
-                  }
-                  if (worst.length > 0) {
-                    const c = worst[0]; const spent = revByCat[c] || 0; const budget = budgets[c] || 0; const pct = budget > 0 ? spent / budget : 0;
-                    if (spent > budget + 2) sentences.push(`${c} was your biggest pressure point, coming in at ${fmt(spent)} against a ${fmt(budget)} budget.`);
-                    else if (pct > 0.85) sentences.push(`${c} ran close to its limit at ${Math.round(pct * 100)}% of budget.`);
-                  }
-                  if (!isFinal && projection) {
-                    if (projection.projectedOver) sentences.push(`At current pace you're on track to finish around ${fmt(projection.projectedSpend)} — worth keeping an eye on.`);
-                    else sentences.push(`At current pace you'll finish the month around ${fmt(projection.projectedSpend)}, well within budget.`);
-                  }
-                  return sentences.join(" ");
-                };
-                const summaryText = buildSummary();
-
-                // ── Want purchases ────────────────────────────────────────────
-                const wantEntries = [...revEntries]
-                  .filter(e => (catTypes[e.category] || "expense") === "expense")
-                  .sort((a, b) => b.amount - a.amount)
-                  .slice(0, 5);
-
-                const biggestWant = wantEntries[0] || null;
-
-                // ── Entries by category state (local) ─────────────────────────
-                const revCatEntries = revEntries
-                  .filter(e => e.category === selectedRevCat)
-                  .sort((a, b) => new Date(b.date) - new Date(a.date));
-                const revCatTotal = revCatEntries.reduce((s, e) => s + e.amount, 0);
-
-                // ── Band indicator segments ───────────────────────────────────
                 const bandSegs = [
                   { s: 0, e: 50, c: "#f85149" }, { s: 50, e: 60, c: "#f97316" },
                   { s: 60, e: 70, c: "#eab308" }, { s: 70, e: 80, c: "#c17f3e" },
                   { s: 80, e: 91, c: "#3fb950" }, { s: 91, e: 100, c: "#22d3ee" },
                 ];
 
+                // ── 12-month data with sections ──────────────────────────────
+                const trendsMonths = (() => {
+                  const months = [];
+                  for (let i = 11; i >= 0; i--) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    const y = d.getFullYear(), m = d.getMonth();
+                    const key = `${y}-${String(m + 1).padStart(2, "0")}`;
+                    const label = MONTH_NAMES[m].slice(0, 3) + (i === 0 || m === 0 ? ` '${String(y).slice(2)}` : "");
+                    const monthEntries = allEntries.filter(e => e.date.startsWith(key));
+                    const spend = monthEntries.reduce((s, e) => s + e.amount, 0);
+                    const bySection = {};
+                    sections.forEach(sec => { bySection[sec.name] = 0; });
+                    monthEntries.forEach(e => {
+                      const sec = catSection[e.category];
+                      if (sec) bySection[sec] = (bySection[sec] || 0) + e.amount;
+                    });
+                    const byMem = {}; memberNames.forEach(n => byMem[n] = 0);
+                    monthEntries.forEach(e => { if (byMem[e.member] !== undefined) byMem[e.member] += e.amount; });
+                    months.push({ key, label, spend, bySection, byMem });
+                  }
+                  return months;
+                })();
+
+                const monthsWithSpend = trendsMonths.filter(m => m.spend > 0);
+                const avgSpend = monthsWithSpend.length > 0 ? monthsWithSpend.reduce((s, m) => s + m.spend, 0) / monthsWithSpend.length : 0;
+                const bestMonth = [...monthsWithSpend].sort((a, b) => a.spend - b.spend)[0];
+                const worstMonth = [...monthsWithSpend].sort((a, b) => b.spend - a.spend)[0];
+                const selectedData = selectedTrendsMonth ? trendsMonths.find(m => m.key === selectedTrendsMonth) : null;
+
                 return (
                   <div className="fu">
-
-                    {/* Month nav — dashboard style */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-                      <button className="month-btn" onClick={prevMonth}>← {MONTH_NAMES[prevRevMonth].slice(0, 3)}</button>
-                      <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: C.textHi, letterSpacing: -0.3 }}>{MONTH_NAMES[revMonth]} {revYear}</div>
-                        <div style={{ fontSize: 10, color: C.textLo, marginTop: 2 }}>{isFinal ? `Final · ${revDays} days` : `Day ${revToday} of ${revDays} · ${Math.round(progress * 100)}% through month`}</div>
-                      </div>
-                      <button className="month-btn" onClick={nextMonth}>{MONTH_NAMES[viewMonth === 11 ? 0 : viewMonth + 1].slice(0, 3)} →</button>
-                    </div>
 
                     {/* 1. Copper Score */}
                     <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12, border: `1px solid ${scoreColor(copperScore)}30`, background: `${scoreColor(copperScore)}06` }}>
@@ -3125,7 +2919,239 @@ const filteredEntries = useMemo(() => {
                       </div>
                     </div>
 
-                    {/* 2. Budget Health — this month */}
+                    {/* 2. 12-month chart with avg + best/worst callouts */}
+                    <div className="card" style={{ padding: isDesktop ? "20px 24px" : "16px 14px", marginBottom: 12, overflowX: "auto" }}>
+                      <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 4 }}>MONTHLY SPEND · LAST 12 MONTHS</div>
+                      <div style={{ fontSize: 11, color: C.textLo, marginBottom: 14 }}>Tap a bar to see section breakdown</div>
+                      <TrendsChart monthData={trendsMonths} totalBudget={totalBudget} isDesktop={isDesktop} onSelectMonth={setSelectedTrendsMonth} selectedMonth={selectedTrendsMonth} avgSpend={avgSpend} bestMonthKey={bestMonth?.key} worstMonthKey={worstMonth?.key} />
+                    </div>
+
+                    {/* Section drill-down */}
+                    {selectedData && (
+                      <div className="card" style={{ padding: isDesktop ? "20px 24px" : "16px 14px", marginBottom: 12, borderLeft: `3px solid ${C.accent}` }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                          <div style={{ fontSize: 10, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5 }}>{MONTH_NAMES[parseInt(selectedData.key.slice(5, 7)) - 1].toUpperCase()} {selectedData.key.slice(0, 4)}</div>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: selectedData.spend > totalBudget + 2 ? "#f85149" : "#3fb950", fontFamily: "'DM Mono',monospace" }}>{fmt(selectedData.spend)}</div>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          {sections.filter(sec => (selectedData.bySection[sec.name] || 0) > 0).sort((a, b) => (selectedData.bySection[b.name] || 0) - (selectedData.bySection[a.name] || 0)).map(sec => {
+                            const spent = selectedData.bySection[sec.name] || 0;
+                            const pct = selectedData.spend > 0 ? spent / selectedData.spend : 0;
+                            return (
+                              <div key={sec.name}>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                  <span style={{ fontSize: 12, color: C.textMid }}>{sec.name}</span>
+                                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                    <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{Math.round(pct * 100)}%</span>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
+                                  </div>
+                                </div>
+                                <div style={{ background: C.borderMid, borderRadius: 999, height: 3, overflow: "hidden" }}>
+                                  <div style={{ width: `${Math.min(pct * 100, 100)}%`, height: "100%", background: C.accent, borderRadius: 999 }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {memberNames.length > 1 && (
+                            <div style={{ display: "flex", gap: 16, marginTop: 8, paddingTop: 10, borderTop: `1px solid ${C.borderMid}` }}>
+                              {memberNames.map(m => (
+                                <div key={m} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: memberColors[m], flexShrink: 0 }} />
+                                  <span style={{ fontSize: 11, color: C.textMid }}>{m}</span>
+                                  <span style={{ fontSize: 11, fontWeight: 700, color: memberColors[m], fontFamily: "'DM Mono',monospace" }}>{fmt(selectedData.byMem[m] || 0)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. Report Card */}
+                    <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12 }}>
+                      <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 14 }}>REPORT CARD · LAST 6 MONTHS</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                        {last6.map((m, i) => (
+                          <div key={i} style={{ background: `${scoreColor(m.score)}0e`, border: `1px solid ${scoreColor(m.score)}${m.isCurrent ? "60" : "30"}`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+                            <div style={{ fontSize: 9, color: m.isCurrent ? C.accent : C.textLo, fontFamily: "'DM Mono',monospace", marginBottom: 4, fontWeight: m.isCurrent ? 700 : 400 }}>{m.label}{m.isCurrent ? " · now" : ""}</div>
+                            <div style={{ fontSize: 22, fontWeight: 800, color: scoreColor(m.score), fontFamily: "'DM Mono',monospace", lineHeight: 1, marginBottom: 3 }}>{m.score}</div>
+                            <div style={{ fontSize: 9, color: scoreColor(m.score), fontWeight: 600 }}>{scoreLabel(m.score)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+                );
+              })()}
+
+              {/* REVIEW */}
+              {view === "review" && (() => {
+                const revYear = viewYear, revMonth = viewMonth;
+                const prevRevMonth = revMonth === 0 ? 11 : revMonth - 1;
+                const prevRevYear = revMonth === 0 ? revYear - 1 : revYear;
+                const revPrefix = `${revYear}-${String(revMonth + 1).padStart(2, "0")}`;
+                const prevPrefix = `${prevRevYear}-${String(prevRevMonth + 1).padStart(2, "0")}`;
+                const revEntries = allEntries.filter(e => e.date.startsWith(revPrefix));
+                const prevEntries = allEntries.filter(e => e.date.startsWith(prevPrefix));
+                const revDays = getDaysInMonth(revYear, revMonth);
+                const revToday = isCurrentMonth ? now.getDate() : revDays;
+                const revTotal = revEntries.reduce((s, e) => s + e.amount, 0);
+                const prevTotal = prevEntries.reduce((s, e) => s + e.amount, 0);
+                const revBudget = Object.values(budgets).reduce((s, v) => s + v, 0);
+                const revDiff = revBudget - revTotal;
+                const momDelta = prevTotal > 0 ? revTotal - prevTotal : null;
+                const isFinal = !isCurrentMonth && !isFutureMonth;
+                const progress = revToday / revDays;
+
+                // ── Summary paragraph ────────────────────────────────────────
+                const revByCat = {};
+                categories.forEach(c => { revByCat[c] = 0; });
+                revEntries.forEach(e => { if (revByCat[e.category] !== undefined) revByCat[e.category] += e.amount; });
+                const alertableCats = categories.filter(c => (catTypes[c] || "expense") === "expense");
+                const catsWithSpend = alertableCats.filter(c => revByCat[c] > 0 || budgets[c] > 0);
+                const catPct = c => budgets[c] > 0 ? revByCat[c] / budgets[c] : 0;
+                const worst = [...catsWithSpend].sort((a, b) => catPct(b) - catPct(a)).slice(0, 3);
+                const buildSummary = () => {
+                  const sentences = [];
+                  const monthName = MONTH_NAMES[revMonth];
+                  const prevMonthName = MONTH_NAMES[prevRevMonth];
+                  const underPct = revBudget > 0 ? revDiff / revBudget : 0;
+                  if (isFinal) {
+                    if (revDiff < -2) sentences.push(`${monthName} was a tough month — you came in ${fmt(Math.abs(revDiff))} over budget.`);
+                    else if (underPct > 0.2) sentences.push(`${monthName} was a strong month — you finished ${fmt(revDiff)} under budget, one of your better margins.`);
+                    else if (underPct > 0.1) sentences.push(`${monthName} was a solid month — you came in ${fmt(revDiff)} under budget.`);
+                    else sentences.push(`${monthName} was a close one — you finished just ${fmt(revDiff)} under budget.`);
+                  } else {
+                    const spendPct = revBudget > 0 ? revTotal / revBudget : 0;
+                    if (spendPct > progress + 0.1) sentences.push(`You're ${Math.round(progress * 100)}% through ${monthName} and spend is running ahead of pace — ${fmt(revTotal)} logged so far against a ${fmt(revBudget)} budget.`);
+                    else sentences.push(`You're ${Math.round(progress * 100)}% through ${monthName} with ${fmt(revTotal)} logged — tracking ${fmt(revDiff)} under budget so far.`);
+                  }
+                  if (momDelta !== null && prevTotal > 0) {
+                    const absDelta = Math.abs(momDelta);
+                    if (momDelta < -10) sentences.push(`That's ${fmt(absDelta)} less than ${prevMonthName}, which is encouraging.`);
+                    else if (momDelta > 10) sentences.push(`That's ${fmt(absDelta)} more than ${prevMonthName}.`);
+                    else sentences.push(`Spend is running at a similar level to ${prevMonthName}.`);
+                  }
+                  if (worst.length > 0) {
+                    const c = worst[0]; const spent = revByCat[c] || 0; const budget = budgets[c] || 0; const pct = budget > 0 ? spent / budget : 0;
+                    if (spent > budget + 2) sentences.push(`${c} was your biggest pressure point, coming in at ${fmt(spent)} against a ${fmt(budget)} budget.`);
+                    else if (pct > 0.85) sentences.push(`${c} ran close to its limit at ${Math.round(pct * 100)}% of budget.`);
+                  }
+                  if (!isFinal && projection) {
+                    if (projection.projectedOver) sentences.push(`At current pace you're on track to finish around ${fmt(projection.projectedSpend)} — worth keeping an eye on.`);
+                    else sentences.push(`At current pace you'll finish the month around ${fmt(projection.projectedSpend)}, well within budget.`);
+                  }
+                  return sentences.join(" ");
+                };
+                const summaryText = buildSummary();
+
+                // ── Budget Health 50/30/20 ───────────────────────────────────
+                function calcMonthlyScore({ needsPct, wantsPct, savingsPct, overBudget, overPct }) {
+                  let score = 100;
+                  score -= Math.min(30, Math.max(0, wantsPct - 30) * 2.2);
+                  score -= Math.min(25, Math.abs(needsPct - 50) * 1.4);
+                  score -= Math.min(20, Math.max(0, 20 - savingsPct) * 1.8);
+                  score += Math.min(8, Math.max(0, savingsPct - 20) * 0.6);
+                  if (overBudget) score -= Math.min(15, overPct * 0.8);
+                  return Math.max(0, Math.min(100, Math.round(score)));
+                }
+                function scoreColor(s) { return s >= 91 ? "#22d3ee" : s >= 80 ? "#3fb950" : s >= 70 ? "#c17f3e" : s >= 60 ? "#eab308" : s >= 50 ? "#f97316" : "#f85149"; }
+                function scoreLabel(s) { return s >= 91 ? "Exceptional" : s >= 80 ? "Strong" : s >= 70 ? "Consistent" : s >= 60 ? "Doing OK" : s >= 50 ? "Needs Work" : "Off Track"; }
+
+                const needsSpend = revEntries.reduce((s, e) => getClassification(e) === "need" ? s + e.amount : s, 0);
+                const savingsSpend = revEntries.reduce((s, e) => getClassification(e) === "saving" ? s + e.amount : s, 0);
+                const wantsSpend = Math.max(0, revTotal - needsSpend - savingsSpend);
+                const curNeedsPct = revTotal > 0 ? Math.round((needsSpend / revTotal) * 100) : 50;
+                const curWantsPct = revTotal > 0 ? Math.round((wantsSpend / revTotal) * 100) : 30;
+                const curSavingsPct = Math.max(0, 100 - curNeedsPct - curWantsPct);
+                const curOverBudget = revTotal > revBudget + 2;
+                const curOverPct = curOverBudget && revBudget > 0 ? ((revTotal - revBudget) / revBudget) * 100 : 0;
+                const currentMonthScore = calcMonthlyScore({ needsPct: curNeedsPct, wantsPct: curWantsPct, savingsPct: curSavingsPct, overBudget: curOverBudget, overPct: curOverPct });
+
+                // ── Spending pacing chart data ────────────────────────────────
+                const pacingDays = isFinal ? revDays : revToday;
+                const thisMonthCumulative = (() => {
+                  const pts = [0];
+                  for (let d = 1; d <= pacingDays; d++) {
+                    const dayKey = `${revYear}-${String(revMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                    const daySpend = revEntries.filter(e => e.date === dayKey).reduce((s, e) => s + e.amount, 0);
+                    pts.push(pts[pts.length - 1] + daySpend);
+                  }
+                  return pts;
+                })();
+                const lastMonthCumulative = (() => {
+                  const pts = [0];
+                  for (let d = 1; d <= revDays; d++) {
+                    const dayKey = `${prevRevYear}-${String(prevRevMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                    const daySpend = prevEntries.filter(e => e.date === dayKey).reduce((s, e) => s + e.amount, 0);
+                    pts.push(pts[pts.length - 1] + daySpend);
+                  }
+                  return pts;
+                })();
+
+                const pacingAllVals = [...thisMonthCumulative, ...lastMonthCumulative];
+                const pacingMax = Math.max(...pacingAllVals, revBudget, 1);
+                const pacingNiceMax = Math.ceil(pacingMax / 500) * 500;
+                const PW = isDesktop ? 640 : 320, PH = 180;
+                const PP = { left: 44, right: 16, top: 10, bottom: 24 };
+                const PCW = PW - PP.left - PP.right, PCH = PH - PP.top - PP.bottom;
+                const pxp = d => PP.left + (d / revDays) * PCW;
+                const pyp = v => PP.top + PCH - (v / pacingNiceMax) * PCH;
+                const pacingTicks = [0, 0.5, 1].map(t => Math.round(t * pacingNiceMax));
+                const fmtK = v => v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${Math.round(v)}`;
+
+                const thisLinePath = thisMonthCumulative.map((v, i) => `${i === 0 ? "M" : "L"}${pxp(i).toFixed(1)},${pyp(v).toFixed(1)}`).join(" ");
+                const lastLinePath = lastMonthCumulative.map((v, i) => `${i === 0 ? "M" : "L"}${pxp(i).toFixed(1)},${pyp(v).toFixed(1)}`).join(" ");
+                const areaPath = thisMonthCumulative.length > 1 ? `${thisLinePath} L${pxp(pacingDays).toFixed(1)},${pyp(0).toFixed(1)} L${pxp(0).toFixed(1)},${pyp(0).toFixed(1)} Z` : "";
+
+                const pacingActive = reviewChartHover ?? reviewChartTapped;
+                const pacingDiff = thisMonthCumulative[pacingDays] - lastMonthCumulative[pacingDays];
+
+                // ── Last 6 months with score ─────────────────────────────────
+                const last6 = (() => {
+                  const months = [];
+                  for (let i = 5; i >= 0; i--) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    const y = d.getFullYear(), m = d.getMonth();
+                    const key = `${y}-${String(m + 1).padStart(2, "0")}`;
+                    const mEntries = allEntries.filter(e => e.date.startsWith(key));
+                    const mSpend = mEntries.reduce((s, e) => s + e.amount, 0);
+                    const overBudget = mSpend > revBudget + 2;
+                    const overPct = overBudget && revBudget > 0 ? ((mSpend - revBudget) / revBudget) * 100 : 0;
+                    const mNeeds = mEntries.reduce((s, e) => getClassification(e) === "need" ? s + e.amount : s, 0);
+                    const mSavings = mEntries.reduce((s, e) => getClassification(e) === "saving" ? s + e.amount : s, 0);
+                    const mWants = Math.max(0, mSpend - mNeeds - mSavings);
+                    const needsPct = mSpend > 0 ? Math.round((mNeeds / mSpend) * 100) : 50;
+                    const wantsPct = mSpend > 0 ? Math.round((mWants / mSpend) * 100) : 30;
+                    const savingsPct = Math.max(0, 100 - needsPct - wantsPct);
+                    const isCurr = i === 0;
+                    const score = calcMonthlyScore({ needsPct, wantsPct, savingsPct, overBudget, overPct });
+                    months.push({ key, label: MONTH_NAMES[m].slice(0, 3), monthSpend: mSpend, overBudget, score, isCurrent: isCurr });
+                  }
+                  return months;
+                })();
+
+                // ── Want purchases ───────────────────────────────────────────
+                const wantEntries = [...revEntries]
+                  .filter(e => getClassification(e) === "want")
+                  .sort((a, b) => b.amount - a.amount)
+                  .slice(0, 5);
+
+                return (
+                  <div className="fu">
+
+                    {/* Month nav */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+                      <button className="month-btn" onClick={prevMonth}>← {MONTH_NAMES[prevRevMonth].slice(0, 3)}</button>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: C.textHi, letterSpacing: -0.3 }}>{MONTH_NAMES[revMonth]} {revYear}</div>
+                        <div style={{ fontSize: 10, color: C.textLo, marginTop: 2 }}>{isFinal ? "Final" : "In Progress"}</div>
+                      </div>
+                      <button className="month-btn" onClick={nextMonth}>{MONTH_NAMES[viewMonth === 11 ? 0 : viewMonth + 1].slice(0, 3)} →</button>
+                    </div>
+
+                    {/* 1. Budget Health */}
                     <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12 }}>
                       <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 12 }}>BUDGET HEALTH · THIS MONTH</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14 }}>
@@ -3136,11 +3162,7 @@ const filteredEntries = useMemo(() => {
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: scoreColor(currentMonthScore), marginBottom: 4 }}>{scoreLabel(currentMonthScore)}</div>
                           <div style={{ fontSize: 11, color: C.textMid, lineHeight: 1.5 }}>
-                            {curSavingsPct >= 20 && curWantsPct <= 30
-                              ? "Strong split — savings on target, wants in check."
-                              : curWantsPct > 30
-                              ? `Wants are ${curWantsPct - 30}% over target — biggest score drag.`
-                              : `Savings at ${curSavingsPct}% — ${20 - curSavingsPct}% below target.`}
+                            {curSavingsPct >= 20 && curWantsPct <= 30 ? "Strong split — savings on target, wants in check." : curWantsPct > 30 ? `Wants are ${curWantsPct - 30}% over target — biggest score drag.` : `Savings at ${curSavingsPct}% — ${20 - curSavingsPct}% below target.`}
                           </div>
                         </div>
                       </div>
@@ -3162,7 +3184,7 @@ const filteredEntries = useMemo(() => {
                       <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", marginTop: 4 }}>│ = target · savings bonus if above 20%</div>
                     </div>
 
-                    {/* 3. In Progress summary */}
+                    {/* 2. Summary */}
                     {summaryText && (
                       <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12, borderLeft: `3px solid ${C.accent}` }}>
                         <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 10 }}>{isFinal ? "MONTHLY SUMMARY" : "IN PROGRESS"}</div>
@@ -3175,75 +3197,114 @@ const filteredEntries = useMemo(() => {
                       </div>
                     )}
 
-                    {/* 4. Month in Numbers */}
-                    <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12 }}>
-                      <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 14 }}>MONTH IN NUMBERS</div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1px 1fr", marginBottom: 14 }}>
-                        <div>
-                          <div style={{ fontSize: 9, color: C.textLo, letterSpacing: "1.5px", fontFamily: "'DM Mono',monospace", textTransform: "uppercase", marginBottom: 4 }}>spent</div>
-                          <div style={{ fontSize: 22, fontWeight: 800, color: curOverBudget ? "#f85149" : C.textHi, fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1 }}>{fmt(revTotal)}</div>
-                          <div style={{ fontSize: 10, color: C.textLo, marginTop: 3 }}>of {fmt(revBudget)} budget</div>
-                        </div>
-                        <div style={{ background: C.borderMid }} />
-                        <div style={{ paddingLeft: 16 }}>
-                          <div style={{ fontSize: 9, color: C.textLo, letterSpacing: "1.5px", fontFamily: "'DM Mono',monospace", textTransform: "uppercase", marginBottom: 4 }}>vs last month</div>
-                          {momDelta !== null ? (
-                            <>
-                              <div style={{ fontSize: 22, fontWeight: 800, color: momDelta <= 0 ? "#3fb950" : "#f85149", fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1 }}>
-                                {momDelta <= 0 ? "↓" : "↑"}{fmt(Math.abs(momDelta))}
-                              </div>
-                              <div style={{ fontSize: 10, color: C.textLo, marginTop: 3 }}>{momDelta <= 0 ? "less than" : "more than"} {MONTH_NAMES[prevRevMonth].slice(0, 3)}</div>
-                            </>
-                          ) : (
-                            <div style={{ fontSize: 12, color: C.textLo, marginTop: 4 }}>no prior data</div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Biggest Want purchase */}
-                      {biggestWant && (
-                        <>
-                          <div style={{ height: 1, background: C.borderMid, marginBottom: 12 }} />
-                          <div style={{ fontSize: 9, color: C.textLo, letterSpacing: "1.5px", fontFamily: "'DM Mono',monospace", textTransform: "uppercase", marginBottom: 8 }}>biggest want purchase</div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "rgba(244,114,182,0.06)", border: "1px solid rgba(244,114,182,0.2)", borderRadius: 10 }}>
-                            <div style={{ width: 5, height: 5, borderRadius: 1, background: catColors[biggestWant.category] || "#f472b6", flexShrink: 0 }} />
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: C.textHi, marginBottom: 2 }}>{biggestWant.category}</div>
-                              {biggestWant.notes && <div style={{ fontSize: 11, color: C.accent, fontStyle: "italic", marginBottom: 2 }}>"{biggestWant.notes}"</div>}
-                              <div style={{ fontSize: 10, color: C.textLo }}>{biggestWant.date.slice(0, 10)} · {biggestWant.member}</div>
-                            </div>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: "#f472b6", fontFamily: "'DM Mono',monospace" }}>{fmt(biggestWant.amount)}</div>
+                    {/* 3. Spending pacing chart */}
+                    <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 14px", marginBottom: 12 }}>
+                      <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 4 }}>SPENDING PACE</div>
+                      <div style={{ fontSize: 11, color: C.textLo, marginBottom: 12 }}>This month vs. last month — cumulative</div>
+                      <div style={{ display: "flex", gap: 16, marginBottom: 10 }}>
+                        {[{ color: C.accent, label: "This month", dashed: false }, { color: "rgba(255,255,255,0.4)", label: "Last month", dashed: true }].map(l => (
+                          <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: C.textLo }}>
+                            <svg width={24} height={12} style={{ flexShrink: 0 }}>
+                              {l.dashed ? <line x1={0} y1={6} x2={24} y2={6} stroke={l.color} strokeWidth={1.5} strokeDasharray="5,4" /> : <line x1={0} y1={6} x2={24} y2={6} stroke={l.color} strokeWidth={2.5} strokeLinecap="round" />}
+                            </svg>
+                            {l.label}
                           </div>
-                        </>
-                      )}
+                        ))}
+                      </div>
+                      <div style={{ position: "relative", width: "100%", touchAction: "none" }}>
+                        <svg viewBox={`0 0 ${PW} ${PH}`} width="100%" style={{ display: "block", overflow: "visible" }}
+                          onMouseMove={ev => { const rect = ev.currentTarget.getBoundingClientRect(); const scaleX = PW / rect.width; const px = (ev.clientX - rect.left) * scaleX; const d = Math.round((px - PP.left) / PCW * revDays); if (d >= 0 && d <= revDays) setReviewChartHover({ d, x: pxp(d) }); }}
+                          onMouseLeave={() => setReviewChartHover(null)}
+                          onTouchStart={ev => { ev.preventDefault(); const rect = ev.currentTarget.getBoundingClientRect(); const scaleX = PW / rect.width; const px = (ev.touches[0].clientX - rect.left) * scaleX; const d = Math.round((px - PP.left) / PCW * revDays); if (d >= 0 && d <= revDays) setReviewChartTapped(prev => prev?.d === d ? null : { d, x: pxp(d) }); }}
+                        >
+                          <defs>
+                            <linearGradient id="revAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor={C.accent} stopOpacity={0.3} />
+                              <stop offset="100%" stopColor={C.accent} stopOpacity={0.02} />
+                            </linearGradient>
+                            <clipPath id="revClip"><rect x={PP.left} y={0} width={PCW} height={PH} /></clipPath>
+                          </defs>
+                          {pacingTicks.map(t => (
+                            <g key={t}>
+                              <line x1={PP.left} x2={PW - PP.right} y1={pyp(t)} y2={pyp(t)} stroke={C.borderMid} strokeWidth={0.5} />
+                              <text x={PP.left - 4} y={pyp(t) + 4} textAnchor="end" fontSize={9} fill={C.textLo} fontFamily="'DM Mono',monospace">{fmtK(t)}</text>
+                            </g>
+                          ))}
+                          {revBudget > 0 && <line x1={PP.left} x2={PW - PP.right} y1={pyp(revBudget)} y2={pyp(revBudget)} stroke={C.textLo} strokeWidth={1} strokeDasharray="5,3" opacity={0.4} />}
+                          {!isFinal && <line x1={pxp(revToday)} x2={pxp(revToday)} y1={PP.top} y2={PP.top + PCH} stroke={C.accent} strokeWidth={1} strokeDasharray="3,3" opacity={0.4} clipPath="url(#revClip)" />}
+                          {areaPath && <path d={areaPath} fill="url(#revAreaGrad)" clipPath="url(#revClip)" />}
+                          <path d={lastLinePath} fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth={1.5} strokeDasharray="5,4" clipPath="url(#revClip)" />
+                          <path d={thisLinePath} fill="none" stroke={C.accent} strokeWidth={2.5} strokeLinecap="round" clipPath="url(#revClip)" />
+                          {pacingActive && pacingActive.d <= revDays && (() => {
+                            const thisVal = thisMonthCumulative[Math.min(pacingActive.d, thisMonthCumulative.length - 1)];
+                            const lastVal = lastMonthCumulative[Math.min(pacingActive.d, lastMonthCumulative.length - 1)];
+                            const flipLeft = pacingActive.x > PW * 0.65;
+                            const tipW = 120, tipH = lastVal != null ? 54 : 38;
+                            const boxX = flipLeft ? pacingActive.x - tipW - 6 : pacingActive.x + 6;
+                            return (
+                              <g>
+                                <line x1={pacingActive.x} x2={pacingActive.x} y1={PP.top} y2={PP.top + PCH} stroke={C.textLo} strokeWidth={1} strokeDasharray="3,3" opacity={0.4} />
+                                {thisVal != null && <circle cx={pacingActive.x} cy={pyp(thisVal)} r={4} fill={C.accent} stroke={C.bgCard} strokeWidth={2} />}
+                                {lastVal != null && <circle cx={pacingActive.x} cy={pyp(lastVal)} r={4} fill="rgba(255,255,255,0.5)" stroke={C.bgCard} strokeWidth={2} />}
+                                <rect x={boxX} y={PP.top} width={tipW} height={tipH} rx={5} fill={C.bg} stroke={C.border} strokeWidth={0.5} />
+                                <text x={boxX + tipW / 2} y={PP.top + 14} textAnchor="middle" fontSize={9} fill={C.textLo} fontFamily="'DM Mono',monospace">Day {pacingActive.d}</text>
+                                {thisVal != null && <text x={boxX + tipW / 2} y={PP.top + 28} textAnchor="middle" fontSize={10} fill={C.accent} fontFamily="'DM Mono',monospace">This: {fmtK(thisVal)}</text>}
+                                {lastVal != null && <text x={boxX + tipW / 2} y={PP.top + 42} textAnchor="middle" fontSize={10} fill="rgba(255,255,255,0.5)" fontFamily="'DM Mono',monospace">Last: {fmtK(lastVal)}</text>}
+                              </g>
+                            );
+                          })()}
+                        </svg>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 12 }}>
+                        {[
+                          { label: "This month", value: fmtK(thisMonthCumulative[pacingDays] || 0), color: C.accent },
+                          { label: "Last month", value: fmtK(lastMonthCumulative[revDays] || 0), color: C.textMid },
+                          { label: "vs same point", value: (pacingDiff >= 0 ? "+" : "") + fmtK(pacingDiff), color: pacingDiff <= 0 ? "#3fb950" : "#f85149" },
+                        ].map(s => (
+                          <div key={s.label} style={{ background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 10px" }}>
+                            <div style={{ fontSize: 10, color: C.textLo, marginBottom: 3 }}>{s.label}</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: s.color, fontFamily: "'DM Mono',monospace" }}>{s.value}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
-                    {/* 5. Last 6 months with scores */}
+                    {/* 4. Last 6 months */}
                     <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12 }}>
                       <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 14 }}>LAST 6 MONTHS</div>
                       <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 56, marginBottom: 10 }}>
-                        {last6WithScores.map((m, i) => {
-                          const maxSpend = Math.max(...last6WithScores.map(x => x.monthSpend), revBudget, 1);
+                        {last6.map((m, i) => {
+                          const maxSpend = Math.max(...last6.map(x => x.monthSpend), revBudget, 1);
                           const h = Math.max((m.monthSpend / maxSpend) * 100, 2);
                           const barColor = m.isCurrent ? C.accent : m.overBudget ? "#f85149" : "rgba(255,255,255,0.15)";
+                          const isSelected = selectedReviewMonth === m.key;
                           return (
-                            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, height: "100%", justifyContent: "flex-end" }}>
-                              <div style={{ width: "100%", borderRadius: "3px 3px 0 0", height: `${h}%`, background: barColor, transition: "height 0.5s" }} />
+                            <div key={i} onClick={() => setSelectedReviewMonth(isSelected ? null : m.key)}
+                              style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, height: "100%", justifyContent: "flex-end", cursor: "pointer" }}>
+                              <div style={{ width: "100%", borderRadius: "3px 3px 0 0", height: `${h}%`, background: barColor, opacity: isSelected ? 1 : 0.8, outline: isSelected ? `2px solid ${C.accent}` : "none", transition: "all 0.2s" }} />
                               <span style={{ fontSize: 8, color: m.isCurrent ? C.accent : C.textLo, fontFamily: "'DM Mono',monospace" }}>{m.label}</span>
                             </div>
                           );
                         })}
                       </div>
-                      {/* Score row */}
-                      <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
-                        {last6WithScores.map((m, i) => (
-                          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                            <div style={{ fontSize: 10, fontWeight: 800, color: scoreColor(m.score), fontFamily: "'DM Mono',monospace" }}>{m.score}</div>
-                            <div style={{ width: "100%", height: 3, borderRadius: 99, background: scoreColor(m.score), opacity: 0.5 }} />
+                      {selectedReviewMonth && (() => {
+                        const sel = last6.find(m => m.key === selectedReviewMonth);
+                        if (!sel) return null;
+                        return (
+                          <div style={{ padding: "12px 14px", background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 10, marginTop: 4 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                              <span style={{ fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{MONTH_NAMES[parseInt(sel.key.slice(5, 7)) - 1]} {sel.key.slice(0, 4)}</span>
+                              <span style={{ fontSize: 15, fontWeight: 800, color: sel.overBudget ? "#f85149" : "#3fb950", fontFamily: "'DM Mono',monospace" }}>{fmt(sel.monthSpend)}</span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <span style={{ fontSize: 10, color: C.textLo }}>Score</span>
+                              <span style={{ fontSize: 13, fontWeight: 800, color: scoreColor(sel.score), fontFamily: "'DM Mono',monospace" }}>{sel.score}</span>
+                              <span style={{ fontSize: 10, color: scoreColor(sel.score) }}>{scoreLabel(sel.score)}</span>
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                      <div style={{ display: "flex", gap: 14 }}>
+                        );
+                      })()}
+                      <div style={{ display: "flex", gap: 14, marginTop: 10 }}>
                         {[{ color: C.accent, label: "current" }, { color: "#f85149", label: "over budget" }, { color: "rgba(255,255,255,0.15)", label: "past" }].map(l => (
                           <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                             <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} />
@@ -3253,21 +3314,7 @@ const filteredEntries = useMemo(() => {
                       </div>
                     </div>
 
-                    {/* 6. Report Card */}
-                    <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12 }}>
-                      <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 14 }}>REPORT CARD · LAST 6 MONTHS</div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-                        {last6WithScores.map((m, i) => (
-                          <div key={i} style={{ background: `${scoreColor(m.score)}0e`, border: `1px solid ${scoreColor(m.score)}${m.isCurrent ? "60" : "30"}`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
-                            <div style={{ fontSize: 9, color: m.isCurrent ? C.accent : C.textLo, fontFamily: "'DM Mono',monospace", marginBottom: 4, fontWeight: m.isCurrent ? 700 : 400 }}>{m.label}{m.isCurrent ? " · now" : ""}</div>
-                            <div style={{ fontSize: 22, fontWeight: 800, color: scoreColor(m.score), fontFamily: "'DM Mono',monospace", lineHeight: 1, marginBottom: 3 }}>{m.score}</div>
-                            <div style={{ fontSize: 9, color: scoreColor(m.score), fontWeight: 600 }}>{scoreLabel(m.score)}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* 7. Top Want Purchases */}
+                    {/* 5. Top Want Purchases */}
                     {wantEntries.length > 0 && (
                       <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12 }}>
                         <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 14 }}>TOP WANT PURCHASES</div>
@@ -3287,44 +3334,10 @@ const filteredEntries = useMemo(() => {
                       </div>
                     )}
 
-                    {/* 8. Entries by Category */}
-                    <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12 }}>
-                      <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 12 }}>ENTRIES BY CATEGORY</div>
-                      <select
-                        value={selectedRevCat}
-                        onChange={e => setSelectedRevCat(e.target.value)}
-                        style={{ width: "100%", background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", color: C.textHi, fontFamily: "'Sora',sans-serif", fontSize: 13, outline: "none", marginBottom: 14, appearance: "none" }}
-                      >
-                        {categories.map(c => <option key={c} value={c} style={{ background: theme === "dark" ? "#1c1c1f" : "#f0ece6" }}>{c}</option>)}
-                      </select>
-
-                      {revCatEntries.length === 0 ? (
-                        <div style={{ fontSize: 12, color: C.textLo, textAlign: "center", padding: "16px 0" }}>No entries for {selectedRevCat} this month.</div>
-                      ) : (
-                        <>
-                          {revCatEntries.map((e, i) => (
-                            <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < revCatEntries.length - 1 ? `1px solid ${C.borderMid}` : "none" }}>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: e.notes ? 3 : 0 }}>
-                                  <span style={{ fontSize: 11, color: C.textMid, fontFamily: "'DM Mono',monospace" }}>{e.date.slice(0, 10)} · {e.member}</span>
-                                  <span style={{ fontSize: 13, fontWeight: 800, color: catColors[e.category] || C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmtD(e.amount)}</span>
-                                </div>
-                                {e.notes && <div style={{ fontSize: 11, color: C.accent, fontStyle: "italic" }}>"{e.notes}"</div>}
-                              </div>
-                            </div>
-                          ))}
-                          <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.borderMid}`, display: "flex", justifyContent: "space-between" }}>
-                            <span style={{ fontSize: 11, color: C.textLo }}>{revCatEntries.length} {revCatEntries.length === 1 ? "entry" : "entries"}</span>
-                            <span style={{ fontSize: 13, fontWeight: 800, color: catColors[selectedRevCat] || C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmtD(revCatTotal)}</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
                   </div>
                 );
               })()}
-
+              
             </>
           )}
         </div>
