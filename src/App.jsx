@@ -443,6 +443,11 @@ export default function App() {
   const [nwOpen, setNwOpen] = useState(false);
   const [whatIfOpen, setWhatIfOpen] = useState({});
   const [selectedTrendsMonth, setSelectedTrendsMonth] = useState(null);
+  const [catClassifications, setCatClassifications] = useState({});
+  const getClassification = useCallback((entry) => {
+  if (entry.classification && ["need","want","saving"].includes(entry.classification)) return entry.classification;
+  return catClassifications[entry.category] || "want";
+}, [catClassifications]);
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -508,10 +513,11 @@ export default function App() {
     setLoading(true); setError(null);
     try {
       const data = await api({ action: "getAll" });
-      const entries = (data.entries || []).filter(r => r[0]).map(r => ({ id: String(r[0]), date: String(r[1]), member: String(r[2]), category: String(r[3]), amount: parseFloat(r[4]), notes: String(r[5] || ''), payment_method: String(r[6] || '') }));
+      const entries = (data.entries || []).filter(r => r[0]).map(r => ({ id: String(r[0]), date: String(r[1]), member: String(r[2]), category: String(r[3]), amount: parseFloat(r[4]), notes: String(r[5] || ''), payment_method: String(r[6] || ''), classification: String(r[7] || '') }));
       const paymentMethods = (data.paymentMethods || []).map(r => ({ name: String(r[0]), network: String(r[1]), removable: String(r[0]) !== "Debit" && String(r[0]) !== "Cash" }));
       const bm = {}, cm = {}, tm = {};
-      (data.budgets || []).forEach(r => { if (r[0]) { bm[String(r[0])] = parseFloat(r[1]); cm[String(r[0])] = String(r[2]); const rawType = String(r[3] || ""); tm[String(r[0])] = ["expense","fixed","investment"].includes(rawType) ? rawType : "expense"; } });
+      const clm = {};
+      (data.budgets || []).forEach(r => { if (r[0]) { bm[String(r[0])] = parseFloat(r[1]); cm[String(r[0])] = String(r[2]); const rawType = String(r[3] || ""); tm[String(r[0])] = ["expense","fixed","investment"].includes(rawType) ? rawType : "expense"; const rawCl = String(r[4] || ""); clm[String(r[0])] = ["need","want","saving"].includes(rawCl) ? rawCl : (rawType === "fixed" ? "need" : rawType === "investment" ? "saving" : "want"); } });
       const parseMonthStr = v => {
         if (!v) return '';
         const s = String(v).trim();
@@ -529,7 +535,7 @@ export default function App() {
       const secs = (data.sections || []).filter(r => r[0] && r[1]).map(r => ({ section: String(r[0]), category: String(r[1]), order: parseInt(r[2]) || 0 }));
       const mems = (data.members || []).filter(r => r[0]).map(r => ({ name: String(r[0]), color: String(r[1] || MEMBER_COLOR_PALETTE[0]), role: String(r[2] || "contributor") }));
       const nw = (data.netWorth || []).filter(r => r[0]).map(r => ({ date: String(r[0]).slice(0, 10), total: parseFloat(r[1]) || 0, breakdown: (() => { try { return JSON.parse(String(r[2] || '[]')); } catch { return []; } })() })).sort((a, b) => a.date.localeCompare(b.date));
-      setAllEntries(entries); setBudgets(bm); setCatColors(cm); setCatTypes(tm); setLongTerm(lt); setRawSections(secs); setNetWorth(nw); setPaymentMethods(paymentMethods);
+      setAllEntries(entries); setBudgets(bm); setCatColors(cm); setCatTypes(tm); setCatClassifications(clm); setLongTerm(lt); setRawSections(secs); setNetWorth(nw); setPaymentMethods(paymentMethods);
       if (mems.length > 0) setMembers(mems);
       setNextId(entries.reduce((m, e) => Math.max(m, parseInt(e.id) || 0), 0) + 1);
     } catch (err) { setError(err.message); }
@@ -701,13 +707,13 @@ const filteredEntries = useMemo(() => {
 
   async function handleAddSubmit() {
     if (!form.member || !form.category || !form.amount || isNaN(+form.amount) || +form.amount <= 0) { showToast("Please fill all fields.", false); return; }
-    const entry = { id: String(nextId), member: form.member, category: form.category, amount: parseFloat((+form.amount).toFixed(2)), date: new Date().toISOString().split("T")[0], notes: form.notes || '', payment_method: form.payment_method || '' };
+    const entry = { id: String(nextId), member: form.member, category: form.category, amount: parseFloat((+form.amount).toFixed(2)), date: new Date().toISOString().split("T")[0], notes: form.notes || '', payment_method: form.payment_method || '', classification: form.classification || catClassifications[form.category] || 'want' };
     setSyncing(true);
-    try { await api({ action: "addEntry", ...entry }); setAllEntries(prev => [entry, ...prev]); setNextId(n => n + 1); setForm({ member: "", category: "", amount: "", notes: "", payment_method: "" }); showToast(`${fmtD(entry.amount)} logged.`); setAddOpen(false); }
+    try { await api({ action: "addEntry", ...entry }); setAllEntries(prev => [entry, ...prev]); setNextId(n => n + 1); setForm({ member: "", category: "", amount: "", notes: "", payment_method: "", classification: "" }); showToast(`${fmtD(entry.amount)} logged.`); setAddOpen(false); }
     catch { showToast("Failed to save.", false); } finally { setSyncing(false); }
   }
 
-  function openEditEntry(e) { setEditEntry(e); setEditForm({ member: e.member, category: e.category, amount: String(e.amount), date: e.date, notes: e.notes || '', payment_method: e.payment_method || '' }); }
+  function openEditEntry(e) { setEditEntry(e); setEditForm({ member: e.member, category: e.category, amount: String(e.amount), date: e.date, notes: e.notes || '', payment_method: e.payment_method || '', classification: e.classification || catClassifications[e.category] || 'want' }); }
   async function saveEditEntry() {
     if (!editForm.member || !editForm.category || !editForm.amount || isNaN(+editForm.amount) || +editForm.amount <= 0) { showToast("Please fill all fields.", false); return; }
     const updated = { ...editEntry, ...editForm, amount: parseFloat((+editForm.amount).toFixed(2)) };
@@ -728,31 +734,31 @@ const filteredEntries = useMemo(() => {
     try { await api({ action: "saveSections", sections: JSON.stringify(secs) }); }
     catch { showToast("Section sync failed.", false); }
   }
-  async function saveBudgetsToSheet(nb, nc, nt) {
-    try { await api({ action: "saveBudgets", budgets: JSON.stringify(Object.keys(nb).map(c => ({ category: c, budget: nb[c], color: nc[c] || PALETTE[0], type: nt[c] || "expense" }))) }); }
+  async function saveBudgetsToSheet(nb, nc, nt, ncl) {
+    try { await api({ action: "saveBudgets", budgets: JSON.stringify(Object.keys(nb).map(c => ({ category: c, budget: nb[c], color: nc[c] || PALETTE[0], type: nt[c] || "expense", classification: ncl[c] || "want" }))) }); }
     catch { showToast("Budget sync failed.", false); }
   }
-  function openNewCat() { setCatForm({ name: "", budget: "", color: PALETTE.find(p => !Object.values(catColors).includes(p)) || PALETTE[0], type: "expense", section: sectionNames[0] || "", newSection: "" }); setEditCat("new"); }
-  function openEditCat(name) { setCatForm({ name, budget: String(budgets[name]), color: catColors[name], type: catTypes[name] || "expense", section: catSection[name] || "", newSection: "" }); setEditCat(name); }
+  function openNewCat() { setCatForm({ name: "", budget: "", color: PALETTE.find(p => !Object.values(catColors).includes(p)) || PALETTE[0], type: "expense", classification: "want", section: sectionNames[0] || "", newSection: "" }); setEditCat("new"); }
+  function openEditCat(name) { setCatForm({ name, budget: String(budgets[name]), color: catColors[name], type: catTypes[name] || "expense", classification: catClassifications[name] || "want", section: catSection[name] || "", newSection: "" }); setEditCat(name); }
   async function saveCat() {
     const name = catForm.name.trim();
     if (!name || !catForm.budget || isNaN(+catForm.budget) || +catForm.budget <= 0) { showToast("Fill name and budget.", false); return; }
     let nb = { ...budgets }, nc = { ...catColors }, nt = { ...catTypes };
-    if (editCat === "new") { if (budgets[name]) { showToast("Already exists.", false); return; } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; nt[name] = catForm.type; }
-    else { if (name !== editCat && budgets[name]) { showToast("Name taken.", false); return; } if (name !== editCat) { nb[name] = nb[editCat]; delete nb[editCat]; nc[name] = nc[editCat]; delete nc[editCat]; nt[name] = nt[editCat]; delete nt[editCat]; setAllEntries(prev => prev.map(e => e.category === editCat ? { ...e, category: name } : e)); } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; nt[name] = catForm.type; }
+    if (editCat === "new") { if (budgets[name]) { showToast("Already exists.", false); return; } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; nt[name] = catForm.type; } clm[name] = catForm.classification;
+    else { if (name !== editCat && budgets[name]) { showToast("Name taken.", false); return; } if (name !== editCat) { nb[name] = nb[editCat]; delete nb[editCat]; nc[name] = nc[editCat]; delete nc[editCat]; nt[name] = nt[editCat]; delete nt[editCat]; setAllEntries(prev => prev.map(e => e.category === editCat ? { ...e, category: name } : e)); } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; nt[name] = catForm.type; } clm[name] = catForm.classification;
     const resolvedSection = catForm.section === "__new__" ? catForm.newSection.trim() : catForm.section;
     let newRawSections = rawSections.filter(r => r.category !== name && r.category !== editCat);
     if (resolvedSection) { const maxOrder = newRawSections.reduce((m, r) => Math.max(m, r.order), 0); newRawSections.push({ section: resolvedSection, category: name, order: maxOrder + 1 }); }
     setRawSections(newRawSections);
     setBudgets(nb); setCatColors(nc); setCatTypes(nt); setEditCat(null); showToast(editCat === "new" ? `"${name}" added.` : "Updated.");
-    await saveBudgetsToSheet(nb, nc, nt);
+    await saveBudgetsToSheet(nb, nc, nt, clm);
     await saveSectionsToSheet(newRawSections);
   }
   async function deleteCat(catName) {
     if (categories.length <= 1) { showToast("Can't delete the last category.", false); return; }
     const nb = { ...budgets }; delete nb[catName]; const nc = { ...catColors }; delete nc[catName]; const nt = { ...catTypes }; delete nt[catName];
     setBudgets(nb); setCatColors(nc); setCatTypes(nt); setAllEntries(prev => prev.filter(e => e.category !== catName)); setEditCat(null); showToast(`"${catName}" deleted.`);
-    await saveBudgetsToSheet(nb, nc, nt);
+    await saveBudgetsToSheet(nb, nc, nt, catClassifications);
   }
   async function saveMembersToSheet(mems) {
     try { await api({ action: "saveMembers", members: JSON.stringify(mems.map(m => ({ name: m.name, color: m.color, role: m.role }))) }); }
@@ -1266,6 +1272,21 @@ const filteredEntries = useMemo(() => {
     ))}
   </select>
 </div>
+              <div>
+  <FL>Classification</FL>
+  <div style={{ display: "flex", gap: 8 }}>
+    {[
+      { value: "need", label: "Need", color: "#60a5fa" },
+      { value: "want", label: "Want", color: "#f472b6" },
+      { value: "saving", label: "Saving", color: "#3fb950" },
+    ].map(opt => (
+      <button key={opt.value} onClick={() => setEditForm(f => ({ ...f, classification: opt.value }))}
+        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: `1px solid ${(editForm.classification || catClassifications[editForm.category] || "want") === opt.value ? opt.color : C.border}`, background: (editForm.classification || catClassifications[editForm.category] || "want") === opt.value ? opt.color + "18" : "transparent", color: (editForm.classification || catClassifications[editForm.category] || "want") === opt.value ? opt.color : C.textLo, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>
+        {opt.label}
+      </button>
+    ))}
+  </div>
+</div>
               <div><FL>Notes</FL><textarea className="inp" value={editForm.notes || ''} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} rows={2} style={{ resize: "none", lineHeight: 1.5 }} /></div>
               <div style={{ display: "flex", gap: 10, marginTop: 4 }}><button className="cta" onClick={saveEditEntry} disabled={syncing} style={{ flex: 1 }}>Save</button><button className="del-btn" onClick={() => deleteEntry(editEntry.id)}>Delete</button></div>
             </div>
@@ -1298,6 +1319,21 @@ const filteredEntries = useMemo(() => {
                   ))}
                 </div>
               </div>
+             <div>
+  <FL>Classification</FL>
+  <div style={{ display: "flex", gap: 8 }}>
+    {[
+      { value: "need", label: "Need", color: "#60a5fa" },
+      { value: "want", label: "Want", color: "#f472b6" },
+      { value: "saving", label: "Saving", color: "#3fb950" },
+    ].map(opt => (
+      <button key={opt.value} onClick={() => setCatForm(f => ({ ...f, classification: opt.value }))}
+        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: `1px solid ${catForm.classification === opt.value ? opt.color : C.border}`, background: catForm.classification === opt.value ? opt.color + "18" : "transparent", color: catForm.classification === opt.value ? opt.color : C.textLo, fontSize: 12, fontWeight: catForm.classification === opt.value ? 700 : 400, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>
+        {opt.label}
+      </button>
+    ))}
+  </div>
+</div>
               <div><FL>Color</FL><div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>{PALETTE.map(p => (<div key={p} className="swatch" style={{ background: p, borderColor: catForm.color === p ? "#fff" : "transparent", boxShadow: catForm.color === p ? "0 0 0 1px #fff" : "none" }} onClick={() => setCatForm(f => ({ ...f, color: p }))} />))}</div></div>
               <div>
                 <FL>Section</FL>
@@ -2144,6 +2180,25 @@ const filteredEntries = useMemo(() => {
     </div>
   </div>
 
+  {/* Classification */}
+{form.category && (
+  <div>
+    <FL>Type</FL>
+    <div style={{ display: "flex", gap: 8 }}>
+      {[
+        { value: "need", label: "Need", color: "#60a5fa" },
+        { value: "want", label: "Want", color: "#f472b6" },
+        { value: "saving", label: "Saving", color: "#3fb950" },
+      ].map(opt => (
+        <button key={opt.value} onClick={() => setForm(f => ({ ...f, classification: opt.value }))}
+          style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: `1px solid ${(form.classification || catClassifications[form.category] || "want") === opt.value ? opt.color : C.border}`, background: (form.classification || catClassifications[form.category] || "want") === opt.value ? opt.color + "18" : "transparent", color: (form.classification || catClassifications[form.category] || "want") === opt.value ? opt.color : C.textLo, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  </div>
+)}
+                      
   {/* Amount */}
   <div>
     <FL>Amount</FL>
