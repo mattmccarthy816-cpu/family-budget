@@ -744,8 +744,8 @@ const filteredEntries = useMemo(() => {
     const name = catForm.name.trim();
     if (!name || !catForm.budget || isNaN(+catForm.budget) || +catForm.budget <= 0) { showToast("Fill name and budget.", false); return; }
     let nb = { ...budgets }, nc = { ...catColors }, nt = { ...catTypes };
-    if (editCat === "new") { if (budgets[name]) { showToast("Already exists.", false); return; } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; nt[name] = catForm.type; } clm[name] = catForm.classification;
-    else { if (name !== editCat && budgets[name]) { showToast("Name taken.", false); return; } if (name !== editCat) { nb[name] = nb[editCat]; delete nb[editCat]; nc[name] = nc[editCat]; delete nc[editCat]; nt[name] = nt[editCat]; delete nt[editCat]; setAllEntries(prev => prev.map(e => e.category === editCat ? { ...e, category: name } : e)); } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; nt[name] = catForm.type; } clm[name] = catForm.classification;
+    if (editCat === "new") { if (budgets[name]) { showToast("Already exists.", false); return; } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; nt[name] = catForm.type; clm[name] = catForm.classification; }
+    else { if (name !== editCat && budgets[name]) { showToast("Name taken.", false); return; } if (name !== editCat) { nb[name] = nb[editCat]; delete nb[editCat]; nc[name] = nc[editCat]; delete nc[editCat]; nt[name] = nt[editCat]; delete nt[editCat]; setAllEntries(prev => prev.map(e => e.category === editCat ? { ...e, category: name } : e)); } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; nt[name] = catForm.type; clm[name] = catForm.classification; }
     const resolvedSection = catForm.section === "__new__" ? catForm.newSection.trim() : catForm.section;
     let newRawSections = rawSections.filter(r => r.category !== name && r.category !== editCat);
     if (resolvedSection) { const maxOrder = newRawSections.reduce((m, r) => Math.max(m, r.order), 0); newRawSections.push({ section: resolvedSection, category: name, order: maxOrder + 1 }); }
