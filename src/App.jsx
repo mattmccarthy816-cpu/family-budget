@@ -2851,6 +2851,71 @@ const filteredEntries = useMemo(() => {
 
               {/* REVIEW */}
               {view === "review" && (() => {
+                // ── Scoring helpers ──────────────────────────────────────────
+                function calcMonthlyScore({ needsPct, wantsPct, savingsPct, overBudget, overPct }) {
+                  let score = 100;
+                  const wantsDev = Math.max(0, wantsPct - 30);
+                  score -= Math.min(30, wantsDev * 2.2);
+                  const needsDev = Math.abs(needsPct - 50);
+                  score -= Math.min(25, needsDev * 1.4);
+                  const savingsShortfall = Math.max(0, 20 - savingsPct);
+                  score -= Math.min(20, savingsShortfall * 1.8);
+                  const savingsBonus = Math.max(0, savingsPct - 20);
+                  score += Math.min(8, savingsBonus * 0.6);
+                  if (overBudget) score -= Math.min(15, overPct * 0.8);
+                  return Math.max(0, Math.min(100, Math.round(score)));
+                }
+
+                function calcCopperScore({ monthlyScores, underBudgetCount, savingsTrend, volatility }) {
+                  const n = monthlyScores.length;
+                  if (n === 0) return 0;
+                  const avgScore = monthlyScores.reduce((s, v) => s + v, 0) / n;
+                  const raw = (avgScore * 0.30) + ((underBudgetCount / n) * 100 * 0.40) + (((savingsTrend + 1) / 2) * 100 * 0.20) + ((1 - volatility / 100) * 100 * 0.10);
+                  const final = raw >= 90 ? 90 + (raw - 90) * 0.4 : raw >= 80 ? 80 + (raw - 80) * 0.7 : raw;
+                  return Math.max(0, Math.min(100, Math.round(final)));
+                }
+
+                function scoreColor(s) {
+                  return s >= 91 ? "#22d3ee" : s >= 80 ? "#3fb950" : s >= 70 ? "#c17f3e" : s >= 60 ? "#eab308" : s >= 50 ? "#f97316" : "#f85149";
+                }
+
+                function scoreLabel(s) {
+                  return s >= 91 ? "Exceptional" : s >= 80 ? "Strong" : s >= 70 ? "Consistent" : s >= 60 ? "Doing OK" : s >= 50 ? "Needs Work" : "Off Track";
+                }
+
+                // ── Per-month split calculation ──────────────────────────────
+                function getMonthSplits(monthEntries, monthSpend) {
+                  const needsSpend = monthEntries.reduce((s, e) => (catTypes[e.category] || "expense") === "fixed" ? s + e.amount : s, 0);
+                  const savingsSpend = monthEntries.reduce((s, e) => (catTypes[e.category] || "expense") === "investment" ? s + e.amount : s, 0);
+                  const wantsSpend = Math.max(0, monthSpend - needsSpend - savingsSpend);
+                  const needsPct = monthSpend > 0 ? Math.round((needsSpend / monthSpend) * 100) : 50;
+                  const wantsPct = monthSpend > 0 ? Math.round((wantsSpend / monthSpend) * 100) : 30;
+                  const savingsPct = Math.max(0, 100 - needsPct - wantsPct);
+                  return { needsPct, wantsPct, savingsPct };
+                }
+
+                // ── Build last 6 months ───────────────────────────────────────
+                const revBudget = Object.values(budgets).reduce((s, v) => s + v, 0);
+
+                const last6 = (() => {
+                  const months = [];
+                  for (let i = 5; i >= 0; i--) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    const y = d.getFullYear(), m = d.getMonth();
+                    const key = `${y}-${String(m + 1).padStart(2, "0")}`;
+                    const mEntries = allEntries.filter(e => e.date.startsWith(key));
+                    const mSpend = mEntries.reduce((s, e) => s + e.amount, 0);
+                    const overBudget = mSpend > revBudget + 2;
+                    const overPct = overBudget && revBudget > 0 ? ((mSpend - revBudget) / revBudget) * 100 : 0;
+                    const { needsPct, wantsPct, savingsPct } = getMonthSplits(mEntries, mSpend);
+                    const isCurr = i === 0;
+                    const score = isCurr ? null : calcMonthlyScore({ needsPct, wantsPct, savingsPct, overBudget, overPct });
+                    months.push({ key, label: MONTH_NAMES[m].slice(0, 3), monthSpend: mSpend, overBudget, overPct, needsPct, wantsPct, savingsPct, score, isCurrent: isCurr });
+                  }
+                  return months;
+                })();
+
+                // ── Current month live splits ─────────────────────────────────
                 const revYear = viewYear, revMonth = viewMonth;
                 const prevRevMonth = revMonth === 0 ? 11 : revMonth - 1;
                 const prevRevYear = revMonth === 0 ? revYear - 1 : revYear;
@@ -2862,25 +2927,45 @@ const filteredEntries = useMemo(() => {
                 const revToday = isCurrentMonth ? now.getDate() : revDays;
                 const revTotal = revEntries.reduce((s, e) => s + e.amount, 0);
                 const prevTotal = prevEntries.reduce((s, e) => s + e.amount, 0);
-                const revBudget = Object.values(budgets).reduce((s, v) => s + v, 0);
                 const revDiff = revBudget - revTotal;
                 const momDelta = prevTotal > 0 ? revTotal - prevTotal : null;
+                const isFinal = !isCurrentMonth && !isFutureMonth;
+                const progress = revToday / revDays;
+
                 const revByCat = {}, prevByCat = {};
                 categories.forEach(c => { revByCat[c] = 0; prevByCat[c] = 0; });
                 revEntries.forEach(e => { if (revByCat[e.category] !== undefined) revByCat[e.category] += e.amount; });
                 prevEntries.forEach(e => { if (prevByCat[e.category] !== undefined) prevByCat[e.category] += e.amount; });
+
+                const { needsPct: curNeedsPct, wantsPct: curWantsPct, savingsPct: curSavingsPct } = getMonthSplits(revEntries, revTotal);
+                const curOverBudget = revTotal > revBudget + 2;
+                const curOverPct = curOverBudget && revBudget > 0 ? ((revTotal - revBudget) / revBudget) * 100 : 0;
+                const currentMonthScore = calcMonthlyScore({ needsPct: curNeedsPct, wantsPct: curWantsPct, savingsPct: curSavingsPct, overBudget: curOverBudget, overPct: curOverPct });
+
+                const last6WithScores = last6.map(m => m.isCurrent ? { ...m, score: currentMonthScore } : m);
+
+                // ── Copper Score ──────────────────────────────────────────────
+                const scores = last6WithScores.map(m => m.score);
+                const underBudgetCount = last6WithScores.filter(m => !m.overBudget).length;
+                const recent3 = last6WithScores.slice(3);
+                const prior3 = last6WithScores.slice(0, 3);
+                const recentSavingsAvg = recent3.reduce((s, m) => s + m.savingsPct, 0) / 3;
+                const priorSavingsAvg = prior3.reduce((s, m) => s + m.savingsPct, 0) / 3;
+                const savingsTrend = Math.max(-1, Math.min(1, (recentSavingsAvg - priorSavingsAvg) / 20));
+                const spendPcts = last6WithScores.map(m => revBudget > 0 ? (m.monthSpend / revBudget) * 100 : 100);
+                const mean = spendPcts.reduce((s, v) => s + v, 0) / spendPcts.length;
+                const variance = spendPcts.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / spendPcts.length;
+                const volatility = Math.min(100, Math.sqrt(variance) * 2);
+                const copperScore = calcCopperScore({ monthlyScores: scores, underBudgetCount, savingsTrend, volatility });
+
+                // ── Summary paragraph ─────────────────────────────────────────
                 const alertableCats = categories.filter(c => (catTypes[c] || "expense") === "expense");
                 const catsWithSpend = alertableCats.filter(c => revByCat[c] > 0 || budgets[c] > 0);
                 const catPct = c => budgets[c] > 0 ? revByCat[c] / budgets[c] : 0;
-                const sorted = [...catsWithSpend].sort((a, b) => catPct(b) - catPct(a));
-                const worst = sorted.slice(0, 3);
-                const best = [...catsWithSpend].filter(c => revByCat[c] > 0).sort((a, b) => catPct(a) - catPct(b)).slice(0, 3);
-                const topEntries = [...revEntries].sort((a, b) => b.amount - a.amount).slice(0, 5);
+                const worst = [...catsWithSpend].sort((a, b) => catPct(b) - catPct(a)).slice(0, 3);
                 const revByMember = {};
                 memberNames.forEach(m => revByMember[m] = 0);
                 revEntries.forEach(e => { if (revByMember[e.member] !== undefined) revByMember[e.member] += e.amount; });
-                const isFinal = !isCurrentMonth && !isFutureMonth;
-                const progress = revToday / revDays;
 
                 const buildSummary = () => {
                   const sentences = [];
@@ -2907,80 +2992,125 @@ const filteredEntries = useMemo(() => {
                     const c = worst[0]; const spent = revByCat[c] || 0; const budget = budgets[c] || 0; const pct = budget > 0 ? spent / budget : 0;
                     if (spent > budget + 2) sentences.push(`${c} was your biggest pressure point, coming in at ${fmt(spent)} against a ${fmt(budget)} budget.`);
                     else if (pct > 0.85) sentences.push(`${c} ran close to its limit at ${Math.round(pct * 100)}% of budget.`);
-                    else if (pct > 0.5) sentences.push(`${c} was your highest usage category at ${Math.round(pct * 100)}% of budget, though still within range.`);
-                  }
-                  if (best.length > 0) { const c = best[0]; const spent = revByCat[c] || 0; const budget = budgets[c] || 0; if (spent > 0 && budget > 0) sentences.push(`On the other end, ${c} came in well under at ${fmt(spent)} of its ${fmt(budget)} budget.`); }
-                  if (topEntries.length > 0) { const e = topEntries[0]; const noteStr = e.notes ? ` (${e.notes})` : ""; sentences.push(`Your largest single spend was ${fmtD(e.amount)} on ${e.category}${noteStr}.`); }
-                  if (memberNames.length >= 2 && revTotal > 0) {
-                    const srt = [...memberNames].sort((a, b) => (revByMember[b] || 0) - (revByMember[a] || 0));
-                    const top = srt[0], second = srt[1];
-                    const topAmt = revByMember[top] || 0, secAmt = revByMember[second] || 0;
-                    if (topAmt > 0 && secAmt > 0) {
-                      const splitPct = (topAmt - secAmt) / revTotal;
-                      if (splitPct < 0.05) sentences.push(`${top} and ${second} spent about the same — ${fmt(topAmt)} and ${fmt(secAmt)} respectively.`);
-                      else if (splitPct < 0.15) sentences.push(`${top} drove slightly more of the spend at ${fmt(topAmt)} versus ${fmt(secAmt)} for ${second}.`);
-                      else sentences.push(`There was a notable difference in spend — ${top} accounted for ${fmt(topAmt)} compared to ${fmt(secAmt)} for ${second}.`);
-                    }
                   }
                   if (!isFinal && projection) {
-                    if (projection.projectedOver) sentences.push(`At current pace you're on track to finish around ${fmt(projection.projectedSpend)} — worth keeping an eye on${worst[0] ? ` ${worst[0]}` : " spending"}.`);
+                    if (projection.projectedOver) sentences.push(`At current pace you're on track to finish around ${fmt(projection.projectedSpend)} — worth keeping an eye on.`);
                     else sentences.push(`At current pace you'll finish the month around ${fmt(projection.projectedSpend)}, well within budget.`);
                   }
                   return sentences.join(" ");
                 };
                 const summaryText = buildSummary();
 
-                const StatTile = ({ label, value, sub, color }) => (
-                  <div className="card" style={{ padding: "14px 16px", flex: 1, minWidth: 100 }}>
-                    <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 6 }}>{label}</div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: color || C.textHi, fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
-                    {sub && <div style={{ fontSize: 10, color: C.textLo, marginTop: 5 }}>{sub}</div>}
-                  </div>
-                );
+                // ── Want purchases ────────────────────────────────────────────
+                const wantEntries = [...revEntries]
+                  .filter(e => (catTypes[e.category] || "expense") === "expense")
+                  .sort((a, b) => b.amount - a.amount)
+                  .slice(0, 5);
 
-                const CatRow = ({ c, rank }) => {
-                  const spent = revByCat[c] || 0; const budget = budgets[c] || 0;
-                  const pct = budget > 0 ? Math.min(spent / budget, 1.5) : 0;
-                  const over = spent > budget + 2;
-                  const color = catColors[c] || C.textMid;
-                  const prevSpent = prevByCat[c] || 0;
-                  const delta = prevSpent > 0 ? spent - prevSpent : null;
-                  return (
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: `1px solid ${C.borderMid}` }}>
-                      <div style={{ width: 20, fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace", flexShrink: 0, textAlign: "center" }}>{rank}</div>
-                      <div style={{ width: 6, height: 6, borderRadius: 2, background: color, flexShrink: 0 }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                          <span style={{ fontSize: 12, color: C.textMid, fontWeight: 500 }}>{truncate(c)}</span>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            {delta !== null && <span style={{ fontSize: 10, color: delta > 0 ? "#f85149" : "#3fb950", fontFamily: "'DM Mono',monospace" }}>{delta > 0 ? "+" : ""}{fmt(delta)} vs last</span>}
-                            <span style={{ fontSize: 12, fontWeight: 700, color: over ? "#f85149" : C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
-                            <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>/ {fmt(budget)}</span>
-                          </div>
-                        </div>
-                        <div style={{ background: C.borderMid, borderRadius: 999, height: 3, overflow: "hidden" }}>
-                          <div style={{ width: `${Math.min(pct * 100, 100)}%`, height: "100%", background: over ? "#f85149" : color, borderRadius: 999, transition: "width 0.5s" }} />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                };
+                const biggestWant = wantEntries[0] || null;
+
+                // ── Entries by category state (local) ─────────────────────────
+                const [selectedRevCat, setSelectedRevCat] = React.useState(categories[0] || "");
+                const revCatEntries = revEntries
+                  .filter(e => e.category === selectedRevCat)
+                  .sort((a, b) => new Date(b.date) - new Date(a.date));
+                const revCatTotal = revCatEntries.reduce((s, e) => s + e.amount, 0);
+
+                // ── Band indicator segments ───────────────────────────────────
+                const bandSegs = [
+                  { s: 0, e: 50, c: "#f85149" }, { s: 50, e: 60, c: "#f97316" },
+                  { s: 60, e: 70, c: "#eab308" }, { s: 70, e: 80, c: "#c17f3e" },
+                  { s: 80, e: 91, c: "#3fb950" }, { s: 91, e: 100, c: "#22d3ee" },
+                ];
 
                 return (
                   <div className="fu">
+
+                    {/* Month nav — dashboard style */}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-                      <div>
-                        <div style={{ fontSize: isDesktop ? 20 : 16, fontWeight: 800, color: C.textHi, letterSpacing: -0.5 }}>{MONTH_NAMES[revMonth]} {revYear} {isFinal ? "Review" : "· In Progress"}</div>
-                        <div style={{ fontSize: 11, color: C.textLo, marginTop: 3 }}>{isFinal ? `Final · ${revDays} days` : `Day ${revToday} of ${revDays} · ${Math.round(progress * 100)}% through month`}</div>
+                      <button className="month-btn" onClick={prevMonth}>← {MONTH_NAMES[prevRevMonth].slice(0, 3)}</button>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: C.textHi, letterSpacing: -0.3 }}>{MONTH_NAMES[revMonth]} {revYear}</div>
+                        <div style={{ fontSize: 10, color: C.textLo, marginTop: 2 }}>{isFinal ? `Final · ${revDays} days` : `Day ${revToday} of ${revDays} · ${Math.round(progress * 100)}% through month`}</div>
                       </div>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button className="month-btn" onClick={prevMonth}>← {MONTH_NAMES[prevRevMonth].slice(0,3)}</button>
-                        {!isCurrentMonth && <button className="month-btn" onClick={nextMonth}>{MONTH_NAMES[viewMonth === 11 ? 0 : viewMonth + 1].slice(0,3)} →</button>}
+                      <button className="month-btn" onClick={nextMonth}>{MONTH_NAMES[viewMonth === 11 ? 0 : viewMonth + 1].slice(0, 3)} →</button>
+                    </div>
+
+                    {/* 1. Copper Score */}
+                    <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12, border: `1px solid ${scoreColor(copperScore)}30`, background: `${scoreColor(copperScore)}06` }}>
+                      <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 12 }}>COPPER SCORE · ROLLING 6-MONTH</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14 }}>
+                        <div style={{ width: 80, height: 80, borderRadius: "50%", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `4px solid ${scoreColor(copperScore)}`, background: `${scoreColor(copperScore)}12` }}>
+                          <span style={{ fontSize: 26, fontWeight: 800, color: scoreColor(copperScore), fontFamily: "'DM Mono',monospace", lineHeight: 1 }}>{copperScore}</span>
+                          <span style={{ fontSize: 8, color: scoreColor(copperScore), fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginTop: 2, opacity: 0.8 }}>/ 100</span>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: scoreColor(copperScore), marginBottom: 8 }}>{scoreLabel(copperScore)}</div>
+                          {[
+                            { label: "Consistency", weight: "40%", value: `${underBudgetCount}/6 months under budget` },
+                            { label: "Avg monthly score", weight: "30%", value: `${Math.round(scores.reduce((s, v) => s + v, 0) / scores.length)}/100 avg` },
+                            { label: "Savings trend", weight: "20%", value: savingsTrend > 0.1 ? "↑ improving" : savingsTrend < -0.1 ? "↓ declining" : "→ steady" },
+                            { label: "Volatility", weight: "10%", value: volatility < 30 ? "Low" : volatility < 60 ? "Medium" : "High" },
+                          ].map(r => (
+                            <div key={r.label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                              <span style={{ fontSize: 10, color: C.textLo }}>{r.label} <span style={{ color: C.accent }}>{r.weight}</span></span>
+                              <span style={{ fontSize: 10, color: C.textMid, fontFamily: "'DM Mono',monospace" }}>{r.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{ height: 5, borderRadius: 99, background: "rgba(255,255,255,0.06)", position: "relative", overflow: "hidden", marginBottom: 4 }}>
+                        {bandSegs.map(b => (
+                          <div key={b.s} style={{ position: "absolute", left: `${b.s}%`, width: `${b.e - b.s}%`, height: "100%", background: b.c, opacity: 0.3 }} />
+                        ))}
+                        <div style={{ position: "absolute", left: `${copperScore}%`, top: -2, bottom: -2, width: 3, background: scoreColor(copperScore), borderRadius: 99, transform: "translateX(-50%)", boxShadow: `0 0 6px ${scoreColor(copperScore)}` }} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                        {["0", "50", "60", "70", "80", "91", "100"].map(v => <span key={v} style={{ fontSize: 8, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{v}</span>)}
                       </div>
                     </div>
+
+                    {/* 2. Budget Health — this month */}
+                    <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12 }}>
+                      <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 12 }}>BUDGET HEALTH · THIS MONTH</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14 }}>
+                        <div style={{ width: 72, height: 72, borderRadius: "50%", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `3px solid ${scoreColor(currentMonthScore)}`, background: `${scoreColor(currentMonthScore)}14` }}>
+                          <span style={{ fontSize: 22, fontWeight: 800, color: scoreColor(currentMonthScore), fontFamily: "'DM Mono',monospace", lineHeight: 1 }}>{currentMonthScore}</span>
+                          <span style={{ fontSize: 8, color: scoreColor(currentMonthScore), fontFamily: "'DM Mono',monospace", letterSpacing: 1, marginTop: 2, opacity: 0.8 }}>/ 100</span>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: scoreColor(currentMonthScore), marginBottom: 4 }}>{scoreLabel(currentMonthScore)}</div>
+                          <div style={{ fontSize: 11, color: C.textMid, lineHeight: 1.5 }}>
+                            {curSavingsPct >= 20 && curWantsPct <= 30
+                              ? "Strong split — savings on target, wants in check."
+                              : curWantsPct > 30
+                              ? `Wants are ${curWantsPct - 30}% over target — biggest score drag.`
+                              : `Savings at ${curSavingsPct}% — ${20 - curSavingsPct}% below target.`}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 9, color: C.textLo, letterSpacing: "1.5px", fontFamily: "'DM Mono',monospace", textTransform: "uppercase", marginBottom: 8 }}>spending split · target 50 / 30 / 20</div>
+                      {[
+                        { label: "Needs", color: "#60a5fa", actual: curNeedsPct, target: 50 },
+                        { label: "Wants", color: "#f472b6", actual: curWantsPct, target: 30 },
+                        { label: "Savings", color: "#3fb950", actual: curSavingsPct, target: 20 },
+                      ].map(s => (
+                        <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
+                          <span style={{ fontSize: 10, color: s.color, width: 44, flexShrink: 0 }}>{s.label}</span>
+                          <div style={{ flex: 1, height: 5, background: "rgba(255,255,255,0.06)", borderRadius: 99, position: "relative" }}>
+                            <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${Math.min(s.actual, 100)}%`, background: s.color, opacity: 0.8, borderRadius: 99 }} />
+                            <div style={{ position: "absolute", top: -3, bottom: -3, left: `${s.target}%`, width: 1.5, background: "rgba(255,255,255,0.3)", transform: "translateX(-50%)", borderRadius: 1 }} />
+                          </div>
+                          <span style={{ fontSize: 10, color: s.actual > s.target && s.label !== "Savings" ? "#f85149" : s.label === "Savings" && s.actual > s.target ? "#3fb950" : s.color, width: 28, textAlign: "right", fontFamily: "'DM Mono',monospace", fontWeight: 700 }}>{s.actual}%</span>
+                        </div>
+                      ))}
+                      <div style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace", marginTop: 4 }}>│ = target · savings bonus if above 20%</div>
+                    </div>
+
+                    {/* 3. In Progress summary */}
                     {summaryText && (
-                      <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 16, borderLeft: `3px solid ${C.accent}` }}>
-                        <div style={{ fontSize: 10, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 10 }}>{isFinal ? "MONTHLY SUMMARY" : "IN PROGRESS"}</div>
+                      <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12, borderLeft: `3px solid ${C.accent}` }}>
+                        <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 10 }}>{isFinal ? "MONTHLY SUMMARY" : "IN PROGRESS"}</div>
                         <div style={{ fontSize: isDesktop ? 14 : 13, color: C.textMid, lineHeight: 1.7, overflow: "hidden", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: isDesktop || expandedSummary ? 999 : 5 }}>{summaryText}</div>
                         {!isDesktop && summaryText.length > 200 && (
                           <button onClick={() => setExpandedSummary(v => !v)} style={{ marginTop: 8, background: "none", border: "none", color: C.accent, fontSize: 12, cursor: "pointer", fontFamily: "'Sora',sans-serif", padding: 0 }}>
@@ -2989,38 +3119,153 @@ const filteredEntries = useMemo(() => {
                         )}
                       </div>
                     )}
-                    <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-                      <StatTile label="SPENT" value={fmt(revTotal)} sub={`of ${fmt(revBudget)} budget`} color={revTotal > revBudget + 2 ? "#f85149" : C.textHi} />
-                      <StatTile label={revDiff >= 0 ? "UNDER BUDGET" : "OVER BUDGET"} value={`${revDiff >= 0 ? "+" : "−"}${fmt(Math.abs(revDiff))}`} sub={revDiff >= 0 ? "great work" : "over limit"} color={revDiff >= 0 ? "#3fb950" : "#f85149"} />
-                      {momDelta !== null && <StatTile label="VS LAST MONTH" value={`${momDelta >= 0 ? "+" : "−"}${fmt(Math.abs(momDelta))}`} sub={momDelta >= 0 ? "more than " + MONTH_NAMES[prevRevMonth].slice(0,3) : "less than " + MONTH_NAMES[prevRevMonth].slice(0,3)} color={momDelta > 0 ? "#f85149" : "#3fb950"} />}
-                      {memberNames.map(m => (<StatTile key={m} label={m.toUpperCase()} value={fmt(revByMember[m] || 0)} color={memberColors[m]} />))}
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: 14, marginBottom: 16 }}>
-                      <div className="card" style={{ padding: "18px 20px" }}>
-                        <div style={{ fontSize: 10, color: "#f85149", fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 4 }}>HIGHEST USAGE</div>
-                        <div style={{ fontSize: 11, color: C.textLo, marginBottom: 12 }}>Categories closest to or over budget</div>
-                        {worst.length === 0 ? <div style={{ fontSize: 12, color: C.textLo }}>No spend yet.</div> : worst.map((c, i) => <CatRow key={c} c={c} rank={i + 1} />)}
-                      </div>
-                      <div className="card" style={{ padding: "18px 20px" }}>
-                        <div style={{ fontSize: 10, color: "#3fb950", fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 4 }}>LOWEST USAGE</div>
-                        <div style={{ fontSize: 11, color: C.textLo, marginBottom: 12 }}>Categories with most budget remaining</div>
-                        {best.length === 0 ? <div style={{ fontSize: 12, color: C.textLo }}>No spend yet.</div> : best.map((c, i) => <CatRow key={c} c={c} rank={i + 1} />)}
-                      </div>
-                    </div>
-                    <div className="card" style={{ padding: "18px 20px", marginBottom: 16 }}>
-                      <div style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace", letterSpacing: 2, marginBottom: 14 }}>TOP ENTRIES THIS MONTH</div>
-                      {topEntries.length === 0 ? <div style={{ fontSize: 12, color: C.textLo }}>No entries yet.</div> : topEntries.map((e, i) => (
-                        <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: i < topEntries.length - 1 ? `1px solid ${C.borderMid}` : "none" }}>
-                          <div style={{ width: 20, fontSize: 11, color: C.textLo, fontFamily: "'DM Mono',monospace", textAlign: "center", flexShrink: 0 }}>{i + 1}</div>
-                          <div style={{ width: 5, height: 5, borderRadius: 1, background: catColors[e.category] || C.textLo, flexShrink: 0 }} />
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 12, color: C.textMid, fontWeight: 500 }}>{e.category}{e.notes ? <span style={{ color: C.textLo, fontWeight: 400 }}> · {e.notes}</span> : ""}</div>
-                            <div style={{ fontSize: 10, color: C.textLo, marginTop: 2 }}>{e.date.slice(0,10)} · {e.member}</div>
-                          </div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: catColors[e.category] || C.textMid, fontFamily: "'DM Mono',monospace" }}>{fmtD(e.amount)}</div>
+
+                    {/* 4. Month in Numbers */}
+                    <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12 }}>
+                      <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 14 }}>MONTH IN NUMBERS</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1px 1fr", marginBottom: 14 }}>
+                        <div>
+                          <div style={{ fontSize: 9, color: C.textLo, letterSpacing: "1.5px", fontFamily: "'DM Mono',monospace", textTransform: "uppercase", marginBottom: 4 }}>spent</div>
+                          <div style={{ fontSize: 22, fontWeight: 800, color: curOverBudget ? "#f85149" : C.textHi, fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1 }}>{fmt(revTotal)}</div>
+                          <div style={{ fontSize: 10, color: C.textLo, marginTop: 3 }}>of {fmt(revBudget)} budget</div>
                         </div>
-                      ))}
+                        <div style={{ background: C.borderMid }} />
+                        <div style={{ paddingLeft: 16 }}>
+                          <div style={{ fontSize: 9, color: C.textLo, letterSpacing: "1.5px", fontFamily: "'DM Mono',monospace", textTransform: "uppercase", marginBottom: 4 }}>vs last month</div>
+                          {momDelta !== null ? (
+                            <>
+                              <div style={{ fontSize: 22, fontWeight: 800, color: momDelta <= 0 ? "#3fb950" : "#f85149", fontFamily: "'DM Mono',monospace", letterSpacing: -0.5, lineHeight: 1 }}>
+                                {momDelta <= 0 ? "↓" : "↑"}{fmt(Math.abs(momDelta))}
+                              </div>
+                              <div style={{ fontSize: 10, color: C.textLo, marginTop: 3 }}>{momDelta <= 0 ? "less than" : "more than"} {MONTH_NAMES[prevRevMonth].slice(0, 3)}</div>
+                            </>
+                          ) : (
+                            <div style={{ fontSize: 12, color: C.textLo, marginTop: 4 }}>no prior data</div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Biggest Want purchase */}
+                      {biggestWant && (
+                        <>
+                          <div style={{ height: 1, background: C.borderMid, marginBottom: 12 }} />
+                          <div style={{ fontSize: 9, color: C.textLo, letterSpacing: "1.5px", fontFamily: "'DM Mono',monospace", textTransform: "uppercase", marginBottom: 8 }}>biggest want purchase</div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "rgba(244,114,182,0.06)", border: "1px solid rgba(244,114,182,0.2)", borderRadius: 10 }}>
+                            <div style={{ width: 5, height: 5, borderRadius: 1, background: catColors[biggestWant.category] || "#f472b6", flexShrink: 0 }} />
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: C.textHi, marginBottom: 2 }}>{biggestWant.category}</div>
+                              {biggestWant.notes && <div style={{ fontSize: 11, color: C.accent, fontStyle: "italic", marginBottom: 2 }}>"{biggestWant.notes}"</div>}
+                              <div style={{ fontSize: 10, color: C.textLo }}>{biggestWant.date.slice(0, 10)} · {biggestWant.member}</div>
+                            </div>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: "#f472b6", fontFamily: "'DM Mono',monospace" }}>{fmt(biggestWant.amount)}</div>
+                          </div>
+                        </>
+                      )}
                     </div>
+
+                    {/* 5. Last 6 months with scores */}
+                    <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12 }}>
+                      <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 14 }}>LAST 6 MONTHS</div>
+                      <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 56, marginBottom: 10 }}>
+                        {last6WithScores.map((m, i) => {
+                          const maxSpend = Math.max(...last6WithScores.map(x => x.monthSpend), revBudget, 1);
+                          const h = Math.max((m.monthSpend / maxSpend) * 100, 2);
+                          const barColor = m.isCurrent ? C.accent : m.overBudget ? "#f85149" : "rgba(255,255,255,0.15)";
+                          return (
+                            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, height: "100%", justifyContent: "flex-end" }}>
+                              <div style={{ width: "100%", borderRadius: "3px 3px 0 0", height: `${h}%`, background: barColor, transition: "height 0.5s" }} />
+                              <span style={{ fontSize: 8, color: m.isCurrent ? C.accent : C.textLo, fontFamily: "'DM Mono',monospace" }}>{m.label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {/* Score row */}
+                      <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
+                        {last6WithScores.map((m, i) => (
+                          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                            <div style={{ fontSize: 10, fontWeight: 800, color: scoreColor(m.score), fontFamily: "'DM Mono',monospace" }}>{m.score}</div>
+                            <div style={{ width: "100%", height: 3, borderRadius: 99, background: scoreColor(m.score), opacity: 0.5 }} />
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ display: "flex", gap: 14 }}>
+                        {[{ color: C.accent, label: "current" }, { color: "#f85149", label: "over budget" }, { color: "rgba(255,255,255,0.15)", label: "past" }].map(l => (
+                          <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} />
+                            <span style={{ fontSize: 9, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{l.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 6. Report Card */}
+                    <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12 }}>
+                      <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 14 }}>REPORT CARD · LAST 6 MONTHS</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                        {last6WithScores.map((m, i) => (
+                          <div key={i} style={{ background: `${scoreColor(m.score)}0e`, border: `1px solid ${scoreColor(m.score)}${m.isCurrent ? "60" : "30"}`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+                            <div style={{ fontSize: 9, color: m.isCurrent ? C.accent : C.textLo, fontFamily: "'DM Mono',monospace", marginBottom: 4, fontWeight: m.isCurrent ? 700 : 400 }}>{m.label}{m.isCurrent ? " · now" : ""}</div>
+                            <div style={{ fontSize: 22, fontWeight: 800, color: scoreColor(m.score), fontFamily: "'DM Mono',monospace", lineHeight: 1, marginBottom: 3 }}>{m.score}</div>
+                            <div style={{ fontSize: 9, color: scoreColor(m.score), fontWeight: 600 }}>{scoreLabel(m.score)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 7. Top Want Purchases */}
+                    {wantEntries.length > 0 && (
+                      <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12 }}>
+                        <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 14 }}>TOP WANT PURCHASES</div>
+                        {wantEntries.map((e, i) => (
+                          <div key={e.id} style={{ padding: "10px 0", borderBottom: i < wantEntries.length - 1 ? `1px solid ${C.borderMid}` : "none" }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: e.notes ? 3 : 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <div style={{ width: 5, height: 5, borderRadius: 1, background: catColors[e.category] || C.textLo, flexShrink: 0 }} />
+                                <span style={{ fontSize: 13, fontWeight: 600, color: C.textHi }}>{e.category}</span>
+                              </div>
+                              <span style={{ fontSize: 14, fontWeight: 800, color: "#f472b6", fontFamily: "'DM Mono',monospace" }}>{fmtD(e.amount)}</span>
+                            </div>
+                            {e.notes && <div style={{ fontSize: 11, color: C.accent, fontStyle: "italic", marginBottom: 2, paddingLeft: 13 }}>"{e.notes}"</div>}
+                            <div style={{ fontSize: 10, color: C.textLo, paddingLeft: 13 }}>{e.date.slice(0, 10)} · {e.member}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 8. Entries by Category */}
+                    <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12 }}>
+                      <div style={{ fontSize: 9, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5, marginBottom: 12 }}>ENTRIES BY CATEGORY</div>
+                      <select
+                        value={selectedRevCat}
+                        onChange={e => setSelectedRevCat(e.target.value)}
+                        style={{ width: "100%", background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", color: C.textHi, fontFamily: "'Sora',sans-serif", fontSize: 13, outline: "none", marginBottom: 14, appearance: "none" }}
+                      >
+                        {categories.map(c => <option key={c} value={c} style={{ background: theme === "dark" ? "#1c1c1f" : "#f0ece6" }}>{c}</option>)}
+                      </select>
+
+                      {revCatEntries.length === 0 ? (
+                        <div style={{ fontSize: 12, color: C.textLo, textAlign: "center", padding: "16px 0" }}>No entries for {selectedRevCat} this month.</div>
+                      ) : (
+                        <>
+                          {revCatEntries.map((e, i) => (
+                            <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < revCatEntries.length - 1 ? `1px solid ${C.borderMid}` : "none" }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: e.notes ? 3 : 0 }}>
+                                  <span style={{ fontSize: 11, color: C.textMid, fontFamily: "'DM Mono',monospace" }}>{e.date.slice(0, 10)} · {e.member}</span>
+                                  <span style={{ fontSize: 13, fontWeight: 800, color: catColors[e.category] || C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmtD(e.amount)}</span>
+                                </div>
+                                {e.notes && <div style={{ fontSize: 11, color: C.accent, fontStyle: "italic" }}>"{e.notes}"</div>}
+                              </div>
+                            </div>
+                          ))}
+                          <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.borderMid}`, display: "flex", justifyContent: "space-between" }}>
+                            <span style={{ fontSize: 11, color: C.textLo }}>{revCatEntries.length} {revCatEntries.length === 1 ? "entry" : "entries"}</span>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: catColors[selectedRevCat] || C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmtD(revCatTotal)}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
                   </div>
                 );
               })()}
