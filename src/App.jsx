@@ -422,6 +422,7 @@ export default function App() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
   const [view, setView] = useState("dashboard");
+  const [selectedRevCat, setSelectedRevCat] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const [nextId, setNextId] = useState(1);
@@ -3010,7 +3011,6 @@ const filteredEntries = useMemo(() => {
                 const biggestWant = wantEntries[0] || null;
 
                 // ── Entries by category state (local) ─────────────────────────
-                const [selectedRevCat, setSelectedRevCat] = React.useState(categories[0] || "");
                 const revCatEntries = revEntries
                   .filter(e => e.category === selectedRevCat)
                   .sort((a, b) => new Date(b.date) - new Date(a.date));
