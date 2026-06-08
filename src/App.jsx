@@ -2864,7 +2864,7 @@ const filteredEntries = useMemo(() => {
                     const monthEntries = allEntries.filter(e => e.date.startsWith(key));
                     const spend = monthEntries.reduce((s, e) => s + e.amount, 0);
                     const bySection = {};
-                    sections.forEach(sec => { bySection[sec.name] = 0; });
+                    sectionNames.forEach(sec => { bySection[sec.name] = 0; });
                     monthEntries.forEach(e => {
                       const sec = catSection[e.category];
                       if (sec) bySection[sec] = (bySection[sec] || 0) + e.amount;
