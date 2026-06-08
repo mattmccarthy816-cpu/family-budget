@@ -746,22 +746,22 @@ const filteredEntries = useMemo(() => {
   async function saveCat() {
     const name = catForm.name.trim();
     if (!name || !catForm.budget || isNaN(+catForm.budget) || +catForm.budget <= 0) { showToast("Fill name and budget.", false); return; }
-    let nb = { ...budgets }, nc = { ...catColors }, nt = { ...catTypes };
+    let nb = { ...budgets }, nc = { ...catColors }, nt = { ...catTypes }, clm = { ...catClassifications };
     if (editCat === "new") { if (budgets[name]) { showToast("Already exists.", false); return; } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; nt[name] = catForm.type; clm[name] = catForm.classification; }
     else { if (name !== editCat && budgets[name]) { showToast("Name taken.", false); return; } if (name !== editCat) { nb[name] = nb[editCat]; delete nb[editCat]; nc[name] = nc[editCat]; delete nc[editCat]; nt[name] = nt[editCat]; delete nt[editCat]; setAllEntries(prev => prev.map(e => e.category === editCat ? { ...e, category: name } : e)); } nb[name] = parseFloat((+catForm.budget).toFixed(2)); nc[name] = catForm.color; nt[name] = catForm.type; clm[name] = catForm.classification; }
     const resolvedSection = catForm.section === "__new__" ? catForm.newSection.trim() : catForm.section;
     let newRawSections = rawSections.filter(r => r.category !== name && r.category !== editCat);
     if (resolvedSection) { const maxOrder = newRawSections.reduce((m, r) => Math.max(m, r.order), 0); newRawSections.push({ section: resolvedSection, category: name, order: maxOrder + 1 }); }
     setRawSections(newRawSections);
-    setBudgets(nb); setCatColors(nc); setCatTypes(nt); setEditCat(null); showToast(editCat === "new" ? `"${name}" added.` : "Updated.");
+    setBudgets(nb); setCatColors(nc); setCatTypes(nt); setCatClassifications(clm); setEditCat(null); showToast(editCat === "new" ? `"${name}" added.` : "Updated.");
     await saveBudgetsToSheet(nb, nc, nt, clm);
     await saveSectionsToSheet(newRawSections);
   }
   async function deleteCat(catName) {
     if (categories.length <= 1) { showToast("Can't delete the last category.", false); return; }
-    const nb = { ...budgets }; delete nb[catName]; const nc = { ...catColors }; delete nc[catName]; const nt = { ...catTypes }; delete nt[catName];
-    setBudgets(nb); setCatColors(nc); setCatTypes(nt); setAllEntries(prev => prev.filter(e => e.category !== catName)); setEditCat(null); showToast(`"${catName}" deleted.`);
-    await saveBudgetsToSheet(nb, nc, nt, catClassifications);
+    const nb = { ...budgets }; delete nb[catName]; const nc = { ...catColors }; delete nc[catName]; const nt = { ...catTypes }; delete nt[catName]; const clm = { ...catClassifications }; delete clm[catName];
+    setBudgets(nb); setCatColors(nc); setCatTypes(nt); setCatClassifications(clm); setEditCat(null); showToast(editCat === "new" ? `"${name}" added.` : "Updated.");
+    await saveBudgetsToSheet(nb, nc, nt, clm);
   }
   async function saveMembersToSheet(mems) {
     try { await api({ action: "saveMembers", members: JSON.stringify(mems.map(m => ({ name: m.name, color: m.color, role: m.role }))) }); }
