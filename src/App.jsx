@@ -2928,44 +2928,44 @@ const filteredEntries = useMemo(() => {
 
                     {/* Section drill-down */}
                     {selectedData && (
-                      <div className="card" style={{ padding: isDesktop ? "20px 24px" : "16px 14px", marginBottom: 12, borderLeft: `3px solid ${C.accent}` }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                          <div style={{ fontSize: 10, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5 }}>{MONTH_NAMES[parseInt(selectedData.key.slice(5, 7)) - 1].toUpperCase()} {selectedData.key.slice(0, 4)}</div>
-                          <div style={{ fontSize: 18, fontWeight: 800, color: selectedData.spend > totalBudget + 2 ? "#f85149" : "#3fb950", fontFamily: "'DM Mono',monospace" }}>{fmt(selectedData.spend)}</div>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                          {sections.filter(sec => (selectedData.bySection[sec.name] || 0) > 0).sort((a, b) => (selectedData.bySection[b.name] || 0) - (selectedData.bySection[a.name] || 0)).map(sec => {
-                            const spent = selectedData.bySection[sec.name] || 0;
-                            const pct = selectedData.spend > 0 ? spent / selectedData.spend : 0;
-                            return (
-                              <div key={sec.name}>
-                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                  <span style={{ fontSize: 12, color: C.textMid }}>{sec.name}</span>
-                                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                                    <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{Math.round(pct * 100)}%</span>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
-                                  </div>
-                                </div>
-                                <div style={{ background: C.borderMid, borderRadius: 999, height: 3, overflow: "hidden" }}>
-                                  <div style={{ width: `${Math.min(pct * 100, 100)}%`, height: "100%", background: C.accent, borderRadius: 999 }} />
-                                </div>
-                              </div>
-                            );
-                          })}
-                          {memberNames.length > 1 && (
-                            <div style={{ display: "flex", gap: 16, marginTop: 8, paddingTop: 10, borderTop: `1px solid ${C.borderMid}` }}>
-                              {memberNames.map(m => (
-                                <div key={m} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: memberColors[m], flexShrink: 0 }} />
-                                  <span style={{ fontSize: 11, color: C.textMid }}>{m}</span>
-                                  <span style={{ fontSize: 11, fontWeight: 700, color: memberColors[m], fontFamily: "'DM Mono',monospace" }}>{fmt(selectedData.byMem[m] || 0)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
+  <div className="card" style={{ padding: isDesktop ? "20px 24px" : "16px 14px", marginBottom: 12, borderLeft: `3px solid ${C.accent}` }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+      <div style={{ fontSize: 10, color: C.accent, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5 }}>{MONTH_NAMES[parseInt(selectedData.key.slice(5, 7)) - 1].toUpperCase()} {selectedData.key.slice(0, 4)}</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: selectedData.spend > totalBudget + 2 ? "#f85149" : "#3fb950", fontFamily: "'DM Mono',monospace" }}>{fmt(selectedData.spend)}</div>
+    </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {sectionNames.filter(sec => (selectedData.bySection[sec] || 0) > 0).sort((a, b) => (selectedData.bySection[b] || 0) - (selectedData.bySection[a] || 0)).map(sec => {
+        const spent = selectedData.bySection[sec] || 0;
+        const pct = selectedData.spend > 0 ? spent / selectedData.spend : 0;
+        return (
+          <div key={sec}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+              <span style={{ fontSize: 12, color: C.textMid }}>{sec}</span>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <span style={{ fontSize: 10, color: C.textLo, fontFamily: "'DM Mono',monospace" }}>{Math.round(pct * 100)}%</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.textHi, fontFamily: "'DM Mono',monospace" }}>{fmt(spent)}</span>
+              </div>
+            </div>
+            <div style={{ background: C.borderMid, borderRadius: 999, height: 3, overflow: "hidden" }}>
+              <div style={{ width: `${Math.min(pct * 100, 100)}%`, height: "100%", background: C.accent, borderRadius: 999 }} />
+            </div>
+          </div>
+        );
+      })}
+      {memberNames.length > 1 && (
+        <div style={{ display: "flex", gap: 16, marginTop: 8, paddingTop: 10, borderTop: `1px solid ${C.borderMid}` }}>
+          {memberNames.map(m => (
+            <div key={m} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: memberColors[m], flexShrink: 0 }} />
+              <span style={{ fontSize: 11, color: C.textMid }}>{m}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: memberColors[m], fontFamily: "'DM Mono',monospace" }}>{fmt(selectedData.byMem[m] || 0)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
                     {/* 3. Report Card */}
                     <div className="card" style={{ padding: isDesktop ? "18px 24px" : "16px 18px", marginBottom: 12 }}>
